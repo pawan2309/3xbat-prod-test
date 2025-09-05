@@ -1,0 +1,63 @@
+{
+  "name": "@3xbat/backend",
+  "version": "1.0.0",
+  "description": "3xbat Backend API Server",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc src/index.ts --outDir dist --target es2020 --module commonjs --esModuleInterop --allowSyntheticDefaultImports --skipLibCheck",
+    "dev": "ts-node src/index.ts",
+    "build:minimal": "tsc src/index.ts --outDir dist --target es2020 --module commonjs --esModuleInterop --allowSyntheticDefaultImports",
+    "start:minimal": "node dist/index.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.7.1",
+    "@types/helmet": "^0.0.48",
+    "axios": "^1.11.0",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.0.7",
+    "compression": "^1.8.1",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^7.2.0",
+    "ioredis": "^5.7.0",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.1",
+    "node-cron": "^3.0.3",
+    "nodemon": "^3.1.10",
+    "socket.io": "^4.7.4",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.6",
+    "@types/express": "^4.17.23",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^20.19.11",
+    "@types/node-cron": "^3.0.11",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "prisma": "^5.7.1",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.1.0",
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "betting",
+    "casino",
+    "api",
+    "express",
+    "typescript",
+    "prisma"
+  ],
+  "author": "3xbat Team",
+  "license": "MIT"
+}

@@ -1,0 +1,29 @@
+{
+  "name": "3xbat-api-proxy",
+  "version": "1.0.0",
+  "description": "External API Proxy for 3xbat betting platform",
+  "main": "api-proxy.js",
+  "scripts": {
+    "start": "node api-proxy.js",
+    "dev": "nodemon api-proxy.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "3xbat",
+    "betting",
+    "api",
+    "proxy",
+    "cricket",
+    "casino"
+  ],
+  "author": "3xbat Team",
+  "license": "MIT"
+} 

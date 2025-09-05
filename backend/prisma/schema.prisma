@@ -1,0 +1,571 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management - Enhanced with all old fields
+model User {
+  id                  String               @id @default(cuid())
+  username            String               @unique
+  password            String
+  name                String?              // Old field
+  contactno           String?              // Old field - phone number
+  reference           String?              // Old field
+  limit               Float                @default(0) // Credit limit and balance
+  exposure            Float                @default(0) // Old field
+  casinoStatus        Boolean?             // Old field
+  role                UserRole             @default(USER)
+  status              UserStatus           @default(ACTIVE)
+  isActive            Boolean              @default(true) // Old field
+  parentId            String?              // Old field - hierarchy system
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  // Relations
+  bets                Bet[]
+  sessions            Session[]
+  exposures           UserExposure[]
+  limits              Limit[]
+  ledger              Ledger[]
+  loginSessions       LoginSession[]
+  userCommissionShare UserCommissionShare?
+  notifications       Notification[]
+  transactions        Transaction[]
+  preferences         UserPreferences?
+  
+  // Hierarchy relations
+  parent              User?                @relation("UserHierarchy", fields: [parentId], references: [id])
+  children            User[]               @relation("UserHierarchy")
+
+  @@map("users")
+}
+
+enum UserRole {
+  OWNER
+  SUB_OWN
+  SUP_ADM
+  ADMIN
+  SUB_ADM
+  MAS_AGENT
+  SUP_AGENT
+  AGENT
+  USER
+  
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// Authentication - Enhanced
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// Enhanced LoginSession model from old schema
+model LoginSession {
+  id              String    @id @default(cuid())
+  userId          String
+  loginAt         DateTime  @default(now())
+  logoutAt        DateTime?
+  ipAddress       String?
+  userAgent       String?
+  deviceType      String?
+  location        String?
+  sessionDuration Int?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([loginAt])
+  @@index([isActive])
+  @@map("login_sessions")
+}
+
+// Commission sharing model from old schema
+model UserCommissionShare {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  share                   Float    @default(0)
+  cshare                  Float    @default(0)
+  icshare                 Float    @default(0)
+  casinocommission        Float    @default(0)
+  matchcommission         Float    @default(0)
+  sessioncommission       Float    @default(0)
+  sessionCommission       Float?
+  session_commission_type String   @default("No Comm")
+  commissionType          String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  available_share_percent Float    @default(0)
+  
+  // Relations
+  User                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_commission_shares")
+}
+
+// Betting Models - Enhanced with all old fields
+model Match {
+  id          String      @id @default(cuid())
+  externalMatchId String  @unique // Old field - beventId from API
+  matchName   String      // Old field - "ename" from API
+  externalId  String?     // New field for additional IDs
+  name        String      // Enhanced name field
+  sport       String      @default("cricket")
+  bevent      String      // Old field - "bvent" from API
+  bmarket     String      // Old field - "bmarket" from API
+  tournament  String      // Old field - "cname" from API
+  startTime   DateTime?   // Made optional to support old data
+  status      MatchStatus @default(UPCOMING)
+  isLive      Boolean     @default(false)
+  isActive    Boolean     @default(true) // Old field - control panel control
+  winner      String?     // Old field
+  settledAt   DateTime?   // Old field
+  isDeleted   Boolean     @default(false) // Old field
+  result      String?     // Old field - match result
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  lastUpdated DateTime    @updatedAt // Old field
+
+  // Relations
+  markets    Market[]
+  bets       Bet[]
+  odds       MatchOdds[] // Old relation
+  ledger     Ledger[]    // Old relation
+  exposures  UserExposure[] // User exposures for this match
+
+  // Indexes from old schema
+  @@index([bmarket])
+  @@index([bevent])
+  @@index([status])
+  @@index([startTime])
+  @@index([isLive])
+  @@index([isActive])
+  @@map("matches")
+}
+
+enum MatchStatus {
+  INPLAY
+  UPCOMING
+  COMPLETED
+  REMOVED
+  FINISHED
+}
+
+// NEW: Scope enum for betting models
+enum BettingScope {
+  MATCH
+  SESSION
+}
+
+// MatchOdds model from old schema - CRITICAL for odds management
+model MatchOdds {
+  id          String   @id @default(cuid())
+  matchId     String
+  marketId    String
+  marketName  String
+  gtype       String
+  status      String
+  scope       BettingScope @default(MATCH) // NEW: Scope field
+  lastUpdated DateTime @updatedAt
+  
+  // Relations
+  match       Match    @relation(fields: [matchId], references: [id])
+
+  @@index([marketId])
+  @@index([matchId])
+  @@index([status])
+  @@map("match_odds")
+}
+
+model Market {
+  id          String       @id @default(cuid())
+  matchId     String
+  name        String
+  type        MarketType
+  status      MarketStatus @default(ACTIVE)
+  isActive    Boolean      @default(true)
+  suspendedAt DateTime?
+  suspensionReason String?
+  scope       BettingScope @default(MATCH) // NEW: Scope field
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  match      Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  selections Selection[]
+  bets       Bet[]
+  ledger     Ledger[]
+
+  @@map("markets")
+}
+
+enum MarketType {
+  MATCH_WINNER
+  OVER_UNDER
+  HANDICAP
+  CORRECT_SCORE
+  BOTH_TEAMS_SCORE
+  FIRST_GOAL_SCORER
+}
+
+enum MarketStatus {
+  ACTIVE
+  SUSPENDED
+  SETTLED
+  CANCELLED
+}
+
+model Selection {
+  id        String           @id @default(cuid())
+  marketId  String
+  name      String
+  odds      Float
+  status    SelectionStatus @default(ACTIVE)
+  isActive  Boolean         @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  // Relations
+  market    Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  bets      Bet[]
+
+  @@map("selections")
+}
+
+enum SelectionStatus {
+  ACTIVE
+  SUSPENDED
+  WINNER
+  LOSER
+  VOID
+}
+
+// Enhanced Bet model with all old fields
+model Bet {
+  id          String    @id @default(cuid())
+  userId      String
+  matchId     String
+  marketId    String
+  selectionId String?
+  selection   String?   // Old field - direct selection string
+  stake       Float
+  odds        Float
+  betType     String?   // Old field
+  potentialWin Float?
+  scope       BettingScope @default(MATCH) // NEW: Scope field
+  status      BetStatus @default(PENDING)
+  profitLoss  Float?    // Old field
+  payout      Float?    // New field for bet settlement
+  settledAt   DateTime?
+  cancelledAt DateTime?
+  cancelReason String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match      Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  market     Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  selectionRelation  Selection? @relation(fields: [selectionId], references: [id], onDelete: Cascade)
+  ledger     Ledger[]
+
+  @@index([userId])
+  @@index([matchId])
+  @@index([marketId])
+  @@index([status])
+  @@map("bets")
+}
+
+enum BetStatus {
+  PENDING
+  WON
+  LOST
+  VOID
+  CANCELED
+}
+
+// NEW: Missing models that were causing errors
+
+// Notification model
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  status    NotificationStatus @default(UNREAD)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("notifications")
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+// Transaction model
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  amount      Float
+  description String
+  reference   String?
+  status      TransactionStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@map("transactions")
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// UserPreferences model
+model UserPreferences {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  language  String   @default("en")
+  timezone  String   @default("UTC")
+  currency  String   @default("INR")
+  notifications Json @default("{\"email\": true, \"sms\": false, \"push\": true}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// QueueItem model
+model QueueItem {
+  id          String   @id @default(cuid())
+  queueName   String
+  data        String   // JSON string
+  priority    Int      @default(1)
+  status      QueueStatus @default(PENDING)
+  attempts    Int      @default(0)
+  lastError   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  processedAt DateTime?
+  failedAt    DateTime?
+
+  @@index([queueName])
+  @@index([status])
+  @@index([priority])
+  @@map("queue_items")
+}
+
+enum QueueStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// OddsHistory model
+model OddsHistory {
+  id            String   @id @default(cuid())
+  marketId      String
+  selectionId   String
+  previousOdds  Float
+  newOdds      Float
+  change       Float
+  changePercentage Float
+  timestamp    DateTime @default(now())
+
+  @@index([marketId])
+  @@index([selectionId])
+  @@index([timestamp])
+  @@map("odds_history")
+}
+
+// MarketSelection model (alias for Selection to match code)
+model MarketSelection {
+  id        String           @id @default(cuid())
+  marketId  String
+  name      String
+  odds      Float
+  isActive  Boolean         @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([marketId])
+  @@map("market_selections")
+}
+
+model UserExposure {
+  id        String   @id @default(cuid())
+  userId    String
+  matchId   String
+  amount    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([matchId])
+  @@map("user_exposures")
+}
+
+model Limit {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  value     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@map("limits")
+}
+
+// Ledger model from old schema - CRITICAL for transaction history
+model Ledger {
+  id           String   @id @default(cuid())
+  userId       String
+  matchId      String?
+  marketId     String?
+  betId        String?
+  type         String
+  amount       Float
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id])
+  match        Match?   @relation(fields: [matchId], references: [id])
+  market       Market?  @relation(fields: [marketId], references: [id])
+  bet          Bet?     @relation(fields: [betId], references: [id])
+
+  @@index([userId])
+  @@index([matchId])
+  @@index([marketId])
+  @@index([betId])
+  @@map("ledger")
+}
+
+// Casino Models - Enhanced with old schema
+model CasinoGame {
+  id          String      @id @default(cuid())
+  name        String
+  type        String
+  status      GameStatus  @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("casino_games")
+}
+
+enum GameStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+// CasinoTable model from old schema
+model CasinoTable {
+  id          Int             @id @default(autoincrement())
+  eventId     BigInt          @map("event_id")
+  name        String          @db.VarChar(50)
+  shortName   String          @map("short_name") @db.VarChar(20)
+  betStatus   CasinoBetStatus @default(OPEN) @map("bet_status")
+  minStake    Decimal         @default(0) @map("min_stake") @db.Decimal(10, 2)
+  maxStake    Decimal         @default(0) @map("max_stake") @db.Decimal(10, 2)
+  dataUrl     String?         @map("data_url")
+  resultUrl   String?         @map("result_url")
+  streamId    Int?            @map("stream_id")
+  lastUpdated DateTime        @default(now()) @updatedAt @map("last_updated")
+
+  @@index([betStatus], map: "idx_casino_tables_bet_status")
+  @@index([streamId], map: "idx_casino_tables_stream_id")
+  @@map("casino_tables")
+}
+
+enum CasinoBetStatus {
+  OPEN
+  CLOSED
+}
+
+// System Models
+model SystemConfig {
+  id        String      @id @default(cuid())
+  key       String      @unique
+  value     String
+  type      ConfigType
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("system_configs")
+}
+
+enum ConfigType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  resource    String
+  resourceId  String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@map("audit_logs")
+} 

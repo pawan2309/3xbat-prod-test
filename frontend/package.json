@@ -1,0 +1,40 @@
+{
+  "name": "3xbat-frontend",
+  "version": "1.0.0",
+  "description": "3xBat Frontend Monorepo - All frontend applications and packages",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean",
+    "install:all": "npm install",
+    "client-panels:dev": "cd apps/client-panels && npm run dev",
+    "client-panels:build": "cd apps/client-panels && npm run build",
+    "client-panels:start": "cd apps/client-panels && npm run start",
+    "control-panel:dev": "cd apps/control-panel && npm run dev",
+    "control-panel:build": "cd apps/control-panel && npm run build",
+    "operating-panel:dev": "cd apps/operating-panel && npm run dev",
+    "operating-panel:build": "cd apps/operating-panel && npm run build"
+  },
+  "devDependencies": {
+    "turbo": "^1.10.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@younestouati/playing-cards-standard-deck": "^6.0.1"
+  },
+  "resolutions": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

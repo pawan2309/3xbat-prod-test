@@ -1,0 +1,94 @@
+{
+  "monitoring": {
+    "enabled": true,
+    "checkInterval": 800,
+    "timeout": 5000,
+    "maxRetries": 3
+  },
+  "tunnel": {
+    "localPort": 3000,
+    "remotePort": 3000,
+    "healthCheckEndpoint": "/health"
+  },
+  "casino": {
+    "baseUrl": "http://159.65.20.25:3000",
+    "endpoints": [
+      {
+        "name": "Teen Patti 20",
+        "type": "teen20",
+        "getdataUrl": "/getdata/",
+        "getresultUrl": "/getresult/",
+        "enabled": true,
+        "pollingInterval": 800
+      },
+      {
+        "name": "Andar Bahar 20",
+        "type": "ab20",
+        "getdataUrl": "/getdata/",
+        "getresultUrl": "/getresult/",
+        "enabled": true,
+        "pollingInterval": 800
+      },
+      {
+        "name": "Dragon Tiger 20",
+        "type": "dt20",
+        "getdataUrl": "/getdata/",
+        "getresultUrl": "/getresult/",
+        "enabled": true,
+        "pollingInterval": 800
+      },
+      {
+        "name": "AAA",
+        "type": "aaa",
+        "getdataUrl": "/getdata/",
+        "getresultUrl": "/getresult/",
+        "enabled": true,
+        "pollingInterval": 800
+      },
+      {
+        "name": "Card 32 EU",
+        "type": "card32eu",
+        "getdataUrl": "/getdata/",
+        "getresultUrl": "/getresult/",
+        "enabled": true,
+        "pollingInterval": 800
+      },
+      {
+        "name": "Lucky 7 EU",
+        "type": "lucky7eu",
+        "getdataUrl": "/getdata/",
+        "getresultUrl": "/getresult/",
+        "enabled": true,
+        "pollingInterval": 800
+      }
+    ]
+  },
+  "logging": {
+    "enabled": true,
+    "directory": "./logs",
+    "files": {
+      "data": "casino-data.log",
+      "errors": "casino-errors.log",
+      "summary": "casino-summary.log"
+    },
+    "console": {
+      "enabled": true,
+      "colors": true,
+      "level": "INFO"
+    }
+  },
+  "notifications": {
+    "enabled": false,
+    "webhook": "",
+    "email": "",
+    "discord": ""
+  },
+  "dataProcessing": {
+    "saveRawData": true,
+    "saveProcessedData": true,
+    "dataRetention": {
+      "days": 30,
+      "maxFileSize": "100MB"
+    }
+  }
+}

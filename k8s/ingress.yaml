@@ -1,0 +1,133 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: 3xbat-ingress
+  namespace: 3xbat
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # For SSL certificates
+spec:
+  tls:
+  - hosts:
+    - 3xbat.com
+    - api.3xbat.com
+    - admin.3xbat.com
+    - control.3xbat.com
+    secretName: 3xbat-tls
+  rules:
+  # Main website - Client Panels
+  - host: 3xbat.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: client-panels-service
+            port:
+              number: 3000
+  
+  # API endpoints
+  - host: api.3xbat.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 3000
+  
+  # Admin panel
+  - host: admin.3xbat.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: user-panel-service
+            port:
+              number: 3000
+  
+  # Control panel
+  - host: control.3xbat.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: control-panel-service
+            port:
+              number: 3000
+---
+# Alternative: Single domain with path-based routing
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: 3xbat-ingress-single
+  namespace: 3xbat
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - 3xbat.com
+    secretName: 3xbat-tls
+  rules:
+  - host: 3xbat.com
+    http:
+      paths:
+      # API routes
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 3000
+      # WebSocket routes
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 3001
+      # Admin panel
+      - path: /admin
+        pathType: Prefix
+        backend:
+          service:
+            name: user-panel-service
+            port:
+              number: 3000
+      # Control panel
+      - path: /control
+        pathType: Prefix
+        backend:
+          service:
+            name: control-panel-service
+            port:
+              number: 3000
+      # Main website (default)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: client-panels-service
+            port:
+              number: 3000

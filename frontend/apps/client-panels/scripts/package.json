@@ -1,0 +1,26 @@
+{
+  "name": "casino-websocket-monitor",
+  "version": "1.0.0",
+  "description": "WebSocket monitor for casino game data",
+  "main": "websocket-monitor.js",
+  "scripts": {
+    "monitor": "node websocket-monitor.js",
+    "monitor:teen20": "GAME_TYPE=teen20 node websocket-monitor.js",
+    "monitor:andarbahar": "GAME_TYPE=andarbahar node websocket-monitor.js",
+    "monitor:local": "WEBSOCKET_URL=http://localhost:4000 node websocket-monitor.js",
+    "monitor:prod": "WEBSOCKET_URL=https://your-production-url.com node websocket-monitor.js"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.4",
+    "chalk": "^4.1.2",
+    "moment": "^2.29.4"
+  },
+  "keywords": [
+    "websocket",
+    "casino",
+    "monitor",
+    "real-time"
+  ],
+  "author": "3xBat Team",
+  "license": "MIT"
+}
