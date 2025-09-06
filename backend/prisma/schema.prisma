@@ -15,6 +15,7 @@ model User {
   id                  String               @id @default(cuid())
   username            String               @unique
   password            String
+  code                String?              // User code field
   name                String?              // Old field
   contactno           String?              // Old field - phone number
   reference           String?              // Old field
@@ -121,7 +122,7 @@ model UserCommissionShare {
   available_share_percent Float    @default(0)
   
   // Relations
-  User                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_commission_shares")
 }

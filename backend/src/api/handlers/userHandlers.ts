@@ -112,7 +112,7 @@ export const getUsers = async (req: Request, res: Response) => {
         parentId: null,
         updatedAt: new Date(),
         parent: null,
-        UserCommissionShare: {
+        userCommissionShare: {
           share: 100,
           available_share_percent: 100,
           cshare: 100,
@@ -142,7 +142,7 @@ export const getUsers = async (req: Request, res: Response) => {
           username: 'SUB_OWNER_001',
           name: 'Test Sub Owner 1'
         },
-        UserCommissionShare: {
+        userCommissionShare: {
           share: 100,
           available_share_percent: 100,
           cshare: 100,
@@ -224,7 +224,7 @@ export const createUser = async (req: Request, res: Response) => {
       select: { username: true, code: true }
     });
     const existingUsernames = existingUsers.map(u => u.username);
-    const existingCodes = existingUsers.map(u => u.code);
+    const existingCodes = existingUsers.map(u => u.code).filter((code): code is string => code !== null);
 
     // Generate unique username and code
     const username = generateUsername(role, existingUsernames);
@@ -242,35 +242,23 @@ export const createUser = async (req: Request, res: Response) => {
         contactno: contactno || null,
         code,
         parentId: parentId || null,
-        creditLimit: 0, // Will be set by parent
         isActive: true,
-        UserCommissionShare: {
+        userCommissionShare: {
           create: {
             share: share || 0,
             available_share_percent: share || 0,
             cshare: cshare || 0,
             icshare: icshare || 0,
-            mobileshare: mobileshare || 0,
             session_commission_type: session_commission_type || 'PERCENTAGE',
             matchcommission: matchcommission || 0,
             sessioncommission: sessioncommission || 0,
             casinocommission: casinocommission || 0,
-            commissionType: commissionType || 'PERCENTAGE',
-            casinoStatus: casinoStatus || false,
-            matchCommission: matchCommission || 0,
-            sessionCommission: sessionCommission || 0,
-            casinoShare: casinoShare || 0,
-            casinoCommission: casinoCommission || 0,
-            // Parent commission fields
-            myMatchCommission: myMatchCommission || 0,
-            mySessionCommission: mySessionCommission || 0,
-            myCasinoCommission: myCasinoCommission || 0,
-            myCasinoShare: myCasinoShare || 0
+            commissionType: commissionType || 'PERCENTAGE'
           }
         }
       },
       include: {
-        UserCommissionShare: true,
+        userCommissionShare: true,
         parent: {
           select: {
             username: true,
@@ -297,7 +285,7 @@ export const createUser = async (req: Request, res: Response) => {
     console.error('Error creating user:', error);
     
     // Check for specific database errors
-    if (error.code === 'P2002') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
       return res.status(400).json({ success: false, message: 'Username or code already exists. Please try again.' });
     }
     
@@ -313,7 +301,7 @@ export const getUserById = async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
-        UserCommissionShare: true,
+        userCommissionShare: true,
         parent: {
           select: {
             username: true,
@@ -343,7 +331,7 @@ export const updateUser = async (req: Request, res: Response) => {
       where: { id },
       data: updateData,
       include: {
-        UserCommissionShare: true,
+        userCommissionShare: true,
         parent: {
           select: {
             username: true,
