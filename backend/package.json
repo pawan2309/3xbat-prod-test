@@ -8,7 +8,8 @@
     "build": "tsc src/index.ts --outDir dist --target es2020 --module commonjs --esModuleInterop --allowSyntheticDefaultImports --skipLibCheck",
     "dev": "ts-node src/index.ts",
     "build:minimal": "tsc src/index.ts --outDir dist --target es2020 --module commonjs --esModuleInterop --allowSyntheticDefaultImports",
-    "start:minimal": "node dist/index.js"
+    "start:minimal": "node dist/index.js",
+    "start:full": "node dist/index.js"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
@@ -30,6 +31,7 @@
     "node-cron": "^3.0.3",
     "nodemon": "^3.1.10",
     "socket.io": "^4.7.4",
+    "socket.io-client": "^4.7.4",
     "winston": "^3.11.0"
   },
   "devDependencies": {

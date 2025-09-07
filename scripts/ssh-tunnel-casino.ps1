@@ -40,24 +40,24 @@ function Start-CasinoTunnel {
         $localPort = $tunnel.localPort
         $remotePort = $tunnel.remotePort
         
-        Write-Log "Connecting to $sshHost:$remotePort -> localhost:$localPort"
+        Write-Log "Connecting to ${sshHost}:${remotePort} -> localhost:${localPort}"
         
         # Start SSH tunnel
-        $sshCommand = "ssh -i `"$sshKey`" -L $localPort`:$sshHost`:$remotePort $sshUser@$sshHost -N -f"
+        $sshCommand = "ssh -i `"$sshKey`" -L ${localPort}:${sshHost}:${remotePort} $sshUser@$sshHost -N -f"
         
         Write-Log "Executing: $sshCommand"
         
         # Execute SSH command
         Start-Process -FilePath "ssh" -ArgumentList @(
-            "-i", "`"$sshKey`",
-            "-L", "$localPort`:$sshHost`:$remotePort",
+            "-i", "`"$sshKey`"",
+            "-L", "${localPort}:${sshHost}:${remotePort}",
             "$sshUser@$sshHost",
             "-N", "-f"
         ) -NoNewWindow -PassThru
         
         Write-Log "Casino API SSH tunnel started successfully"
         Write-Log "Local port: $localPort"
-        Write-Log "Remote endpoint: $sshHost`:$remotePort"
+        Write-Log "Remote endpoint: ${sshHost}:${remotePort}"
         Write-Log "Endpoints available:"
         Write-Log "  - GET http://localhost:$localPort/getdata/"
         Write-Log "  - GET http://localhost:$localPort/getresult/"

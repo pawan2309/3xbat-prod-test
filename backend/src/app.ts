@@ -8,6 +8,8 @@ import morgan from 'morgan';
 // Import routes
 import authRoutes from './api/routes/authRoutes';
 import userManagementRoutes from './api/routes/userManagement';
+import cricketRoutes from './api/routes/cricket';
+import casinoRoutes from './api/routes/casino';
 
 const app = express();
 
@@ -16,7 +18,12 @@ app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3002',
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3002', 
+    'http://192.168.29.248:3000',
+    'http://192.168.29.248:3002'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
@@ -47,6 +54,8 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api', userManagementRoutes);
+app.use('/api/cricket', cricketRoutes);
+app.use('/api/casino', casinoRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

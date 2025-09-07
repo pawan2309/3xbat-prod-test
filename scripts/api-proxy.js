@@ -54,52 +54,7 @@ app.get('/cricket/scorecard', async (req, res) => {
     }
 });
 
-// Cricket TV Streaming
-app.get('/cricket/tv', async (req, res) => {
-    try {
-        const { eventId } = req.query;
-        const url = `https://mis3.sqmr.xyz/rtv.php?eventId=${eventId || 'test'}`;
-        
-        console.log(`[CRICKET TV] Fetching from: ${url}`);
-        const response = await axios.get(url, {
-            headers: {
-                'User-Agent': 'Betting-ExternalAPI/1.0'
-            }
-        });
-        
-        res.json({ data: response.data });
-    } catch (error) {
-        console.error(`[CRICKET TV] Error:`, error.message);
-        res.status(500).json({ 
-            error: 'Failed to fetch cricket TV',
-            message: error.message 
-        });
-    }
-});
 
-// Cricket Fixtures - Return raw data without transformation
-app.get('/cricket/fixtures', async (req, res) => {
-    try {
-        // Call the raw API that returns {t1: [...], t2: [...]} with beventId
-        const url = 'https://marketsarket.qnsports.live/cricketmatches';
-        
-        console.log(`[FIXTURES] Fetching raw data from: ${url}`);
-        const response = await axios.get(url, {
-            headers: {
-                'User-Agent': 'Betting-ExternalAPI/1.0'
-            }
-        });
-        
-        // Return raw data as-is without transformation
-        res.json(response.data);
-    } catch (error) {
-        console.error(`[FIXTURES] Error:`, error.message);
-        res.status(500).json({ 
-            error: 'Failed to fetch fixtures',
-            message: error.message 
-        });
-    }
-});
 
 // Cricket Odds
 app.get('/cricket/odds', async (req, res) => {

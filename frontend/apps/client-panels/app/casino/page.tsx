@@ -126,7 +126,7 @@ export default function CasinoPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
               {casinoGames.map((game, index) => (
                 <div key={game.streamingId} className="group">
-                  <Link href={`/game/${game.name.toLowerCase().replace(/\s+/g, '-')}`} className="block">
+                  <Link href={game.name === 'Teen20' ? '/casino/teen20' : `/game/${game.name.toLowerCase().replace(/\s+/g, '-')}`} className="block">
                     <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-xl overflow-hidden transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl border border-gray-200 shadow-lg">
                       {/* Game Image - Square Aspect Ratio */}
                       <div className="relative w-full pt-[100%] overflow-hidden">
