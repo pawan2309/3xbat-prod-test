@@ -40,6 +40,23 @@ export default function CricketPage() {
   const [socket, setSocket] = useState<any>(null)
   const [previousOddsData, setPreviousOddsData] = useState<any>(null)
   const [oddsChanges, setOddsChanges] = useState<Set<string>>(new Set())
+  const [betSlipModal, setBetSlipModal] = useState<{
+    isOpen: boolean
+    team: string
+    rate: string
+    mode: string
+    oddType: string
+    marketName: string
+  }>({
+    isOpen: false,
+    team: '',
+    rate: '',
+    mode: '',
+    oddType: '',
+    marketName: ''
+  })
+  const [betAmount, setBetAmount] = useState<number>(0)
+  const [betSlipTimer, setBetSlipTimer] = useState<number>(10)
 
   // Get API base URL based on environment
   const getApiBaseUrl = () => {
@@ -109,6 +126,98 @@ export default function CricketPage() {
         return gstatus.toUpperCase()
     }
   }
+
+  // Function to handle odds click and open bet slip modal
+  const handleOddsClick = (odd: any, section: any, market: any) => {
+    // Don't open modal if gstatus is not ACTIVE
+    if (section.gstatus && section.gstatus !== 'ACTIVE') {
+      return
+    }
+
+    const mode = odd.otype === 'back' ? 'L' : 'K' // L for LAGAI (back), K for KHAI (lay)
+    
+    setBetSlipModal({
+      isOpen: true,
+      team: section.nat,
+      rate: odd.odds.toString(),
+      mode: mode,
+      oddType: odd.otype,
+      marketName: market.mname
+    })
+    setBetAmount(0)
+  }
+
+  // Function to close bet slip modal
+  const closeBetSlipModal = () => {
+    setBetSlipModal({
+      isOpen: false,
+      team: '',
+      rate: '',
+      mode: '',
+      oddType: '',
+      marketName: ''
+    })
+    setBetAmount(0)
+  }
+
+  // Function to handle bet amount selection
+  const handleBetAmountClick = (amount: number) => {
+    setBetAmount(amount)
+    // Reset timer when user interacts
+    setBetSlipTimer(10)
+  }
+
+  // Function to handle place bet
+  const handlePlaceBet = () => {
+    if (betAmount <= 0) {
+      alert('Please enter a valid bet amount')
+      return
+    }
+    
+    // TODO: Implement actual bet placement logic
+    console.log('Placing bet:', {
+      team: betSlipModal.team,
+      rate: betSlipModal.rate,
+      mode: betSlipModal.mode,
+      amount: betAmount,
+      market: betSlipModal.marketName
+    })
+    
+    alert(`Bet placed: ${betSlipModal.team} - ${betSlipModal.mode} - ${betAmount} at ${betSlipModal.rate}`)
+    closeBetSlipModal()
+  }
+
+  // Countdown timer effect for bet slip
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+
+    if (betSlipModal.isOpen) {
+      // Reset timer when modal opens
+      setBetSlipTimer(10)
+      
+      // Start countdown
+      interval = setInterval(() => {
+        setBetSlipTimer((prev) => {
+          if (prev <= 1) {
+            // Timer reached 0, close the modal
+            closeBetSlipModal()
+            return 10 // Reset for next time
+          }
+          return prev - 1
+        })
+      }, 1000)
+    } else {
+      // Reset timer when modal is closed
+      setBetSlipTimer(10)
+    }
+
+    // Cleanup interval on unmount or when modal closes
+    return () => {
+      if (interval) {
+        clearInterval(interval)
+      }
+    }
+  }, [betSlipModal.isOpen])
 
   // Socket.IO connection for real-time odds
   useEffect(() => {
@@ -310,12 +419,28 @@ export default function CricketPage() {
                         <div className="w-full">
                           <div className="flex justify-end h-full">
                             <div className="flex flex-wrap w-full">
-                              <div className={getOddsCellClass(lay1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center border-b border-gray-300 bg-pink-100 flex-col")}>
+                              <div 
+                                className={`${getOddsCellClass(lay1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center border-b border-gray-300 bg-pink-100 flex-col")} ${!needsOverlay ? 'cursor-pointer hover:bg-pink-300' : 'cursor-not-allowed'}`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (lay1Odd && !needsOverlay) {
+                                    handleOddsClick(lay1Odd, section, market)
+                                  }
+                                }}
+                              >
                                 <div className="text-center transition-all duration-300 w-full flex flex-wrap items-center justify-center h-full bg-pink-200 text-center">
                                   <p className="text-[12px] font-bold w-full text-gray-800">{lay1Odd?.odds || '0.00'}</p>
                                 </div>
                               </div>
-                              <div className={getOddsCellClass(back1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center bg-blue-50 flex-col border-b border-gray-300")}>
+                              <div 
+                                className={`${getOddsCellClass(back1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center bg-blue-50 flex-col border-b border-gray-300")} ${!needsOverlay ? 'cursor-pointer hover:bg-blue-300' : 'cursor-not-allowed'}`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (back1Odd && !needsOverlay) {
+                                    handleOddsClick(back1Odd, section, market)
+                                  }
+                                }}
+                              >
                                 <div className="text-center transition-all duration-300 w-full flex flex-wrap items-center justify-center h-full bg-blue-200 text-center">
                                   <p className="text-[12px] font-bold w-full text-gray-800">{back1Odd?.odds || '0.00'}</p>
                                 </div>
@@ -383,12 +508,28 @@ export default function CricketPage() {
                         <div className="w-full">
                           <div className="flex justify-end h-full">
                             <div className="flex flex-wrap w-full">
-                              <div className={getOddsCellClass(lay1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center border-b border-gray-300 bg-pink-100 flex-col")}>
+                              <div 
+                                className={`${getOddsCellClass(lay1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center border-b border-gray-300 bg-pink-100 flex-col")} ${!needsOverlay ? 'cursor-pointer hover:bg-pink-300' : 'cursor-not-allowed'}`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (lay1Odd && !needsOverlay) {
+                                    handleOddsClick(lay1Odd, section, market)
+                                  }
+                                }}
+                              >
                                 <div className="text-center transition-all duration-300 w-full flex flex-wrap items-center justify-center h-full bg-pink-200 text-center">
                                   <p className="text-[12px] font-bold w-full text-gray-800">{lay1Odd?.odds || '0.00'}</p>
                                 </div>
                               </div>
-                              <div className={getOddsCellClass(back1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center bg-blue-50 flex-col border-b border-gray-300")}>
+                              <div 
+                                className={`${getOddsCellClass(back1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center bg-blue-50 flex-col border-b border-gray-300")} ${!needsOverlay ? 'cursor-pointer hover:bg-blue-300' : 'cursor-not-allowed'}`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (back1Odd && !needsOverlay) {
+                                    handleOddsClick(back1Odd, section, market)
+                                  }
+                                }}
+                              >
                                 <div className="text-center transition-all duration-300 w-full flex flex-wrap items-center justify-center h-full bg-blue-200 text-center">
                                   <p className="text-[12px] font-bold w-full text-gray-800">{back1Odd?.odds || '0.00'}</p>
                                 </div>
@@ -521,12 +662,12 @@ export default function CricketPage() {
                       expandedMatch === match.gmid ? 'shadow-lg border-blue-500' : ''
                     }`}
                   >
-                    <div 
-                      className="p-3 cursor-pointer hover:bg-gray-50 transition-colors"
-                      onClick={() => handleMatchSelect(match)}
-                    >
-                      {/* Match Header - Always visible */}
-                      <div className="text-center border-b border-white text-white border-2 font-bold uppercase bg-blue-900 p-2">
+                    <div className="p-3">
+                      {/* Match Header - Clickable area for expand/collapse */}
+                      <div 
+                        className="text-center border-b border-white text-white border-2 font-bold uppercase bg-blue-900 p-2 cursor-pointer hover:bg-blue-800 transition-colors"
+                        onClick={() => handleMatchSelect(match)}
+                      >
                         <div className="flex items-center justify-center space-x-2">
                           {isLive && (
                             <div className="w-2 h-2 bg-green-500 rounded-full live-indicator"></div>
@@ -597,16 +738,100 @@ export default function CricketPage() {
                           <div>
                             {/* Dynamic Odds Table */}
                             {renderOddsTable()}
-                        </div>
-                        </div>
-                      )}
                 </div>
+          </div>
+        )}
+      </div>
               </div>
                 )
               })}
           </div>
         )}
       </div>
+
+      {/* Bet Slip Modal */}
+      {betSlipModal.isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={closeBetSlipModal}
+        >
+          <div 
+            className="bg-[#c9e3ff] w-full max-w-[720px] rounded-md shadow-lg overflow-hidden text-[#212042]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-blue-200 flex justify-between items-center p-4 text-sm font-semibold text-gray-800">
+              <div className="flex flex-col justify-center items-center flex-2">
+                <div className="text-[12px] font-extrabold">TEAM</div>
+                <div className="text-base font-extrabold">{betSlipModal.team}</div>
+              </div>
+              <div className="flex flex-col justify-center items-center flex-1">
+                <div className="text-[12px] font-extrabold">RATE</div>
+                <div className="text-base font-extrabold">{betSlipModal.rate}</div>
+              </div>
+              <div className="flex flex-col justify-center items-center flex-1">
+                <div className="text-[12px] font-extrabold">MODE</div>
+                <div className="text-base font-extrabold">{betSlipModal.mode}</div>
+              </div>
+            </div>
+
+            {/* Bet Amount Selection */}
+            <div className="bg-blue-300 grid grid-cols-3 justify-center items-center gap-4 p-4">
+              {[100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000, 200000, 300000, 500000].map((amount) => (
+                <button
+                  key={amount}
+                  className={`py-1 rounded-full text-sm flex justify-center items-center w-full font-semibold transition-colors ${
+                    betAmount === amount 
+                      ? 'bg-[#2a2d4c] text-white' 
+                      : 'bg-[#4a4d6c] text-white hover:bg-[#2a2d4c]'
+                  }`}
+                  onClick={() => handleBetAmountClick(amount)}
+                >
+                  {amount.toLocaleString()}
+                </button>
+              ))}
+            </div>
+
+            {/* Input Field */}
+            <div className="flex items-center px-4 py-3 bg-blue-300">
+              <input
+                type="number"
+                placeholder="AMOUNT"
+                value={betAmount || ''}
+                onChange={(e) => {
+                  setBetAmount(Number(e.target.value) || 0)
+                  // Reset timer when user types
+                  setBetSlipTimer(10)
+                }}
+                className="flex-grow border-2 border-white rounded-sm px-3 py-2 text-sm focus:outline-none text-black bg-white"
+              />
+              <span className={`px-4 py-2 -ml-1 rounded-r-md text-[16px] font-medium ${
+                betSlipTimer <= 3 
+                  ? 'bg-red-600 text-white animate-pulse' 
+                  : 'bg-black text-white'
+              }`}>
+                {betSlipTimer}
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex">
+              <button
+                onClick={closeBetSlipModal}
+                className="flex-1 bg-[#e53422] text-white py-3 text-sm font-extrabold hover:bg-[#c42a1a] transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={handlePlaceBet}
+                className="flex-1 bg-green-600 text-white py-3 text-sm font-extrabold hover:bg-green-700 transition-colors"
+              >
+                PLACEBET
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

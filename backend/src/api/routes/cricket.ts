@@ -149,6 +149,46 @@ router.get('/tv', async (req, res) => {
 });
 
 /**
+ * @route GET /api/cricket/scorecard
+ * @desc Get cricket scorecard for a specific market
+ * @access Public
+ */
+router.get('/scorecard', async (req, res) => {
+    try {
+        const { marketId } = req.query;
+        
+        if (!marketId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Market ID is required',
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        logger.info(`📊 Fetching scorecard for market: ${marketId}`);
+
+        // For now, use direct API call with retry logic
+        // TODO: Implement proper queue processing
+        const result = await apiService.getCricketScorecard(marketId as string);
+        
+        logger.info(`✅ Successfully fetched scorecard for market: ${marketId}`);
+
+        res.json({
+            success: true,
+            data: result,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        logger.error('❌ Failed to fetch scorecard:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch scorecard',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+/**
  * @route GET /api/cricket/odds
  * @desc Get cricket odds for matches (via proxy)
  * @access Public

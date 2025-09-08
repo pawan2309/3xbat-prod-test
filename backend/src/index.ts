@@ -17,8 +17,9 @@ async function initializeServices() {
     console.log('✅ Redis initialized successfully');
     
     console.log('🔌 Initializing WebSocket server...');
-    const { redisCache } = require('../dist/infrastructure/cache/redis');
-    await unifiedSocketManager.initialize(httpServer, redisCache);
+    const { getRedisClient } = require('../dist/infrastructure/redis/redis');
+    const redisClient = getRedisClient();
+    await unifiedSocketManager.initialize(httpServer, redisClient);
     console.log('✅ WebSocket server initialized successfully');
     
     console.log('🔌 Initializing Cron Jobs...');
