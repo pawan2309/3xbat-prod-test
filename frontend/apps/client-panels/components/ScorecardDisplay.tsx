@@ -21,9 +21,28 @@ interface ScorecardDisplayProps {
 }
 
 export default function ScorecardDisplay({ data }: ScorecardDisplayProps) {
-  const isTeam1Active = data.activenation1 === "1";
-  const isTeam2Active = data.activenation2 === "1";
-  const isFinished = data.isfinished === "1";
+  // Add null checks and fallbacks for all data properties
+  const safeData = {
+    spnnation1: data?.spnnation1 || 'Team 1',
+    spnnation2: data?.spnnation2 || 'Team 2',
+    score1: data?.score1 || '0/0',
+    score2: data?.score2 || '0/0',
+    spnrunrate1: data?.spnrunrate1 || '0.00',
+    spnrunrate2: data?.spnrunrate2 || '0.00',
+    spnreqrate1: data?.spnreqrate1 || '0.00',
+    spnreqrate2: data?.spnreqrate2 || '0.00',
+    activenation1: data?.activenation1 || '0',
+    activenation2: data?.activenation2 || '0',
+    isfinished: data?.isfinished || '0',
+    balls: data?.balls || ['0', '0', '0', '0', '0', '0'],
+    spnballrunningstatus: data?.spnballrunningstatus || '',
+    dayno: data?.dayno || '1',
+    spnmessage: data?.spnmessage || ''
+  };
+
+  const isTeam1Active = safeData.activenation1 === "1";
+  const isTeam2Active = safeData.activenation2 === "1";
+  const isFinished = safeData.isfinished === "1";
 
   const getBallColor = (ball: string) => {
     if (ball === '0') return 'bg-gray-200 text-gray-800'; // Dot ball
@@ -64,7 +83,7 @@ export default function ScorecardDisplay({ data }: ScorecardDisplayProps) {
               <h3 className={`text-sm font-bold ${
                 isTeam1Active && !isFinished ? 'text-green-800' : 'text-gray-800'
               }`}>
-                {data.spnnation1}
+                {safeData.spnnation1}
               </h3>
               {isTeam1Active && !isFinished && (
                 <span className="bg-green-100 text-green-800 px-1 py-0.5 rounded text-xs">
@@ -72,15 +91,15 @@ export default function ScorecardDisplay({ data }: ScorecardDisplayProps) {
                 </span>
               )}
             </div>
-            <div className="text-lg font-bold text-gray-800">{data.score1}</div>
-            {data.spnrunrate1 && (
-              <div className="text-xs text-gray-600">RR: {data.spnrunrate1}</div>
+            <div className="text-lg font-bold text-gray-800">{safeData.score1}</div>
+            {safeData.spnrunrate1 && (
+              <div className="text-xs text-gray-600">RR: {safeData.spnrunrate1}</div>
             )}
           </div>
 
           {/* Center Details */}
           <div className="flex-1 text-center px-4">
-            <div className="text-xs text-gray-500 mb-1">Day {data.dayno}</div>
+            <div className="text-xs text-gray-500 mb-1">Day {safeData.dayno}</div>
             {isFinished ? (
               <div className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-medium">
                 FINISHED
@@ -95,13 +114,13 @@ export default function ScorecardDisplay({ data }: ScorecardDisplayProps) {
             <div className="mt-2">
               <div className="text-xs text-gray-600 mb-1">Last 6:</div>
               <div className="flex justify-center space-x-1">
-                {data.balls.map((ball, index) => (
+                {safeData.balls.map((ball, index) => (
                   <div
                     key={index}
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold border ${
                       getBallColor(ball)
                     } ${
-                      index === data.balls.length - 1 && data.spnballrunningstatus 
+                      index === safeData.balls.length - 1 && safeData.spnballrunningstatus 
                         ? 'ring-1 ring-red-400 ring-opacity-50' 
                         : ''
                     }`}
@@ -110,31 +129,31 @@ export default function ScorecardDisplay({ data }: ScorecardDisplayProps) {
                   </div>
                 ))}
               </div>
-              {data.spnballrunningstatus && (
+              {safeData.spnballrunningstatus && (
                 <div className="flex items-center justify-center space-x-1 mt-1">
                   <div className="w-1 h-1 bg-red-500 rounded-full animate-pulse"></div>
                   <span className="text-xs text-red-600 font-medium">
-                    {data.spnballrunningstatus.toUpperCase()}
+                    {safeData.spnballrunningstatus.toUpperCase()}
                   </span>
                 </div>
               )}
             </div>
 
             {/* Match Message in Center */}
-            {data.spnmessage && (
+            {safeData.spnmessage && (
               <div className="mt-2 bg-yellow-50 border-l-2 border-yellow-400 px-2 py-1 rounded-r">
-                <p className="text-yellow-800 text-xs font-medium">{data.spnmessage}</p>
+                <p className="text-yellow-800 text-xs font-medium">{safeData.spnmessage}</p>
               </div>
             )}
 
             {/* Required Run Rate in Center */}
-            {(data.spnreqrate1 || data.spnreqrate2) && (
+            {(safeData.spnreqrate1 || safeData.spnreqrate2) && (
               <div className="mt-2 text-xs">
                 <div className="text-yellow-700 font-medium">Required RR</div>
                 <div className="text-yellow-600">
-                  {data.spnreqrate1 && `${data.spnnation1}: ${data.spnreqrate1}`}
-                  {data.spnreqrate1 && data.spnreqrate2 && ' | '}
-                  {data.spnreqrate2 && `${data.spnnation2}: ${data.spnreqrate2}`}
+                  {safeData.spnreqrate1 && `${safeData.spnnation1}: ${safeData.spnreqrate1}`}
+                  {safeData.spnreqrate1 && safeData.spnreqrate2 && ' | '}
+                  {safeData.spnreqrate2 && `${safeData.spnnation2}: ${safeData.spnreqrate2}`}
                 </div>
               </div>
             )}
@@ -151,15 +170,15 @@ export default function ScorecardDisplay({ data }: ScorecardDisplayProps) {
               <h3 className={`text-sm font-bold ${
                 isTeam2Active && !isFinished ? 'text-green-800' : 'text-gray-800'
               }`}>
-                {data.spnnation2}
+                {safeData.spnnation2}
               </h3>
               <div className={`w-2 h-2 rounded-full ${
                 isTeam2Active && !isFinished ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
               }`}></div>
             </div>
-            <div className="text-lg font-bold text-gray-800">{data.score2}</div>
-            {data.spnrunrate2 && (
-              <div className="text-xs text-gray-600">RR: {data.spnrunrate2}</div>
+            <div className="text-lg font-bold text-gray-800">{safeData.score2}</div>
+            {safeData.spnrunrate2 && (
+              <div className="text-xs text-gray-600">RR: {safeData.spnrunrate2}</div>
             )}
           </div>
         </div>

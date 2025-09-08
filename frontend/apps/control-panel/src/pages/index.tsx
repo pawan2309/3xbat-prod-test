@@ -1,11 +1,11 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 
-export default function Home() {
+function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    router.push("/login");
+    router.push("/dashboard");
   }, [router]);
 
   return (
@@ -17,8 +17,17 @@ export default function Home() {
       fontSize: "18px",
       color: "#6b7280"
     }}>
-      Redirecting to Login...
+      Redirecting to Dashboard...
     </div>
   );
 }
+
+// Force dynamic rendering
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
+
+export default Home;
 

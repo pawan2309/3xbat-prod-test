@@ -6,6 +6,12 @@ const nextConfig = {
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY || '',
   },
+  // Disable static optimization to prevent build errors
+  output: 'standalone',
+  trailingSlash: true,
+  experimental: {
+    esmExternals: false,
+  },
   async rewrites() {
     return [
       {

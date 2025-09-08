@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 
-export default function Login() {
+function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -156,3 +156,12 @@ export default function Login() {
     </div>
   );
 }
+
+// Force dynamic rendering
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
+
+export default Login;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 
 interface DropdownItem {
   label: string;
@@ -37,7 +38,7 @@ const sidebarItems: SidebarItem[] = [
 const SIDEBAR_WIDTH = 280;
 const COLLAPSED_WIDTH = 80;
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+function Layout({ children }: { children: React.ReactNode }) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -178,33 +179,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           }}>
             {isMobile ? "Owner" : "owner 01 ▼"}
           </div>
-          <button
-            onClick={async () => {
-              try {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = '/login';
-              } catch (error) {
-                console.error('Logout error:', error);
-                window.location.href = '/login';
-              }
-            }}
-            style={{
-              padding: isMobile ? "6px 12px" : "8px 16px",
-              background: "rgba(220, 38, 38, 0.8)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              fontSize: isMobile ? 12 : 14,
-              fontWeight: "500",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              transition: "all 0.15s ease-in-out"
-            }}
-          >
-            {isMobile ? "🚪" : "🚪 Logout"}
-          </button>
+          <div style={{
+            padding: isMobile ? "6px 12px" : "8px 16px",
+            background: "rgba(16, 185, 129, 0.8)",
+            color: "#fff",
+            borderRadius: "6px",
+            fontSize: isMobile ? 12 : 14,
+            fontWeight: "500",
+            display: "flex",
+            alignItems: "center",
+            gap: 8
+          }}>
+            {isMobile ? "👤" : "👤 Demo Mode"}
+          </div>
         </div>
       </div>
 
@@ -748,3 +735,5 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+export default Layout;

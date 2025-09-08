@@ -15,7 +15,7 @@ interface SettingsData {
   allowWithdrawals: boolean;
 }
 
-export default function Settings() {
+function Settings() {
   const [settings, setSettings] = useState<SettingsData>({
     siteName: "3xBat Betting Platform",
     siteUrl: "https://3xbat.com",
@@ -367,3 +367,12 @@ export default function Settings() {
     </Layout>
   );
 }
+
+// Force dynamic rendering
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
+
+export default Settings;
