@@ -38,6 +38,8 @@ export default function CricketPage() {
   const [error, setError] = useState<string | null>(null)
   const [oddsData, setOddsData] = useState<any>(null)
   const [socket, setSocket] = useState<any>(null)
+  const [previousOddsData, setPreviousOddsData] = useState<any>(null)
+  const [oddsChanges, setOddsChanges] = useState<Set<string>>(new Set())
 
   // Get API base URL based on environment
   const getApiBaseUrl = () => {
@@ -47,6 +49,65 @@ export default function CricketPage() {
     }
     // Server-side: fallback to localhost
     return 'http://localhost:4000'
+  }
+
+  // Function to detect odds changes and highlight them
+  const detectOddsChanges = (newOdds: any, oldOdds: any) => {
+    if (!newOdds || !oldOdds || !Array.isArray(newOdds) || !Array.isArray(oldOdds)) {
+      return
+    }
+
+    const changes = new Set<string>()
+    
+    newOdds.forEach((market: any, marketIndex: number) => {
+      if (!market.section || !Array.isArray(market.section)) return
+      
+      market.section.forEach((section: any, sectionIndex: number) => {
+        if (!section.odds || !Array.isArray(section.odds)) return
+        
+        section.odds.forEach((odd: any, oddIndex: number) => {
+          const cellId = `${marketIndex}-${sectionIndex}-${oddIndex}-${odd.oname}`
+          const oldMarket = oldOdds[marketIndex]
+          const oldSection = oldMarket?.section?.[sectionIndex]
+          const oldOdd = oldSection?.odds?.find((o: any) => o.oname === odd.oname)
+          
+          if (oldOdd && oldOdd.odds !== odd.odds) {
+            changes.add(cellId)
+          }
+        })
+      })
+    })
+
+    if (changes.size > 0) {
+      setOddsChanges(changes)
+      // Clear highlights after 0.5 seconds
+      setTimeout(() => {
+        setOddsChanges(new Set())
+      }, 500)
+    }
+  }
+
+  // Function to get cell class with highlight effect
+  const getOddsCellClass = (cellId: string, baseClass: string) => {
+    const isChanged = oddsChanges.has(cellId)
+    return `${baseClass} ${isChanged ? 'bg-yellow-300 transition-colors duration-500' : ''}`
+  }
+
+  // Function to check if section has gstatus overlay
+  const hasGstatusOverlay = (section: any) => {
+    return section.gstatus && section.gstatus !== 'ACTIVE'
+  }
+
+  // Function to get gstatus display text
+  const getGstatusText = (gstatus: string) => {
+    switch (gstatus) {
+      case 'ball running':
+        return 'BALL RUNNING'
+      case 'suspended':
+        return 'SUSPENDED'
+      default:
+        return gstatus.toUpperCase()
+    }
   }
 
   // Socket.IO connection for real-time odds
@@ -67,6 +128,14 @@ export default function CricketPage() {
       
       newSocket.on('cricket_odds', (data) => {
         console.log('Received cricket_odds event:', data)
+        
+        // Detect changes before updating state
+        if (oddsData) {
+          detectOddsChanges(data.odds, oddsData)
+        }
+        
+        // Store previous data and update current
+        setPreviousOddsData(oddsData)
         setOddsData(data.odds)
       })
       
@@ -142,6 +211,36 @@ export default function CricketPage() {
     fetchMatches()
   }, [])
 
+  // Get column headers from API data based on market type
+  const getColumnHeaders = (market: any) => {
+    if (!market || !market.section || market.section.length === 0) {
+      return { back: 'LAGAI', lay: 'KHAI' }; // Default fallback
+    }
+
+    const firstSection = market.section[0];
+    if (!firstSection || !firstSection.odds) {
+      return { back: 'LAGAI', lay: 'KHAI' }; // Default fallback
+    }
+
+    const odds = firstSection.odds;
+    const hasBack = odds.some((odd: any) => odd.otype === 'back');
+    const hasLay = odds.some((odd: any) => odd.otype === 'lay');
+
+    // For YES/NO markets, use different column structure
+    if (market.mname === 'TIED_MATCH' || market.mname.includes('TIED')) {
+      return {
+        back: hasBack ? 'YES' : 'N/A',
+        lay: hasLay ? 'NO' : 'N/A'
+      };
+    }
+
+    // For other markets, use LAGAI/KHAI
+    return {
+      back: hasBack ? 'LAGAI' : 'N/A',
+      lay: hasLay ? 'KHAI' : 'N/A'
+    };
+  };
+
   // Render odds table dynamically
   const renderOddsTable = () => {
     if (!oddsData || !Array.isArray(oddsData)) {
@@ -171,81 +270,150 @@ export default function CricketPage() {
     return (
       <div className="transition-all duration-500 ease-in-out h-full mt-1">
         {/* Match Odds Section */}
-        {matchOdds.map((market, marketIndex) => (
-          <div key={marketIndex}>
-            <div className="flex flex-wrap items-center">
-              <div className="lg:w-[50%] md:w-[50%] sm:w-[70%] w-[60%] bg-blue-900 border-r flex justify-center items-center relative border-b border-gray-300 text-[13px] uppercase h-[38px] text-white text-center font-black p-[4px]">
+        {matchOdds.map((market, marketIndex) => {
+          const columnHeaders = getColumnHeaders(market);
+          return (
+            <div key={marketIndex}>
+              <div className="flex flex-wrap items-center">
+              <div className="lg:w-[50%] md:w-[50%] sm:w-[70%] w-[60%] bg-blue-900 border-r flex justify-center items-center relative border-b border-gray-300 text-[11px] uppercase h-[28px] text-white text-center font-black p-[2px]">
                 <span>{market.mname}</span>
-                <img className="absolute right-2 w-[20px]" src="/images/modal-btn.png" alt="" />
+                <img className="absolute right-1 w-[16px]" src="/images/modal-btn.png" alt="" />
               </div>
-              <div className="lg:w-[50%] md:w-[50%] sm:w-[30%] w-[40%]">
-                <div className="w-full flex">
-                  <div className="w-[50%] bg-blue-800 h-[38px] text-[13px] border-r border-b border-gray-300 font-black flex items-center text-white justify-center">LAGAI</div>
-                  <div className="w-[50%] bg-blue-700 h-[38px] text-[13px] border-r border-b border-gray-300 flex items-center text-white justify-center font-black">KHAI</div>
+                <div className="lg:w-[50%] md:w-[50%] sm:w-[30%] w-[40%]">
+                  <div className="w-full flex">
+                    <div className="w-[50%] bg-pink-600 h-[28px] text-[11px] border-r border-b border-gray-300 flex items-center text-white justify-center font-black">{columnHeaders.lay}</div>
+                    <div className="w-[50%] bg-blue-600 h-[28px] text-[11px] border-r border-b border-gray-300 font-black flex items-center text-white justify-center">{columnHeaders.back}</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
             {/* Team rows */}
-            {market.section && market.section.map((section, sectionIndex) => {
-              const back1Odd = section.odds?.find(odd => odd.oname === 'back1')
-              const lay1Odd = section.odds?.find(odd => odd.oname === 'lay1')
+            {market.section && market.section.map((section: any, sectionIndex: number) => {
+              const back1Odd = section.odds?.find((odd: any) => odd.oname === 'back1')
+              const lay1Odd = section.odds?.find((odd: any) => odd.oname === 'lay1')
+              
+              // Generate unique cell IDs for change detection
+              const lay1CellId = `${marketIndex}-${sectionIndex}-${section.odds?.findIndex((odd: any) => odd.oname === 'lay1')}-lay1`
+              const back1CellId = `${marketIndex}-${sectionIndex}-${section.odds?.findIndex((odd: any) => odd.oname === 'back1')}-back1`
+              
+              // Check if this section needs gstatus overlay
+              const needsOverlay = hasGstatusOverlay(section)
               
               return (
                 <div key={sectionIndex} className="overflow-hidden transition-all duration-500 ease-in-out text-gray-800">
                   <div className="flex flex-wrap h-full items-center">
-                    <div className="lg:w-[50%] md:w-[50%] sm:w-[70%] w-[60%] h-[40px] gap-2 flex items-start justify-center border-b border-gray-300">
-                      <p className="text-[13px] font-bold pt-2">{section.nat}:</p>
-                      <span className="text-[13px] me-2 pt-2 font-black text-blue-500">0</span>
+                    <div className="lg:w-[50%] md:w-[50%] sm:w-[70%] w-[60%] h-[30px] gap-2 flex items-center justify-center border-b border-gray-300">
+                      <p className="text-[11px] font-bold">{section.nat}</p>
                     </div>
-                    <div className="lg:w-[50%] md:w-[50%] sm:w-[30%] w-[40%]">
+                    <div className="lg:w-[50%] md:w-[50%] sm:w-[30%] w-[40%] relative">
                       <div className="flex flex-wrap justify-end">
                         <div className="w-full">
                           <div className="flex justify-end h-full">
                             <div className="flex flex-wrap w-full">
-                              <div className="w-[50%] h-[40px] px-0 text-xs flex items-center justify-center bg-blue-100 flex-col border-b border-gray-300">
-                                <div className="text-center transition-all duration-300 w-full flex flex-wrap items-center justify-center h-full bg-blue-600 text-center">
-                                  <p className="text-[17px] font-bold w-full text-white">{back1Odd?.odds || '0.00'}</p>
+                              <div className={getOddsCellClass(lay1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center border-b border-gray-300 bg-pink-100 flex-col")}>
+                                <div className="text-center transition-all duration-300 w-full flex flex-wrap items-center justify-center h-full bg-pink-200 text-center">
+                                  <p className="text-[12px] font-bold w-full text-gray-800">{lay1Odd?.odds || '0.00'}</p>
                                 </div>
                               </div>
-                              <div className="w-[50%] h-[40px] px-0 text-xs flex items-center justify-center border-b border-gray-300 bg-blue-200 flex-col">
-                                <div className="text-center transition-all duration-300 w-full flex flex-wrap items-center justify-center h-full bg-blue-700 text-center">
-                                  <p className="text-[17px] font-bold w-full text-white">{lay1Odd?.odds || '0.00'}</p>
+                              <div className={getOddsCellClass(back1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center bg-blue-50 flex-col border-b border-gray-300")}>
+                                <div className="text-center transition-all duration-300 w-full flex flex-wrap items-center justify-center h-full bg-blue-200 text-center">
+                                  <p className="text-[12px] font-bold w-full text-gray-800">{back1Odd?.odds || '0.00'}</p>
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Gstatus Overlay */}
+                      {needsOverlay && (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
+                          <p className="text-red-500 text-[11px] font-bold">
+                            {getGstatusText(section.gstatus)}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               )
             })}
-          </div>
-        ))}
+            </div>
+          );
+        })}
 
         {/* Session Markets Section */}
-        {sessionMarkets.map((market, marketIndex) => (
-          <div key={`session-${marketIndex}`}>
-            <div className="flex border-b border-white h-[50px] overflow-hidden">
-              <div className="lg:w-[50%] md:w-[50%] sm:w-[70%] text-center font-black text-[13px] relative uppercase text-white w-[60%] h-[50px] flex items-center justify-center bg-blue-900 border-r border-b border-gray-300">
-                <span>
-                  <p className="flex flex-col">
-                    {market.mname} <span className="-ml-2 flex justify-center gap-2">P/M <span className="text-red-600">0</span></span>
-                  </p>
-                </span>
-                <img className="absolute right-2 w-[20px]" src="/images/modal-btn.png" alt="" />
+        {sessionMarkets.map((market, marketIndex) => {
+          const columnHeaders = getColumnHeaders(market);
+          return (
+            <div key={`session-${marketIndex}`}>
+              <div className="flex flex-wrap items-center">
+              <div className="lg:w-[50%] md:w-[50%] sm:w-[70%] w-[60%] bg-blue-900 border-r flex justify-center items-center relative border-b border-gray-300 text-[11px] uppercase h-[28px] text-white text-center font-black p-[2px]">
+                <span>{market.mname}</span>
+                <img className="absolute right-1 w-[16px]" src="/images/modal-btn.png" alt="" />
               </div>
-              <div className="flex lg:w-[50%] md:w-[50%] sm:w-[30%] w-[40%] flex-wrap">
-                <div className="flex w-[100%] text-white font-black">
-                  <div className="sm:w-[50%] w-[50%] h-[50px] flex items-center justify-center text-[13px] bg-blue-700 border-r border-b border-gray-300">NO</div>
-                  <div className="sm:w-[50%] w-[50%] h-[50px] flex items-center justify-center text-[13px] bg-blue-800 border-r border-b border-gray-300">YES</div>
+                <div className="lg:w-[50%] md:w-[50%] sm:w-[30%] w-[40%]">
+                  <div className="w-full flex">
+                    <div className="w-[50%] bg-pink-600 h-[28px] text-[11px] border-r border-b border-gray-300 flex items-center text-white justify-center font-black">{columnHeaders.lay}</div>
+                    <div className="w-[50%] bg-blue-600 h-[28px] text-[11px] border-r border-b border-gray-300 font-black flex items-center text-white justify-center">{columnHeaders.back}</div>
+                  </div>
                 </div>
               </div>
+
+            {/* Session Market rows */}
+            {market.section && market.section.map((section: any, sectionIndex: number) => {
+              const back1Odd = section.odds?.find((odd: any) => odd.oname === 'back1')
+              const lay1Odd = section.odds?.find((odd: any) => odd.oname === 'lay1')
+              
+              // Generate unique cell IDs for change detection (session markets)
+              const lay1CellId = `session-${marketIndex}-${sectionIndex}-${section.odds?.findIndex((odd: any) => odd.oname === 'lay1')}-lay1`
+              const back1CellId = `session-${marketIndex}-${sectionIndex}-${section.odds?.findIndex((odd: any) => odd.oname === 'back1')}-back1`
+              
+              // Check if this section needs gstatus overlay
+              const needsOverlay = hasGstatusOverlay(section)
+              
+              return (
+                <div key={sectionIndex} className="overflow-hidden transition-all duration-500 ease-in-out text-gray-800">
+                  <div className="flex flex-wrap h-full items-center">
+                    <div className="lg:w-[50%] md:w-[50%] sm:w-[70%] w-[60%] h-[30px] gap-2 flex items-center justify-center border-b border-gray-300">
+                      <p className="text-[11px] font-bold">{section.nat}</p>
+                    </div>
+                    <div className="lg:w-[50%] md:w-[50%] sm:w-[30%] w-[40%] relative">
+                      <div className="flex flex-wrap justify-end">
+                        <div className="w-full">
+                          <div className="flex justify-end h-full">
+                            <div className="flex flex-wrap w-full">
+                              <div className={getOddsCellClass(lay1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center border-b border-gray-300 bg-pink-100 flex-col")}>
+                                <div className="text-center transition-all duration-300 w-full flex flex-wrap items-center justify-center h-full bg-pink-200 text-center">
+                                  <p className="text-[12px] font-bold w-full text-gray-800">{lay1Odd?.odds || '0.00'}</p>
+                                </div>
+                              </div>
+                              <div className={getOddsCellClass(back1CellId, "w-[50%] h-[30px] px-0 text-xs flex items-center justify-center bg-blue-50 flex-col border-b border-gray-300")}>
+                                <div className="text-center transition-all duration-300 w-full flex flex-wrap items-center justify-center h-full bg-blue-200 text-center">
+                                  <p className="text-[12px] font-bold w-full text-gray-800">{back1Odd?.odds || '0.00'}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Gstatus Overlay */}
+                      {needsOverlay && (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
+                          <p className="text-red-500 text-[11px] font-bold">
+                            {getGstatusText(section.gstatus)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     )
   }
@@ -322,26 +490,26 @@ export default function CricketPage() {
           >
             BACK TO MENU
           </button>
-        </div>
+      </div>
 
         {/* Live Matches Stack */}
         <div>
           <h2 className="text-xl font-bold text-gray-800 mb-2 p-2">Live Cricket Matches</h2>
-          
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading matches...</p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-8">
-              <p className="text-red-600">Error loading matches: {error}</p>
-            </div>
-          ) : matches.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No live matches available at the moment. Check back later for live matches.</p>
-            </div>
-          ) : (
+        
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading matches...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-red-600">Error loading matches: {error}</p>
+          </div>
+        ) : matches.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No live matches available at the moment. Check back later for live matches.</p>
+          </div>
+        ) : (
             <div className="space-y-0">
               {sortedMatches.map((match, index) => {
                 const isLive = isMatchLive(match.stime)
@@ -358,12 +526,12 @@ export default function CricketPage() {
                       onClick={() => handleMatchSelect(match)}
                     >
                       {/* Match Header - Always visible */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
+                      <div className="text-center border-b border-white text-white border-2 font-bold uppercase bg-blue-900 p-2">
+                        <div className="flex items-center justify-center space-x-2">
                           {isLive && (
                             <div className="w-2 h-2 bg-green-500 rounded-full live-indicator"></div>
                           )}
-                          <h3 className="font-semibold text-sm uppercase">{match.ename}</h3>
+                          <span>{match.ename}</span>
                         </div>
                       </div>
                       
@@ -374,8 +542,8 @@ export default function CricketPage() {
                             <span>Date and Time: {formatTime(match.stime)}</span>
                             <span>MATCH BETS: 0</span>
                             <span>SESSION BETS: 0</span>
-                          </div>
-                        </div>
+                    </div>
+                  </div>
                       )}
 
                       {/* Expanded Match Details - Only show when this match is expanded */}
@@ -396,7 +564,7 @@ export default function CricketPage() {
                               <img alt="" className="w-[23px] inline mr-2" src="/images/tv-img.jpeg" />
                               TV
                             </button>
-                            <button 
+                    <button 
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setShowScore(true)
@@ -407,8 +575,8 @@ export default function CricketPage() {
                               }`}
                             >
                               FULL SCORE
-                            </button>
-                          </div>
+                    </button>
+                  </div>
 
                           {/* TV/Scorecard Content */}
                           {showTV && (
@@ -432,13 +600,13 @@ export default function CricketPage() {
                         </div>
                         </div>
                       )}
-                    </div>
-                  </div>
+                </div>
+              </div>
                 )
               })}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+    </div>
   )
 }

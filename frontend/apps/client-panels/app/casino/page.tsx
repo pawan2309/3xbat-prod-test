@@ -9,40 +9,52 @@ export default function CasinoPage() {
   
   const [casinoGames, setCasinoGames] = useState([
     {
-      streamingId: '1',
+      streamingId: '3030',
       name: 'Teen20',
       fullName: 'Teen Patti 20-20',
-      category: 'Indian Poker'
+      category: 'Indian Poker',
+      path: '/casino/teen20',
+      description: 'Classic Indian poker game with 20-20 format'
     },
     {
-      streamingId: '2',
+      streamingId: '3043',
       name: 'AB20',
       fullName: 'Andar Bahar 20-20',
-      category: 'Card Game'
+      category: 'Card Game',
+      path: '/casino/ab20',
+      description: 'Traditional Andar Bahar with 20 cards'
     },
     {
-      streamingId: '3',
+      streamingId: '3035',
       name: 'DT20',
       fullName: 'Dragon Tiger 20-20',
-      category: 'Asian Card'
+      category: 'Asian Card',
+      path: '/casino/dt20',
+      description: 'Dragon vs Tiger card battle game'
     },
     {
-      streamingId: '4',
-      name: 'Card32EU',
-      fullName: '32 Cards',
-      category: 'Card Game'
-    },
-    {
-      streamingId: '5',
-      name: 'Lucky7EU',
-      fullName: 'Lucky 7',
-      category: 'Luck Game'
-    },
-    {
-      streamingId: '6',
+      streamingId: '3056',
       name: 'AAA',
-      fullName: 'AAA',
-      category: 'Live Casino'
+      fullName: 'Three Aces',
+      category: 'Live Casino',
+      path: '/casino/aaa',
+      description: 'Special three aces card game'
+    },
+    {
+      streamingId: '3034',
+      name: 'Card32EU',
+      fullName: '32 Cards European',
+      category: 'Card Game',
+      path: '/casino/card32eu',
+      description: 'European style 32-card game'
+    },
+    {
+      streamingId: '3032',
+      name: 'Lucky7EU',
+      fullName: 'Lucky Seven',
+      category: 'Luck Game',
+      path: '/casino/lucky7eu',
+      description: 'Lucky number 7 card game'
     }
   ])
 
@@ -126,7 +138,7 @@ export default function CasinoPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
               {casinoGames.map((game, index) => (
                 <div key={game.streamingId} className="group">
-                  <Link href={game.name === 'Teen20' ? '/casino/teen20' : `/game/${game.name.toLowerCase().replace(/\s+/g, '-')}`} className="block">
+                  <Link href={game.path} className="block">
                     <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-xl overflow-hidden transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl border border-gray-200 shadow-lg">
                       {/* Game Image - Square Aspect Ratio */}
                       <div className="relative w-full pt-[100%] overflow-hidden">
@@ -135,6 +147,7 @@ export default function CasinoPage() {
                             {game.name === 'Teen20' ? '🃏' :
                              game.name === 'AB20' ? '🎴' :
                              game.name === 'DT20' ? '🐉' :
+                             game.name === 'AAA' ? '🃏' :
                              game.name === 'Card32EU' ? '🂡' :
                              game.name === 'Lucky7EU' ? '🍀' :
                              '🎰'}
@@ -155,8 +168,11 @@ export default function CasinoPage() {
                         <h3 className="font-bold text-xs sm:text-sm text-gray-800 mb-1 group-hover:text-yellow-600 transition-colors duration-300">
                           {game.fullName}
                         </h3>
-                        <div className="text-gray-600 text-xs font-medium">
+                        <div className="text-gray-600 text-xs font-medium mb-1">
                           {game.category}
+                        </div>
+                        <div className="text-gray-500 text-xs leading-tight">
+                          {game.description}
                         </div>
                       </div>
                     </div>

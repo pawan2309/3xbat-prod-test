@@ -1,16 +1,10 @@
 import express from 'express';
+import { addCricketOddsJob, addCricketScorecardJob, addCricketFixturesJob, addCricketTVJob } from '../../queues/apiRequestQueue';
+import RealExternalAPIService from '../../external-apis/RealExternalAPIService';
+import logger from '../../monitoring/logging/logger';
 
 const router = express.Router();
-
-// Simple logger function
-const logger = {
-    error: (message: string, error?: any) => {
-        console.error(message, error);
-    },
-    info: (message: string) => {
-        console.log(message);
-    }
-};
+const apiService = new RealExternalAPIService();
 
 /**
  * @route GET /api/cricket/health
@@ -171,23 +165,17 @@ router.get('/odds', async (req, res) => {
             });
         }
 
-        // Call via localhost:8000 proxy
-        const response = await fetch(`http://localhost:8000/cricket/odds?eventId=${eventId}`, {
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Betting-ExternalAPI/1.0'
-            }
-        });
+        logger.info(`🎯 Queueing odds request for event: ${eventId}`);
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const odds = await response.json();
+        // For now, use direct API call with retry logic
+        // TODO: Implement proper queue processing
+        const result = await apiService.getCricketOdds(eventId as string);
+        
+        logger.info(`✅ Successfully fetched odds for event: ${eventId}`);
 
         res.json({
             success: true,
-            data: odds,
+            data: result,
             timestamp: new Date().toISOString()
         });
     } catch (error) {

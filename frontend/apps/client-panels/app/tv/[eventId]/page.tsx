@@ -127,8 +127,7 @@ export default function TVPage() {
         maxFragLookUpTolerance: 0.25,
         liveBackBufferLength: 0,
         maxLiveSyncPlaybackRate: 1.5,
-        liveSyncDuration: 2,
-        liveBackBufferLength: 0
+        liveSyncDuration: 2
       })
       
       console.log('HLS instance created')

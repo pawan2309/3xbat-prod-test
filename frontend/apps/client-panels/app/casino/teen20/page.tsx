@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import websocketManager from '@/lib/websocket'
 
 interface GameData {
   mid: string
@@ -44,63 +45,103 @@ export default function Teen20Page() {
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState(0)
 
-  // Fetch game data
+  // Initialize WebSocket connection and fetch initial data
   useEffect(() => {
-    const fetchGameData = async () => {
+    const gameType = 'teen20'
+    
+    // Join casino game room
+    websocketManager.joinCasinoGame(gameType)
+    
+    // Fetch initial data
+    const fetchInitialData = async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/casino/data/teen20')
-        const data = await response.json()
-        setGameData(data.data) // Backend wraps response in data field
+        const [gameResponse, resultsResponse] = await Promise.all([
+          fetch('http://localhost:4000/api/casino/data/teen20'),
+          fetch('http://localhost:4000/api/casino/results/teen20')
+        ])
+        
+        const gameData = await gameResponse.json()
+        const resultsData = await resultsResponse.json()
+        
+        setGameData(gameData.data)
+        setResults(resultsData.data)
+        setLoading(false)
       } catch (err) {
-        setError('Failed to fetch game data')
-        console.error('Error fetching game data:', err)
+        setError('Failed to fetch initial data')
+        console.error('Error fetching initial data:', err)
+        setLoading(false)
       }
     }
 
-    const fetchResults = async () => {
-      try {
-        const response = await fetch('http://localhost:4000/api/casino/results/teen20')
-        const data = await response.json()
-        setResults(data.data) // Backend wraps response in data field
-      } catch (err) {
-        console.error('Error fetching results:', err)
+    fetchInitialData()
+
+    // Set up WebSocket listeners
+    const handleGameUpdate = (data: any) => {
+      console.log('🎰 Received game update:', data)
+      if (data.data?.data) {
+        setGameData(data.data)
       }
     }
 
-    fetchGameData()
-    fetchResults()
-    setLoading(false)
+    const handleCountdown = (data: any) => {
+      console.log('🎰 Received countdown update:', data)
+      setCountdown(data.countdown)
+    }
+
+    const handleOdds = (data: any) => {
+      console.log('🎰 Received odds update:', data)
+      // Update game data with new odds
+      setGameData(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          success: true,
+          data: {
+            ...prev.data,
+            t1: prev.data?.t1?.map((item: any) => ({
+              ...item,
+              C1: data.odds.C1 || item.C1,
+              C2: data.odds.C2 || item.C2,
+              C3: data.odds.C3 || item.C3,
+              C4: data.odds.C4 || item.C4,
+              C5: data.odds.C5 || item.C5,
+              C6: data.odds.C6 || item.C6
+            })) || []
+          }
+        }
+      })
+    }
+
+    const handleResult = (data: any) => {
+      console.log('🎰 Received result update:', data)
+      setResults(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          success: true,
+          data: data.result
+        }
+      })
+    }
+
+    // Subscribe to WebSocket events
+    websocketManager.onCasinoGameUpdate(gameType, handleGameUpdate)
+    websocketManager.onCasinoCountdown(gameType, handleCountdown)
+    websocketManager.onCasinoOdds(gameType, handleOdds)
+    websocketManager.onCasinoResult(gameType, handleResult)
+
+    // Cleanup on unmount
+    return () => {
+      websocketManager.removeCasinoListeners(gameType)
+      websocketManager.leaveCasinoGame(gameType)
+    }
   }, [])
 
-  // Real countdown timer from API
+  // Initialize countdown from initial data
   useEffect(() => {
     if (gameData?.data?.t1?.[0]?.autotime) {
       setCountdown(gameData.data.t1[0].autotime)
     }
-  }, [gameData])
-
-  // Countdown timer
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 0) {
-          // Refresh data when countdown reaches 0
-          fetch('http://localhost:4000/api/casino/data/teen20')
-            .then(res => res.json())
-            .then(data => {
-              setGameData(data.data)
-              if (data.data?.data?.t1?.[0]?.autotime) {
-                setCountdown(data.data.data.t1[0].autotime)
-              }
-            })
-            .catch(err => console.error('Error refreshing game data:', err))
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(timer)
   }, [gameData])
 
   const currentRound = gameData?.data?.t1?.[0] || null
