@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Forward the request to the backend API
-    const response = await fetch('http://localhost:4001/api/user/change-password', {
+    const response = await fetch('http://localhost:4000/api/user/change-password', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

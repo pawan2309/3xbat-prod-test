@@ -9,7 +9,8 @@ interface Column {
 
 interface TableProps {
   columns: Column[];
-  data: any[];
+  data?: any[];
+  rows?: any[];
   selectable?: boolean;
   onRowSelect?: (selectedRows: any[]) => void;
   loading?: boolean;
@@ -19,18 +20,22 @@ interface TableProps {
 export const Table: React.FC<TableProps> = ({
   columns,
   data,
+  rows,
   selectable = false,
   onRowSelect,
   loading = false,
   emptyMessage = 'No data available'
 }) => {
   const [selectedRows, setSelectedRows] = React.useState<Set<number>>(new Set());
+  
+  // Use rows if provided, otherwise fall back to data
+  const tableData = rows || data || [];
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allIndices = new Set(data.map((_, index) => index));
+      const allIndices = new Set(tableData.map((_, index) => index));
       setSelectedRows(allIndices);
-      onRowSelect?.(data);
+      onRowSelect?.(tableData);
     } else {
       setSelectedRows(new Set());
       onRowSelect?.([]);
@@ -46,7 +51,7 @@ export const Table: React.FC<TableProps> = ({
     }
     setSelectedRows(newSelected);
     
-    const selectedData = data.filter((_, i) => newSelected.has(i));
+    const selectedData = tableData.filter((_, i) => newSelected.has(i));
     onRowSelect?.(selectedData);
   };
 
@@ -65,7 +70,7 @@ export const Table: React.FC<TableProps> = ({
     );
   }
 
-  if (data.length === 0) {
+  if (tableData.length === 0) {
     return (
       <div style={{
         display: 'flex',
@@ -102,7 +107,7 @@ export const Table: React.FC<TableProps> = ({
               }}>
                 <input
                   type="checkbox"
-                  checked={selectedRows.size === data.length && data.length > 0}
+                  checked={selectedRows.size === tableData.length && tableData.length > 0}
                   onChange={(e) => handleSelectAll(e.target.checked)}
                   style={{
                     width: '16px',
@@ -129,7 +134,7 @@ export const Table: React.FC<TableProps> = ({
           </tr>
         </thead>
         <tbody>
-          {data.map((row, index) => (
+          {tableData.map((row, index) => (
             <tr
               key={index}
               style={{

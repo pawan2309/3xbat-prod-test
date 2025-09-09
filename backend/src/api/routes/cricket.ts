@@ -100,38 +100,12 @@ router.get('/tv', async (req, res) => {
             });
         }
 
-        // Call external API directly
-        const response = await fetch(`https://mis3.sqmr.xyz/rtv.php?eventId=${eventId}`, {
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Referer': 'https://batxgames.site',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'DNT': '1',
-                'Upgrade-Insecure-Requests': '1'
-            }
-        });
+        logger.info(`📺 Fetching cricket TV for event: ${eventId}`);
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        // Check if response is JSON or HTML
-        const contentType = response.headers.get('content-type');
-        let tvData;
+        // Use external API service with retry logic
+        const tvData = await apiService.getCricketTV(eventId as string);
         
-        if (contentType && contentType.includes('application/json')) {
-            tvData = await response.json();
-        } else {
-            // Handle HTML response
-            const htmlContent = await response.text();
-            tvData = {
-                html: htmlContent,
-                contentType: contentType || 'text/html',
-                message: 'TV stream data returned as HTML'
-            };
-        }
+        logger.info(`✅ Successfully fetched TV data for event: ${eventId}`);
 
         res.json({
             success: true,

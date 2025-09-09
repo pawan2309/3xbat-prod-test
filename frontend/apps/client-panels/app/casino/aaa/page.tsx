@@ -10,13 +10,21 @@ export default function AAAPage() {
   const [results, setResults] = useState<any>(null);
   const [countdown, setCountdown] = useState<number>(0);
 
+  // Get API base URL based on environment
+  const getApiBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+      return `http://${window.location.hostname}:3000`;
+    }
+    return 'http://localhost:3000';
+  };
+
   useEffect(() => {
     // Fetch initial data
     const fetchData = async () => {
       try {
         const [dataResponse, resultsResponse] = await Promise.all([
-          fetch('http://localhost:4000/api/casino/data/aaa'),
-          fetch('http://localhost:4000/api/casino/results/aaa')
+          fetch(`${getApiBaseUrl()}/api/casino/data/aaa`),
+          fetch(`${getApiBaseUrl()}/api/casino/results/aaa`)
         ]);
 
         if (dataResponse.ok) {
@@ -69,25 +77,25 @@ export default function AAAPage() {
   };
 
   return (
-    <div className="flex flex-wrap md:px-[15px]">
-      <div className="sm:w-4xl w-[100%] mx-auto">
+    <div className="flex flex-wrap md:px-[10px] min-h-screen">
+      <div className="sm:w-4xl w-[100%] mx-auto pb-8">
         <div>
           <button 
             onClick={() => router.push('/casino')}
-            className="w-full theme2 text-white !rounded-none !font-bold !text-md !p-[6px] border !border-[#8d0d08]"
+            className="w-full bg-red-600 text-white rounded-none font-bold text-md p-[6px] border border-red-800 hover:bg-red-700"
           >
             BACK TO CASINO LIST
           </button>
         </div>
         
-        <div className="flex w-full flex-wrap align-items-center gap-1 justify-between theme1 p-2 purple-border">
+        <div className="flex w-full flex-wrap align-items-center gap-1 justify-between bg-blue-900 p-2 border border-purple-600">
           <div>
             <h4 className="text-white font-bold md:text-[13px] text-[12px] uppercase">Amar Akbar Anthony</h4>
           </div>
           <div className="flex items-center text-white gap-2">
-            <p className="text-white font-bold md:text-[13px] text-[12px] uppercase">
+            <div className="text-white font-bold md:text-[13px] text-[12px] uppercase">
               Round ID: <span>{gameData?.roundId || '121250909010110'}</span>
-            </p>
+            </div>
             <svg className="cursor-pointer" stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
               <path d="M256 48C141.1 48 48 141.1 48 256s93.1 208 208 208 208-93.1 208-208S370.9 48 256 48zm19 304h-38.2V207.9H275V352zm-19.1-159.8c-11.3 0-20.5-8.6-20.5-20s9.3-19.9 20.5-19.9c11.4 0 20.7 8.5 20.7 19.9s-9.3 20-20.7 20z"></path>
             </svg>
@@ -300,37 +308,37 @@ export default function AAAPage() {
 
         <div className="w-full lg:mt-0"></div>
         
-        <div className="purple-border">
-          <div className="flex flex-wrap align-items-center justify-between text-[13px] theme1 px-2 py-[3px]">
+        <div>
+          <div className="flex flex-wrap align-items-center justify-between text-[13px] bg-blue-900 px-2 py-[3px]">
             <div>
               <h4 className="text-white font-bold">Last Result</h4>
             </div>
           </div>
-          <div className="flex gap-1 justify-end mt-1 p-1">
+          <div className="flex gap-1 justify-end p-2 border border-purple-600">
             {results?.lastResults?.map((result: string, index: number) => (
               <span 
                 key={index}
-                className={`resulta w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold ${
-                  result === 'A' ? 'bg-[#008000] text-[#ff4500]' :
-                  result === 'B' ? 'bg-[#008000] text-[#ffffff]' :
-                  result === 'C' ? 'bg-[#008000] text-[#ffffff]' :
-                  'bg-[#008000] text-[#ffffff]'
+                className={`resulta bg-green-600 w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold ${
+                  result === 'A' ? 'text-orange-500' :
+                  result === 'B' ? 'text-white' :
+                  result === 'C' ? 'text-white' :
+                  'text-white'
                 }`}
               >
                 {result}
               </span>
             )) || (
               <>
-                <span className="resulta text-[#ffffff] bg-[#008000] w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">C</span>
-                <span className="resulta text-[#ffffff] bg-[#008000] w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">C</span>
-                <span className="resulta bg-[#008000] text-[#ff4500] w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">A</span>
-                <span className="resulta bg-[#008000] text-[#ffffff] w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">B</span>
-                <span className="resulta bg-[#008000] text-[#ffffff] w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">B</span>
-                <span className="resulta text-[#ffffff] bg-[#008000] w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">C</span>
-                <span className="resulta bg-[#008000] text-[#ff4500] w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">A</span>
-                <span className="resulta bg-[#008000] text-[#ffffff] w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">B</span>
-                <span className="resulta bg-[#008000] text-[#ff4500] w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">A</span>
-                <span className="resulta text-[#ffffff] bg-[#008000] w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">C</span>
+                <span className="resulta bg-green-600 text-white w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">C</span>
+                <span className="resulta bg-green-600 text-white w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">C</span>
+                <span className="resulta bg-green-600 text-orange-500 w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">A</span>
+                <span className="resulta bg-green-600 text-white w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">B</span>
+                <span className="resulta bg-green-600 text-white w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">B</span>
+                <span className="resulta bg-green-600 text-white w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">C</span>
+                <span className="resulta bg-green-600 text-orange-500 w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">A</span>
+                <span className="resulta bg-green-600 text-white w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">B</span>
+                <span className="resulta bg-green-600 text-orange-500 w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">A</span>
+                <span className="resulta bg-green-600 text-white w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold">C</span>
               </>
             )}
           </div>

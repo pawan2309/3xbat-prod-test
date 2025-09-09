@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward the request to the backend API
-    const response = await fetch('http://localhost:4001/api/auth/login', {
+    const response = await fetch('http://localhost:4000/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

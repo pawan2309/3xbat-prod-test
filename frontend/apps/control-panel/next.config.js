@@ -6,11 +6,17 @@ const nextConfig = {
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY || '',
   },
-  // Disable static optimization to prevent build errors
+  // Use standard Next.js build for production
   output: 'standalone',
   trailingSlash: true,
   experimental: {
     esmExternals: false,
+  },
+  // Ensure proper SSR handling
+  reactStrictMode: true,
+  // Disable static optimization to avoid context issues during build
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
   },
   async rewrites() {
     return [

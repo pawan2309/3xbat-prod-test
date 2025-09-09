@@ -109,7 +109,28 @@ export default class RealExternalAPIService {
           maxDelay: 15000
         }
       );
-      return await response.json();
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Check if response is JSON or HTML
+      const contentType = response.headers.get('content-type');
+      let tvData;
+      
+      if (contentType && contentType.includes('application/json')) {
+        tvData = await response.json();
+      } else {
+        // Handle HTML response
+        const htmlContent = await response.text();
+        tvData = {
+          html: htmlContent,
+          contentType: contentType || 'text/html',
+          message: 'TV stream data returned as HTML'
+        };
+      }
+
+      return tvData;
     } catch (error) {
       logger.error('❌ Failed to fetch cricket TV:', error);
       throw error;

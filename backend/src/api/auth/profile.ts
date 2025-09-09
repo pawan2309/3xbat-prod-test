@@ -1,10 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import jwt from 'jsonwebtoken';
-import { parse } from 'cookie';
 import { prisma } from '../../../lib/prisma';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'L9vY7z!pQkR#eA1dT3u*Xj5@FbNmC2Ws';
-const SESSION_COOKIE = 'betx_session';
+import jwt from 'jsonwebtoken';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -12,35 +8,64 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
-    const token = cookies[SESSION_COOKIE];
-
-    if (!token) {
-      return res.status(401).json({ success: false, message: 'No session token' });
+    // Get session from cookie
+    const session = req.cookies['betx_session'];
+    if (!session) {
+      return res.status(401).json({ success: false, message: 'No session found' });
     }
 
-    const payload = jwt.verify(token, JWT_SECRET) as any;
-    const userId = payload.user.id;
+    // Verify JWT token
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) {
+      return res.status(500).json({ success: false, message: 'Server configuration error' });
+    }
 
-    // Fetch complete user data including commission details from database
+    let decoded;
+    try {
+      decoded = jwt.verify(session, JWT_SECRET) as any;
+    } catch (error) {
+      return res.status(401).json({ success: false, message: 'Invalid session' });
+    }
+
+    const userId = decoded.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not found in session' });
+    }
+
+    // Get user from database
     const user = await prisma.user.findUnique({
       where: { id: userId },
-              include: {
-          UserCommissionShare: true
-        }
+      include: {
+        userCommissionShare: true
+      }
     });
 
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+    if (!user || user.status !== 'ACTIVE') {
+      return res.status(401).json({ success: false, message: 'User not found or inactive' });
     }
 
-    return res.status(200).json({ success: true, user });
+    // Return user data (without password)
+    const { password: _, ...userWithoutPassword } = user;
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        status: user.status,
+        limit: user.limit,
+        casinoStatus: user.casinoStatus,
+        userCommissionShare: user.userCommissionShare
+      }
+    });
+
   } catch (error) {
-    console.error('Profile fetch error:', error);
+    console.error('Profile error:', error);
     return res.status(500).json({ 
       success: false, 
-      message: 'Failed to fetch profile',
-      error: (error as Error).message 
+      message: 'Internal server error' 
     });
   }
-} 
+}

@@ -6,21 +6,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Clear the auth token cookie
-    res.setHeader('Set-Cookie', 'authToken=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict');
-    
-    console.log('✅ User logged out successfully');
-    
+    // Clear the session cookie
+    res.setHeader('Set-Cookie', [
+      'betx_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax'
+    ]);
+
     return res.status(200).json({
       success: true,
-      message: 'Logged out successfully'
+      message: 'Logout successful'
     });
 
   } catch (error) {
-    console.error('💥 Logout error:', error);
+    console.error('Logout error:', error);
     return res.status(500).json({ 
       success: false, 
-      message: 'Something went wrong during logout' 
+      message: 'Internal server error' 
     });
   }
 }

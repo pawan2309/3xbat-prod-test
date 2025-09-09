@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     // Forward the request to the backend API
-    const response = await fetch('http://localhost:4001/api/auth/logout', {
+    const response = await fetch('http://localhost:4000/api/auth/logout', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

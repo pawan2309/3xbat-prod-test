@@ -47,6 +47,7 @@ export default function CricketPageContent({
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [oddsData, setOddsData] = useState<any>(null)
   const [socket, setSocket] = useState<any>(null)
   const [previousOddsData, setPreviousOddsData] = useState<any>(null)
@@ -70,6 +71,8 @@ export default function CricketPageContent({
   const [betSlipTimer, setBetSlipTimer] = useState<number>(10)
   const [scorecardData, setScorecardData] = useState<any>(null)
   const [scorecardLoading, setScorecardLoading] = useState<boolean>(false)
+  const [scorecardError, setScorecardError] = useState<string | null>(null)
+  const [scorecardPollingInterval, setScorecardPollingInterval] = useState<NodeJS.Timeout | null>(null)
 
   // Get API base URL based on environment
   const getApiBaseUrl = () => {
@@ -79,53 +82,33 @@ export default function CricketPageContent({
     return 'http://localhost:4000'
   }
 
-  // Function to fetch scorecard data
+
+  // Function to fetch scorecard data with graceful error handling
   const fetchScorecardData = async (eventId: string) => {
     setScorecardLoading(true)
+    setScorecardError(null)
+    
     try {
       const response = await fetch(`${getApiBaseUrl()}/api/cricket/scorecard?marketId=${eventId}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
       const result = await response.json()
       
-      if (result.success && result.data) {
-        setScorecardData(result.data)
+      if (result.success && result.data?.data) {
+        // Access the nested data structure correctly
+        setScorecardData(result.data.data)
+        setScorecardError(null)
       } else {
-        setScorecardData({
-          spnnation1: 'Team 1',
-          spnnation2: 'Team 2',
-          score1: '0/0',
-          score2: '0/0',
-          spnrunrate1: '0.00',
-          spnrunrate2: '0.00',
-          dayno: '1',
-          isfinished: '0',
-          activenation1: '1',
-          activenation2: '0',
-          balls: ['0', '0', '0', '0', '0', '0'],
-          spnballrunningstatus: 'BALL RUNNING',
-          spnmessage: 'Scorecard data not available',
-          spnreqrate1: '0.00',
-          spnreqrate2: '0.00'
-        })
+        throw new Error(result.error || 'Invalid scorecard data received')
       }
     } catch (error) {
-      console.error('Error fetching scorecard:', error)
-      setScorecardData({
-        spnnation1: 'Team 1',
-        spnnation2: 'Team 2',
-        score1: '0/0',
-        score2: '0/0',
-        spnrunrate1: '0.00',
-        spnrunrate2: '0.00',
-        dayno: '1',
-        isfinished: '0',
-        activenation1: '1',
-        activenation2: '0',
-        balls: ['0', '0', '0', '0', '0', '0'],
-        spnballrunningstatus: 'BALL RUNNING',
-        spnmessage: 'Scorecard data not available',
-        spnreqrate1: '0.00',
-        spnreqrate2: '0.00'
-      })
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch scorecard data'
+      console.error('Error fetching scorecard:', errorMessage)
+      setScorecardError(errorMessage)
+      setScorecardData(null)
     } finally {
       setScorecardLoading(false)
     }
@@ -210,6 +193,11 @@ export default function CricketPageContent({
     return section.gstatus && section.gstatus !== 'ACTIVE'
   }
 
+  // Function to check if market has status overlay
+  const hasMarketStatusOverlay = (market: any) => {
+    return market.status && market.status !== 'ACTIVE' && market.status !== 'OPEN'
+  }
+
   // Function to get gstatus display text
   const getGstatusText = (gstatus: string) => {
     switch (gstatus) {
@@ -267,13 +255,6 @@ export default function CricketPageContent({
       return
     }
     
-    console.log('Placing bet:', {
-      team: betSlipModal.team,
-      rate: betSlipModal.rate,
-      mode: betSlipModal.mode,
-      amount: betAmount,
-      market: betSlipModal.marketName
-    })
     
     alert(`Bet placed: ${betSlipModal.team} - ${betSlipModal.mode} - ${betAmount} at ${betSlipModal.rate}`)
     closeBetSlipModal()
@@ -310,10 +291,18 @@ export default function CricketPageContent({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const socketUrl = `http://${window.location.hostname}:4000`
-      const newSocket = io(socketUrl)
+      const newSocket = io(socketUrl, {
+        // Production-ready WebSocket configuration
+        timeout: 20000,
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 5,
+        forceNew: true,
+        transports: ['websocket', 'polling']
+      })
       
       newSocket.on('connect', () => {
-        console.log('Socket.IO connected for odds')
         setSocket(newSocket)
       })
       
@@ -333,16 +322,39 @@ export default function CricketPageContent({
       newSocket.on('cricket_scorecard', (data) => {
         if (data.type === 'cricket_scorecard' && data.data) {
           setScorecardData(data.data)
+          setScorecardError(null) // Clear any previous errors
         }
       })
       
-      newSocket.on('disconnect', () => {
-        console.log('Socket.IO disconnected')
+      newSocket.on('disconnect', (reason) => {
+        console.warn('WebSocket disconnected:', reason)
         setSocket(null)
+        
+        // Attempt reconnection after a delay
+        if (reason === 'io server disconnect') {
+          // Server initiated disconnect, don't reconnect
+          return
+        }
+        
+        setTimeout(() => {
+          console.log('Attempting WebSocket reconnection...')
+          // The socket will automatically attempt to reconnect
+        }, 5000)
       })
       
       newSocket.on('error', (error) => {
-        console.error('Socket.IO error:', error)
+        console.error('WebSocket error:', error)
+        setScorecardError('Connection error. Retrying...')
+      })
+      
+      newSocket.on('reconnect', (attemptNumber) => {
+        console.log('WebSocket reconnected after', attemptNumber, 'attempts')
+        setScorecardError(null)
+      })
+      
+      newSocket.on('reconnect_error', (error) => {
+        console.error('WebSocket reconnection failed:', error)
+        setScorecardError('Connection lost. Please refresh the page.')
       })
       
       return () => {
@@ -389,52 +401,77 @@ export default function CricketPageContent({
       const match = matches.find(m => m.gmid === expandedMatch)
       if (match) {
         if (match.beventId) {
-          console.log('Requesting odds for beventId:', match.beventId)
           socket.emit('request_odds', {
             eventId: match.beventId
           })
           
           // Also fetch scorecard data
           fetchScorecardData(match.beventId)
+          
+          // Start polling fallback for scorecard updates
+          startScorecardPolling(match.beventId)
         } else {
-          console.log('No beventId found in match data - using fixture odds')
           const fixtureOdds = processFixtureOdds(match)
           if (fixtureOdds.length > 0) {
             setOddsData(fixtureOdds)
           }
-          
-          // Set fallback scorecard for non-beventId matches
-          const teamNames = match.ename.split(' v ')
-          setScorecardData({
-            spnnation1: teamNames[0] || 'Team 1',
-            spnnation2: teamNames[1] || 'Team 2',
-            score1: '0/0',
-            score2: '0/0',
-            spnrunrate1: '0.00',
-            spnrunrate2: '0.00',
-            dayno: '1',
-            isfinished: '0',
-            activenation1: '1',
-            activenation2: '0',
-            balls: ['0', '0', '0', '0', '0', '0'],
-            spnballrunningstatus: 'BALL RUNNING',
-            spnmessage: 'Match in progress - Live data not available',
-            spnreqrate1: '0.00',
-            spnreqrate2: '0.00'
-          })
         }
       }
     } else if (expandedMatch) {
       setOddsData(null)
       setScorecardData(null)
+      stopScorecardPolling()
     }
   }, [socket, expandedMatch, matches])
 
-  // Fetch matches from API
+  // Start polling fallback for scorecard updates
+  const startScorecardPolling = (eventId: string) => {
+    stopScorecardPolling() // Clear any existing polling
+    
+    const interval = setInterval(() => {
+      fetchScorecardData(eventId)
+    }, 10000) // Poll every 10 seconds as fallback
+    
+    setScorecardPollingInterval(interval)
+  }
+
+  // Stop polling
+  const stopScorecardPolling = () => {
+    if (scorecardPollingInterval) {
+      clearInterval(scorecardPollingInterval)
+      setScorecardPollingInterval(null)
+    }
+  }
+
+  // Cleanup polling on unmount
   useEffect(() => {
-    const fetchMatches = async () => {
+    return () => {
+      stopScorecardPolling()
+    }
+  }, [])
+
+  // Load cached matches first, then fetch fresh data
+  // This provides instant loading on return visits while keeping data fresh
+  useEffect(() => {
+    const loadMatches = async () => {
       try {
-        setLoading(true)
+        // First, try to load from cache for instant display
+        const cachedMatches = localStorage.getItem('cricket_matches')
+        const cacheTimestamp = localStorage.getItem('cricket_matches_timestamp')
+        const now = Date.now()
+        const cacheAge = cacheTimestamp ? now - parseInt(cacheTimestamp) : Infinity
+        const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes cache duration
+
+        if (cachedMatches && cacheAge < CACHE_DURATION) {
+          const parsedMatches = JSON.parse(cachedMatches)
+          setMatches(parsedMatches)
+          setLoading(false)
+          setIsInitialLoad(false)
+        } else {
+          setLoading(true)
+        }
+
+        // Always fetch fresh data in background to keep cache updated
         const response = await fetch(`${getApiBaseUrl()}/api/cricket/fixtures`)
         const data = await response.json()
         
@@ -449,20 +486,34 @@ export default function CricketPageContent({
             allMatches.push(...data.data.fixtures.t2)
           }
           
+          // Update state and cache
           setMatches(allMatches)
+          localStorage.setItem('cricket_matches', JSON.stringify(allMatches))
+          localStorage.setItem('cricket_matches_timestamp', now.toString())
+          
+          if (isInitialLoad) {
+            setLoading(false)
+            setIsInitialLoad(false)
+          }
         } else {
-          setError('Failed to fetch matches')
+          if (isInitialLoad) {
+            setError('Failed to fetch matches')
+            setLoading(false)
+            setIsInitialLoad(false)
+          }
         }
       } catch (err) {
-        setError('Error fetching matches')
         console.error('Error fetching matches:', err)
-      } finally {
-        setLoading(false)
+        if (isInitialLoad) {
+          setError('Error fetching matches')
+          setLoading(false)
+          setIsInitialLoad(false)
+        }
       }
     }
 
-    fetchMatches()
-  }, [])
+    loadMatches()
+  }, [isInitialLoad])
 
   // Get column headers from API data based on market type
   const getColumnHeaders = (market: any) => {
@@ -552,7 +603,7 @@ export default function CricketPageContent({
               const lay1CellId = `${marketIndex}-${sectionIndex}-${section.odds?.findIndex((odd: any) => odd.oname === 'lay1')}-lay1`
               const back1CellId = `${marketIndex}-${sectionIndex}-${section.odds?.findIndex((odd: any) => odd.oname === 'back1')}-back1`
               
-              const needsOverlay = hasGstatusOverlay(section)
+              const needsOverlay = hasGstatusOverlay(section) || hasMarketStatusOverlay(market)
               
               return (
                 <div key={sectionIndex} className="overflow-hidden transition-all duration-500 ease-in-out text-gray-800">
@@ -603,7 +654,7 @@ export default function CricketPageContent({
                       {needsOverlay && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
                           <p className="text-red-500 text-[11px] font-bold">
-                            {getGstatusText(section.gstatus)}
+                            {hasMarketStatusOverlay(market) ? getGstatusText(market.status) : getGstatusText(section.gstatus)}
                           </p>
                         </div>
                       )}
@@ -642,7 +693,7 @@ export default function CricketPageContent({
               const lay1CellId = `session-${marketIndex}-${sectionIndex}-${section.odds?.findIndex((odd: any) => odd.oname === 'lay1')}-lay1`
               const back1CellId = `session-${marketIndex}-${sectionIndex}-${section.odds?.findIndex((odd: any) => odd.oname === 'back1')}-back1`
               
-              const needsOverlay = hasGstatusOverlay(section)
+              const needsOverlay = hasGstatusOverlay(section) || hasMarketStatusOverlay(market)
               
               return (
                 <div key={sectionIndex} className="overflow-hidden transition-all duration-500 ease-in-out text-gray-800">
@@ -693,7 +744,7 @@ export default function CricketPageContent({
                       {needsOverlay && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
                           <p className="text-red-500 text-[11px] font-bold">
-                            {getGstatusText(section.gstatus)}
+                            {hasMarketStatusOverlay(market) ? getGstatusText(market.status) : getGstatusText(section.gstatus)}
                           </p>
                         </div>
                       )}
@@ -758,16 +809,22 @@ export default function CricketPageContent({
     }
   }
 
-  // Sort matches by time (earliest first)
+  // Sort matches - expanded match first, then live matches, then by time
   const sortedMatches = matches.sort((a, b) => {
+    // Expanded match always goes to the top
+    if (expandedMatch === a.gmid) return -1
+    if (expandedMatch === b.gmid) return 1
+    
+    // Then live matches
     if (a.iplay && !b.iplay) return -1
     if (!a.iplay && b.iplay) return 1
     
+    // Finally sort by start time
     return new Date(a.stime).getTime() - new Date(b.stime).getTime()
   })
 
   return (
-    <div className="w-full">
+    <div className="w-full min-h-screen">
       {/* Back to Menu Button */}
       <div>
         <button 
@@ -780,9 +837,17 @@ export default function CricketPageContent({
 
       {/* Live Matches Stack */}
       <div>
-        <h2 className="text-xl font-bold text-gray-800 mb-2 p-2">Live Cricket Matches</h2>
+        <div className="flex items-center justify-between mb-2 p-2">
+          <h2 className="text-xl font-bold text-gray-800">Live Cricket Matches</h2>
+          {loading && !isInitialLoad && (
+            <div className="flex items-center text-sm text-gray-500">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+              <span>Updating...</span>
+            </div>
+          )}
+        </div>
       
-      {loading ? (
+      {loading && isInitialLoad ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">Loading matches...</p>
@@ -796,45 +861,53 @@ export default function CricketPageContent({
           <p className="text-gray-500">No live matches available at the moment. Check back later for live matches.</p>
         </div>
       ) : (
-          <div className="space-y-0">
+          <div className="space-y-0 pb-8">
             {sortedMatches.map((match, index) => {
               const isLive = isMatchLive(match.stime)
               return (
                 <div 
                   id={`match-${match.gmid}`} 
                   key={match.gmid || index} 
-                  className={`bg-white border-b border-gray-300 transition-all duration-300 ${
-                    expandedMatch === match.gmid ? 'shadow-lg border-blue-500' : ''
+                  className={`bg-white border-b border-gray-300 transition-all duration-500 ease-in-out transform ${
+                    expandedMatch === match.gmid 
+                      ? 'shadow-xl border-blue-500 scale-[1.02] z-10 relative' 
+                      : 'hover:shadow-md hover:scale-[1.01]'
                   }`}
                 >
                   <div className="p-3">
                     {/* Match Header - Clickable area for expand/collapse */}
                     <div 
-                      className="text-center border-b border-white text-white border-2 font-bold uppercase bg-blue-900 p-2 cursor-pointer hover:bg-blue-800 transition-colors"
+                      className={`text-center border-b border-white text-white border-2 font-bold uppercase p-2 cursor-pointer transition-all duration-300 ease-in-out ${
+                        expandedMatch === match.gmid 
+                          ? 'bg-blue-800 shadow-lg scale-[1.01]' 
+                          : 'bg-blue-900 hover:bg-blue-800'
+                      }`}
                       onClick={() => handleMatchSelect(match)}
                     >
                       <div className="flex items-center justify-center space-x-2">
                         {isLive && (
-                          <div className="w-2 h-2 bg-green-500 rounded-full live-indicator"></div>
+                          <div className="w-2 h-2 bg-green-500 rounded-full live-indicator animate-pulse"></div>
                         )}
                         <span>{match.ename}</span>
                       </div>
                     </div>
                     
-                    {/* White Content Area - Only show when no match is expanded */}
-                    {expandedMatch === null && (
-                      <div className="mt-2 text-gray-600">
-                        <div className="flex justify-between items-center text-xs">
-                          <span>Date and Time: {formatTime(match.stime)}</span>
-                          <span>MATCH BETS: 0</span>
-                          <span>SESSION BETS: 0</span>
-                        </div>
+                    {/* White Content Area - Always show basic match info */}
+                    <div className="mt-2 text-gray-600">
+                      <div className="flex justify-between items-center text-xs">
+                        <span>Date and Time: {formatTime(match.stime)}</span>
+                        <span>MATCH BETS: 0</span>
+                        <span>SESSION BETS: 0</span>
                       </div>
-                    )}
+                    </div>
 
                     {/* Expanded Match Details - Only show when this match is expanded */}
-                    {expandedMatch === match.gmid && (
-                      <div className="mt-4 space-y-4">
+                    <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                      expandedMatch === match.gmid 
+                        ? 'max-h-[2000px] opacity-100 mt-4' 
+                        : 'max-h-0 opacity-0 mt-0'
+                    }`}>
+                      <div className="space-y-4">
                         {/* TV and Scorecard Buttons */}
                         <div className="flex space-x-2">
                           <button 
@@ -843,8 +916,10 @@ export default function CricketPageContent({
                               setShowTV(true)
                               setShowScore(false)
                             }}
-                            className={`flex-1 py-2 px-4 rounded text-sm font-bold transition-colors ${
-                              showTV ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'
+                            className={`flex-1 py-2 px-4 rounded text-sm font-bold transition-all duration-300 ease-in-out transform ${
+                              showTV 
+                                ? 'bg-blue-600 text-white scale-105 shadow-lg' 
+                                : 'bg-blue-500 text-white hover:bg-blue-600 hover:scale-102'
                             }`}
                           >
                             <span className="text-lg mr-2">📺</span>
@@ -856,8 +931,10 @@ export default function CricketPageContent({
                               setShowScore(true)
                               setShowTV(false)
                             }}
-                            className={`flex-1 py-2 px-4 rounded text-sm font-bold transition-colors ${
-                              showScore ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white hover:bg-blue-600'
+                            className={`flex-1 py-2 px-4 rounded text-sm font-bold transition-all duration-300 ease-in-out transform ${
+                              showScore 
+                                ? 'bg-blue-600 text-white scale-105 shadow-lg' 
+                                : 'bg-blue-500 text-white hover:bg-blue-600 hover:scale-102'
                             }`}
                           >
                             SCORE
@@ -865,49 +942,60 @@ export default function CricketPageContent({
                         </div>
 
                         {/* TV/Scorecard Content */}
-                        {showTV && (
-                          <div className="bg-gray-100 p-4 rounded">
-                            <h4 className="font-bold mb-2">TV Stream</h4>
-                            <p className="text-sm text-gray-600">TV content for {match.ename}</p>
-                          </div>
-                        )}
-
-                        {showScore && (
-                          <div className="bg-gray-100 p-4 rounded">
-                            <h4 className="font-bold mb-2">Scorecard for {match.ename}</h4>
-                            {scorecardLoading ? (
-                              <div className="text-center py-8">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                                <p className="text-sm text-gray-600">Loading scorecard...</p>
+                        <div className="overflow-hidden">
+                          <div className={`transition-all duration-500 ease-in-out transform ${
+                            showTV 
+                              ? 'max-h-[500px] opacity-100 translate-y-0' 
+                              : 'max-h-0 opacity-0 -translate-y-4'
+                          }`}>
+                            {showTV && (
+                              <div className="bg-gray-100 p-4 rounded">
+                                <h4 className="font-bold mb-2">TV Stream</h4>
+                                <p className="text-sm text-gray-600">TV content for {match.ename}</p>
                               </div>
-                            ) : (
-                              <ScorecardDisplay data={scorecardData || {
-                                spnnation1: match.ename.split(' v ')[0] || 'Team 1',
-                                spnnation2: match.ename.split(' v ')[1] || 'Team 2',
-                                score1: '0/0',
-                                score2: '0/0',
-                                spnrunrate1: '0.00',
-                                spnrunrate2: '0.00',
-                                spnreqrate1: '0.00',
-                                spnreqrate2: '0.00',
-                                activenation1: '1',
-                                activenation2: '0',
-                                isfinished: '0',
-                                balls: ['0', '0', '0', '0', '0', '0'],
-                                spnballrunningstatus: 'BALL RUNNING',
-                                dayno: '1',
-                                spnmessage: 'Match in progress - Live data not available'
-                              }} />
                             )}
                           </div>
-                        )}
+                          
+                          <div className={`transition-all duration-500 ease-in-out transform ${
+                            showScore 
+                              ? 'max-h-[800px] opacity-100 translate-y-0' 
+                              : 'max-h-0 opacity-0 -translate-y-4'
+                          }`}>
+                            {showScore && (
+                              <div className="bg-gray-100 p-3 rounded">
+                                <h4 className="font-bold mb-3 text-center">Scorecard for {match.ename}</h4>
+                                {scorecardLoading ? (
+                                  <div className="text-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                                    <p className="text-sm text-gray-600">Loading scorecard...</p>
+                                  </div>
+                                ) : scorecardError ? (
+                                  <div className="text-center py-8">
+                                    <div className="text-red-500 text-4xl mb-2">⚠️</div>
+                                    <p className="text-sm text-red-600 mb-3">{scorecardError}</p>
+                                    <button
+                                      onClick={() => fetchScorecardData(match.beventId || match.gmid.toString())}
+                                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                                    >
+                                      Retry
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="w-full">
+                                    <ScorecardDisplay data={scorecardData} matchEname={match.ename} />
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
                         {/* Betting Table */}
-                        <div>
+                        <div className="transition-all duration-500 ease-in-out transform translate-y-0 opacity-100">
                           {renderOddsTable()}
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               )

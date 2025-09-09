@@ -79,7 +79,7 @@ spec:
       - name: control-panel
         image: 3xbat-control-panel:latest
         ports:
-        - containerPort: 3000
+        - containerPort: 3001
         env:
         - name: NEXT_PUBLIC_API_URL
           value: "https://api.3xbat.com"
@@ -95,13 +95,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /
-            port: 3000
+            port: 3001
           initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
           httpGet:
             path: /
-            port: 3000
+            port: 3001
           initialDelaySeconds: 10
           periodSeconds: 10
 ---
@@ -114,8 +114,8 @@ spec:
   selector:
     app: control-panel
   ports:
-  - port: 3000
-    targetPort: 3000
+  - port: 3001
+    targetPort: 3001
   type: ClusterIP
 ---
 apiVersion: apps/v1
@@ -139,7 +139,7 @@ spec:
       - name: user-panel
         image: 3xbat-user-panel:latest
         ports:
-        - containerPort: 3000
+        - containerPort: 3002
         env:
         - name: NEXT_PUBLIC_API_URL
           value: "https://api.3xbat.com"
@@ -155,13 +155,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /
-            port: 3000
+            port: 3002
           initialDelaySeconds: 30
           periodSeconds: 30
         readinessProbe:
           httpGet:
             path: /
-            port: 3000
+            port: 3002
           initialDelaySeconds: 10
           periodSeconds: 10
 ---
@@ -174,6 +174,6 @@ spec:
   selector:
     app: user-panel
   ports:
-  - port: 3000
-    targetPort: 3000
+  - port: 3002
+    targetPort: 3002
   type: ClusterIP

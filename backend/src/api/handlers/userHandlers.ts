@@ -219,18 +219,16 @@ export const createUser = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Contact number must contain only numbers' });
     }
 
-    // Get existing usernames and codes
+    // Get existing usernames
     const existingUsers = await prisma.user.findMany({
-      select: { username: true, code: true }
+      select: { username: true }
     });
     const existingUsernames = existingUsers.map(u => u.username);
-    const existingCodes = existingUsers.map(u => u.code).filter((code): code is string => code !== null);
 
-    // Generate unique username and code
+    // Generate unique username
     const username = generateUsername(role, existingUsernames);
-    const code = generateCode(role, existingCodes);
 
-    console.log('Generated username:', username, 'code:', code);
+    console.log('Generated username:', username);
 
     // Create user with commission share
     const user = await prisma.user.create({
@@ -240,15 +238,13 @@ export const createUser = async (req: Request, res: Response) => {
         name,
         role: role as any,
         contactno: contactno || null,
-        code,
         parentId: parentId || null,
-        isActive: true,
+        status: 'ACTIVE',
         userCommissionShare: {
           create: {
             share: share || 0,
             available_share_percent: share || 0,
             cshare: cshare || 0,
-            icshare: icshare || 0,
             session_commission_type: session_commission_type || 'PERCENTAGE',
             matchcommission: matchcommission || 0,
             sessioncommission: sessioncommission || 0,
@@ -277,8 +273,7 @@ export const createUser = async (req: Request, res: Response) => {
         id: user.id,
         username: user.username,
         name: user.name,
-        role: user.role,
-        code: user.code
+        role: user.role
       } 
     });
   } catch (error) {

@@ -84,7 +84,28 @@ export function createWorkers() {
       try {
         const result = await apiService.getCricketOdds(eventId);
         
-        logger.info(`✅ Successfully fetched odds for event: ${eventId}`);
+        // Cache the odds data in Redis
+        const { getRedisClient } = require('../infrastructure/redis/redis');
+        const redis = getRedisClient();
+        
+        if (redis && result.data) {
+          const oddsKey = `odds:${eventId}`;
+          const ttl = 6; // 6 seconds TTL
+          
+          await redis.setex(oddsKey, ttl, JSON.stringify(result.data));
+          logger.info(`🎯 Cached ${result.data.length} odds for event: ${eventId} with TTL: ${ttl}s`);
+          
+          // Publish update notification
+          await redis.publish('odds:updated', JSON.stringify({
+            eventId,
+            data: result.data,
+            timestamp: Date.now(),
+            count: result.data.length,
+            changed: true
+          }));
+        }
+        
+        logger.info(`✅ Successfully fetched and cached odds for event: ${eventId}`);
         return result;
       } catch (error) {
         logger.error(`❌ Failed to fetch odds for event ${eventId}:`, error);

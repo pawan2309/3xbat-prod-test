@@ -46,18 +46,32 @@ httpServer.listen(PORT, HOST, async () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully');
-  httpServer.close(() => {
-    console.log('HTTP server closed');
-    process.exit(0);
-  });
+  await gracefulShutdown();
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully');
-  httpServer.close(() => {
-    console.log('HTTP server closed');
-    process.exit(0);
-  });
+  await gracefulShutdown();
 });
+
+async function gracefulShutdown() {
+  try {
+    // Stop cron jobs first
+    console.log('🛑 Stopping cron jobs...');
+    const { stopAllUpdates } = require('../dist/external-apis/jobs/oddsCron');
+    stopAllUpdates();
+    console.log('✅ Cron jobs stopped');
+    
+    // Close HTTP server
+    console.log('🛑 Closing HTTP server...');
+    httpServer.close(() => {
+      console.log('✅ HTTP server closed');
+      process.exit(0);
+    });
+  } catch (error) {
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
+}

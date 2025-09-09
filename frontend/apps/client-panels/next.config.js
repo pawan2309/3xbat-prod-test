@@ -7,7 +7,20 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:4001/api/:path*',
+        destination: 'http://localhost:3000/api/:path*',
+      },
+    ]
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://casinostream.trovetown.co; frame-src 'self' https://casinostream.trovetown.co;",
+          },
+        ],
       },
     ]
   },

@@ -14,29 +14,43 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'Username and password are required' });
     }
 
-    // TEMPORARY: BYPASS LOGIN FOR TESTING - Remove this in production!
-    console.log('🚀 BYPASS MODE: Skipping login validation for testing');
-    
-    // Mock user data for testing - SUB_OWNER role for full access
-    const mockUser = {
-      id: 'mock-sub-owner-id',
-      username: 'SUB_OWNER_001',
-      name: 'Sub Owner Test User',
-      role: 'SUB_OWNER',
-      isActive: true
-    };
+    // Find user by username
+    const user = await prisma.user.findUnique({
+      where: { username },
+      include: {
+        userCommissionShare: true
+      }
+    });
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+    }
+
+    // Check if user is active
+    if (user.status !== 'ACTIVE') {
+      return res.status(401).json({ success: false, message: 'Account is inactive' });
+    }
+
+    // Verify password (stored in plain text for now)
+    if (user.password !== password) {
+      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+    }
 
     // Generate JWT token
     const token = jwt.sign(
       { 
-        user: mockUser,
-        userId: mockUser.id,
-        id: mockUser.id,
-        username: mockUser.username,
-        role: mockUser.role
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role,
+          status: user.status
+        }
       },
       JWT_SECRET,
-      { expiresIn: '24h' }
+      { 
+        expiresIn: '24h'
+      }
     );
 
     // Set cookie
@@ -47,12 +61,21 @@ export const login = async (req: Request, res: Response) => {
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 
-    console.log('✅ Mock login successful for user:', mockUser.username, 'Role:', mockUser.role);
+    console.log('✅ Login successful for user:', user.username, 'Role:', user.role);
 
     return res.status(200).json({
       success: true,
-      message: 'Login successful (BYPASS MODE)',
-      user: mockUser,
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        status: user.status,
+        limit: user.limit,
+        casinoStatus: user.casinoStatus,
+        userCommissionShare: user.userCommissionShare
+      },
       token
     });
 
@@ -274,20 +297,53 @@ export const getSession = async (req: Request, res: Response) => {
 // GET /api/auth/profile - Get user profile
 export const getProfile = async (req: Request, res: Response) => {
   try {
-    // Mock profile data for testing
-    const profile = {
-      id: 'mock-sub-owner-id',
-      username: 'SUB_OWNER_001',
-      name: 'Sub Owner Test User',
-      role: 'SUB_OWNER',
-      isActive: true,
-      creditLimit: 1000000,
-      createdAt: new Date(),
-      code: 'SUB_OWNER_001',
-      contactno: '1234567890'
-    };
+    // Get session from cookie
+    const session = req.cookies['betx_session'];
+    if (!session) {
+      return res.status(401).json({ success: false, message: 'No session found' });
+    }
 
-    return res.status(200).json({ success: true, profile });
+    // Verify JWT token
+    let decoded;
+    try {
+      decoded = jwt.verify(session, JWT_SECRET) as any;
+    } catch (error) {
+      return res.status(401).json({ success: false, message: 'Invalid session' });
+    }
+
+    const userId = decoded.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not found in session' });
+    }
+
+    // Get user from database
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        userCommissionShare: true
+      }
+    });
+
+    if (!user || user.status !== 'ACTIVE') {
+      return res.status(401).json({ success: false, message: 'User not found or inactive' });
+    }
+
+    // Return user data (without password)
+    const { password: _, ...userWithoutPassword } = user;
+
+    return res.status(200).json({ 
+      success: true, 
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        status: user.status,
+        limit: user.limit,
+        casinoStatus: user.casinoStatus,
+        userCommissionShare: user.userCommissionShare
+      }
+    });
   } catch (error) {
     console.error('Profile error:', error);
     return res.status(500).json({ success: false, message: 'Internal server error' });

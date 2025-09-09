@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useAuth } from "../contexts/AuthContext";
+import { getRoleDisplayName } from "../lib/auth";
 
 interface DropdownItem {
   label: string;
@@ -43,6 +45,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   // Mobile detection
   useEffect(() => {
@@ -171,13 +174,11 @@ function Layout({ children }: { children: React.ReactNode }) {
             borderRadius: "6px",
             fontSize: isMobile ? 12 : 14,
             fontWeight: "500",
-            cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            transition: "all 0.15s ease-in-out"
+            gap: 8
           }}>
-            {isMobile ? "Owner" : "owner 01 ▼"}
+            {isMobile ? (user?.name || "User") : `${user?.name || "User"} (${getRoleDisplayName(user?.role || "USER")})`}
           </div>
           <div style={{
             padding: isMobile ? "6px 12px" : "8px 16px",
@@ -188,9 +189,14 @@ function Layout({ children }: { children: React.ReactNode }) {
             fontWeight: "500",
             display: "flex",
             alignItems: "center",
-            gap: 8
-          }}>
-            {isMobile ? "👤" : "👤 Demo Mode"}
+            gap: 8,
+            cursor: "pointer",
+            transition: "all 0.15s ease-in-out"
+          }}
+          onClick={logout}
+          title="Logout"
+          >
+            {isMobile ? "🚪" : "🚪 Logout"}
           </div>
         </div>
       </div>

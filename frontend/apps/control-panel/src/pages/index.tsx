@@ -1,28 +1,32 @@
-import { useEffect } from "react";
+import React from "react";
 import { useRouter } from "next/router";
+import Layout from "../components/Layout";
 
 function Home() {
   const router = useRouter();
 
-  useEffect(() => {
-    router.push("/dashboard");
+  // Redirect to dashboard
+  React.useEffect(() => {
+    router.push('/dashboard');
   }, [router]);
 
   return (
-    <div style={{ 
-      display: "flex", 
-      justifyContent: "center", 
-      alignItems: "center", 
-      height: "100vh",
-      fontSize: "18px",
-      color: "#6b7280"
-    }}>
-      Redirecting to Dashboard...
-    </div>
+    <Layout>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '400px',
+        fontSize: '18px',
+        color: '#6b7280'
+      }}>
+        Redirecting to Dashboard...
+      </div>
+    </Layout>
   );
 }
 
-// Force dynamic rendering
+// Force server-side rendering
 export async function getServerSideProps() {
   return {
     props: {},
@@ -30,4 +34,3 @@ export async function getServerSideProps() {
 }
 
 export default Home;
-

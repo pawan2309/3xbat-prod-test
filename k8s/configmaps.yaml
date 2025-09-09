@@ -7,7 +7,7 @@ data:
   NODE_ENV: "production"
   FRONTEND_URL: "https://3xbat.com"
   REDIS_HOST: "redis-service"
-  REDIS_PORT: "6379"
+  REDIS_PORT: "6380"
   POSTGRES_HOST: "postgres-service"
   POSTGRES_PORT: "5432"
   POSTGRES_DB: "betting_db"
@@ -26,12 +26,10 @@ data:
     }
     
     http {
-        upstream backend {
-            least_conn;
-            server backend-service:3000;
-            server backend-service:3001;
-            server backend-service:3002;
-        }
+    upstream backend {
+        least_conn;
+        server backend-service:4000;
+    }
         
         server {
             listen 80;

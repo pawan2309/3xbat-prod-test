@@ -57,18 +57,39 @@ export const jwtConfig = {
 
 // CORS configuration
 export const corsConfig = {
-  origin: process.env.CORS_ORIGIN?.split(',') || [
-    'http://localhost:3000', // Control Panel
-    'http://localhost:3001', // Client Panels
-    'http://localhost:3002', // User Management
-    'http://localhost:3003', // Operating Panel
-    'http://localhost:4000', // Backend API
-    'https://localhost:3000',
-    'https://localhost:3001',
-    'https://localhost:3002',
-    'https://localhost:3003',
-    'https://localhost:4000'
-  ],
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || [
+      'http://localhost:3000', // Client Panels
+      'http://localhost:3001', // Control Panel
+      'http://localhost:3002', // User Panel
+      'http://localhost:4000', // Backend API
+      'https://localhost:3000',
+      'https://localhost:3001',
+      'https://localhost:3002',
+      'https://localhost:4000'
+    ];
+    
+    // Allow localhost with any port for development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    // Allow mobile device IPs (common private network ranges)
+    const mobileIPPattern = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/;
+    if (mobileIPPattern.test(origin)) {
+      return callback(null, true);
+    }
+    
+    // Check against allowed origins
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
@@ -103,7 +124,7 @@ export const rateLimitConfig = {
 // Redis configuration
 export const redisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  port: parseInt(process.env.REDIS_PORT || '6380', 10),
   password: process.env.REDIS_PASSWORD || undefined,
   db: parseInt(process.env.REDIS_DB || '0', 10),
   retryDelayOnFailover: 100,
@@ -200,10 +221,9 @@ export const featureFlags = {
 
 // Frontend configuration
 export const frontendConfig = {
-  controlPanelUrl: process.env.CONTROL_PANEL_URL || 'http://localhost:3000',
-  clientPanelsUrl: process.env.CLIENT_PANELS_URL || 'http://localhost:3001',
-  userManagementUrl: process.env.USER_MANAGEMENT_URL || 'http://localhost:3002',
-  operatingPanelUrl: process.env.OPERATING_PANEL_URL || 'http://localhost:3003'
+  clientPanelsUrl: process.env.CLIENT_PANELS_URL || 'http://localhost:3000',
+  controlPanelUrl: process.env.CONTROL_PANEL_URL || 'http://localhost:3001',
+  userPanelUrl: process.env.USER_PANEL_URL || 'http://localhost:3002'
 };
 
 // Docker configuration

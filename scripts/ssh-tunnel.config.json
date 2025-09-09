@@ -22,8 +22,8 @@
     },
     "api": {
       "name": "Backend API",
-      "local_port": 4001,
-      "remote_port": 14001,
+      "local_port": 4000,
+      "remote_port": 14000,
       "description": "Access local backend API from remote server"
     },
     "frontend": {

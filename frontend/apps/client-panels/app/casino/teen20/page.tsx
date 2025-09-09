@@ -45,6 +45,14 @@ export default function Teen20Page() {
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState(0)
 
+  // Get API base URL based on environment
+  const getApiBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+      return `http://${window.location.hostname}:3000`;
+    }
+    return 'http://localhost:3000';
+  };
+
   // Initialize WebSocket connection and fetch initial data
   useEffect(() => {
     const gameType = 'teen20'
@@ -56,8 +64,8 @@ export default function Teen20Page() {
     const fetchInitialData = async () => {
       try {
         const [gameResponse, resultsResponse] = await Promise.all([
-          fetch('http://localhost:4000/api/casino/data/teen20'),
-          fetch('http://localhost:4000/api/casino/results/teen20')
+          fetch(`${getApiBaseUrl()}/api/casino/data/teen20`),
+          fetch(`${getApiBaseUrl()}/api/casino/results/teen20`)
         ])
         
         const gameData = await gameResponse.json()
@@ -193,9 +201,9 @@ export default function Teen20Page() {
             <h4 className="text-white font-bold md:text-[13px] text-[12px] uppercase">20-20 Teenpatti</h4>
           </div>
           <div className="flex items-center text-white gap-2">
-            <p className="text-white font-bold md:text-[13px] text-[12px] uppercase">
+            <div className="text-white font-bold md:text-[13px] text-[12px] uppercase">
               Round ID: <span>{currentRound?.mid || 'Loading...'}</span>
-            </p>
+            </div>
             <svg className="cursor-pointer" stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
               <path d="M256 48C141.1 48 48 141.1 48 256s93.1 208 208 208 208-93.1 208-208S370.9 48 256 48zm19 304h-38.2V207.9H275V352zm-19.1-159.8c-11.3 0-20.5-8.6-20.5-20s9.3-19.9 20.5-19.9c11.4 0 20.7 8.5 20.7 19.9s-9.3 20-20.7 20z"></path>
             </svg>
@@ -222,13 +230,13 @@ export default function Teen20Page() {
               <div className="absolute top-[5px] left-1 z-2">
                 <div>
                   <div className="!font-black">
-                    <p className="text-white text-[13px]">PLAYER A</p>
+                    <div className="text-white text-[13px]">PLAYER A</div>
                     <div className="flex flex-wrap gap-1">
                       <img alt="card1" className="w-[24px] h-[35px]" src="/cards/1.svg" />
                       <img alt="card2" className="w-[24px] h-[35px]" src="/cards/1.svg" />
                       <img alt="card3" className="w-[24px] h-[35px]" src="/cards/1.svg" />
                     </div>
-                    <p className="text-white text-[13px] mt-1">PLAYER B</p>
+                    <div className="text-white text-[13px] mt-1">PLAYER B</div>
                     <div className="flex flex-wrap gap-1">
                       <img alt="card1" className="w-[24px] h-[35px]" src="/cards/1.svg" />
                       <img alt="card2" className="w-[24px] h-[35px]" src="/cards/1.svg" />
@@ -276,10 +284,10 @@ export default function Teen20Page() {
         <div>
           <div className="flex flex-wrap items-center">
             <div className="grid grid-cols-12 w-full">
-              <p className="flex justify-evenly items-center text-[14px] uppercase col-span-9 bg-gray-200 text-black font-black p-2">
-                Player A
+              <div className="flex justify-evenly items-center text-[14px] uppercase col-span-9 bg-gray-200 text-black font-black p-2">
+                <span>Player A</span>
                 <div className="text-green-800 col-3 d-flex justify-content-end"></div>
-              </p>
+              </div>
               <div className="flex flex-wrap items-center justify-center gap-3 col-span-3 bg-blue-200 relative p-2">
                 <div className="md:w-[30%] w-[40%]">
                   <div className="w-full h-full">
@@ -294,10 +302,10 @@ export default function Teen20Page() {
             </div>
             
             <div className="grid grid-cols-12 w-full border-white border">
-              <p className="flex justify-evenly items-center text-[14px] uppercase col-span-9 bg-gray-200 text-black font-black p-2">
-                Player B
+              <div className="flex justify-evenly items-center text-[14px] uppercase col-span-9 bg-gray-200 text-black font-black p-2">
+                <span>Player B</span>
                 <div className="text-green-800 col-3 d-flex justify-content-end"></div>
-              </p>
+              </div>
               <div className="flex flex-wrap items-center justify-center gap-3 col-span-3 bg-blue-200 relative p-2">
                 <div className="md:w-[30%] w-[40%]">
                   <div className="w-full h-full">
