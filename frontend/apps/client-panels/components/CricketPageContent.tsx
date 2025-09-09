@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { io } from 'socket.io-client'
 import ScorecardDisplay from './ScorecardDisplay'
+import TVPlayer from './TVPlayer'
 
 interface Match {
   gmid: number
@@ -37,12 +38,11 @@ interface CricketPageContentProps {
 
 export default function CricketPageContent({ 
   initialExpandedMatch = null, 
-  initialShowScore = false,
+  initialShowScore = true,
   autoExpandEventId 
 }: CricketPageContentProps) {
   const router = useRouter()
   const [expandedMatch, setExpandedMatch] = useState<string | number | null>(initialExpandedMatch)
-  const [showTV, setShowTV] = useState(false)
   const [showScore, setShowScore] = useState(initialShowScore)
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
@@ -73,8 +73,10 @@ export default function CricketPageContent({
   const [scorecardLoading, setScorecardLoading] = useState<boolean>(false)
   const [scorecardError, setScorecardError] = useState<string | null>(null)
   const [scorecardPollingInterval, setScorecardPollingInterval] = useState<NodeJS.Timeout | null>(null)
+  const subscribedMatchRef = useRef<string | null>(null)
+  const currentEventIdRef = useRef<string | null>(null)
 
-  // Get API base URL based on environment
+  // Get API base URL with fallback
   const getApiBaseUrl = () => {
     if (typeof window !== 'undefined') {
       return `http://${window.location.hostname}:4000`
@@ -82,37 +84,94 @@ export default function CricketPageContent({
     return 'http://localhost:4000'
   }
 
+  // Fallback disabled; always use 4000
+  const getFallbackApiUrl = () => getApiBaseUrl()
 
-  // Function to fetch scorecard data with graceful error handling
+  // Connectivity checks disabled
+  const testApiConnectivity = async () => {}
+
+  // Function to fetch scorecard data with fallback and rate limiting
   const fetchScorecardData = async (eventId: string) => {
     setScorecardLoading(true)
     setScorecardError(null)
     
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/cricket/scorecard?marketId=${eventId}`)
+      const response = await fetch(`${getApiBaseUrl()}/api/cricket/scorecard?marketId=${eventId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      })
+        
+        if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error('Rate limited - please wait before retrying')
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        
+        const data = await response.json()
+        console.log('Primary API Response:', data)
+        
+        if (data.success) {
+          // Handle different response structures
+          let scorecardData = null
+          
+          if (data.data?.data) {
+            // Nested structure: { success: true, data: { data: {...} } }
+            scorecardData = data.data.data
+          } else if (data.data) {
+            // Direct structure: { success: true, data: {...} }
+            scorecardData = data.data
+          }
+          
+          // Validate that we have the required scorecard fields
+          if (scorecardData && (scorecardData.spnnation1 || scorecardData.spnnation2)) {
+            setScorecardData(scorecardData)
+            setScorecardError(null)
+          } else {
+            throw new Error('Invalid scorecard data structure received')
+          }
+        } else {
+          throw new Error(data.error || 'API request failed')
+        }
+      } catch (primaryError) {
+        console.error('API failed:', { primaryError })
+        
+        // Show user-friendly error message and try mock data
+        if (primaryError instanceof Error && primaryError.message.includes('Rate limited')) {
+          setScorecardError('Server is busy. Please wait a moment and try again.')
+        } else {
+          // Try mock data as last resort
+          console.log('Using mock scorecard data as fallback')
+          const mockData = {
+            spnnation1: 'AFGHANISTAN',
+            spnnation2: 'HONG KONG',
+            score1: '0/0',
+            score2: '0/0',
+            spnrunrate1: '0.00',
+            spnrunrate2: '0.00',
+            spnreqrate1: '0.00',
+            spnreqrate2: '0.00',
+            activenation1: '0',
+            activenation2: '0',
+            isfinished: '0',
+            balls: ['0', '0', '0', '0', '0', '0'],
+            spnballrunningstatus: '',
+            dayno: '1',
+            spnmessage: 'Match starting soon...'
+          }
+          setScorecardData(mockData)
+          setScorecardError('Using sample data - live updates unavailable')
+        }
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      const result = await response.json()
-      
-      if (result.success && result.data?.data) {
-        // Access the nested data structure correctly
-        setScorecardData(result.data.data)
-        setScorecardError(null)
-      } else {
-        throw new Error(result.error || 'Invalid scorecard data received')
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch scorecard data'
-      console.error('Error fetching scorecard:', errorMessage)
-      setScorecardError(errorMessage)
-      setScorecardData(null)
     } finally {
       setScorecardLoading(false)
     }
   }
+
+ 
 
   // Function to process fixture odds data for matches without beventId
   const processFixtureOdds = (match: Match) => {
@@ -287,78 +346,72 @@ export default function CricketPageContent({
     }
   }, [betSlipModal.isOpen])
 
+  // Test API connectivity on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      testApiConnectivity()
+    }
+  }, [])
+
   // Socket.IO connection for real-time odds
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const socketUrl = `http://${window.location.hostname}:4000`
+      const socketUrl = getApiBaseUrl()
       const newSocket = io(socketUrl, {
-        // Production-ready WebSocket configuration
-        timeout: 20000,
+        timeout: 10000,
         reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        reconnectionAttempts: 5,
         forceNew: true,
-        transports: ['websocket', 'polling']
+        transports: ['websocket']
       })
       
       newSocket.on('connect', () => {
+        console.log(`✅ WebSocket connected to: ${socketUrl}`)
         setSocket(newSocket)
       })
       
       newSocket.on('connect_error', (error) => {
-        console.error('Socket.IO connection error:', error)
-      })
-      
-      newSocket.on('cricket_odds', (data) => {
-        if (oddsData) {
-          detectOddsChanges(data.odds, oddsData)
-        }
-        
-        setPreviousOddsData(oddsData)
-        setOddsData(data.odds)
-      })
-
-      newSocket.on('cricket_scorecard', (data) => {
-        if (data.type === 'cricket_scorecard' && data.data) {
-          setScorecardData(data.data)
-          setScorecardError(null) // Clear any previous errors
-        }
-      })
-      
-      newSocket.on('disconnect', (reason) => {
-        console.warn('WebSocket disconnected:', reason)
+        console.warn(`❌ WebSocket connection failed to ${socketUrl}:`, error.message)
         setSocket(null)
+      })
+      
+        // Use new optimized cricket events
+        // (Legacy listeners removed; server emits odds_updated, scorecard_updated)
+
+        // New optimized cricket events (server emits: odds_updated, scorecard_updated)
+        newSocket.on('odds_updated', (payload: any) => {
+          if (currentEventIdRef.current && payload?.matchId === currentEventIdRef.current) {
+            if (oddsData) {
+              detectOddsChanges(payload.data, oddsData)
+            }
+            setPreviousOddsData(oddsData)
+            setOddsData(payload.data)
+          }
+        })
+
+        newSocket.on('scorecard_updated', (payload: any) => {
+          if (currentEventIdRef.current && payload?.matchId === currentEventIdRef.current) {
+            if (payload.data) {
+              setScorecardData(payload.data)
+              setScorecardError(null)
+            }
+          }
+        })
         
-        // Attempt reconnection after a delay
-        if (reason === 'io server disconnect') {
-          // Server initiated disconnect, don't reconnect
-          return
-        }
+        newSocket.on('disconnect', (reason) => {
+          console.warn('WebSocket disconnected:', reason)
+          setSocket(null)
+        })
         
-        setTimeout(() => {
-          console.log('Attempting WebSocket reconnection...')
-          // The socket will automatically attempt to reconnect
-        }, 5000)
-      })
+        newSocket.on('error', (error) => {
+          console.error('WebSocket error:', error)
+          setScorecardError('Connection error. Retrying...')
+        })
+      }
       
-      newSocket.on('error', (error) => {
-        console.error('WebSocket error:', error)
-        setScorecardError('Connection error. Retrying...')
-      })
-      
-      newSocket.on('reconnect', (attemptNumber) => {
-        console.log('WebSocket reconnected after', attemptNumber, 'attempts')
-        setScorecardError(null)
-      })
-      
-      newSocket.on('reconnect_error', (error) => {
-        console.error('WebSocket reconnection failed:', error)
-        setScorecardError('Connection lost. Please refresh the page.')
-      })
+      // Connected
       
       return () => {
-        newSocket.disconnect()
+        // Cleanup will be handled by individual socket instances
       }
     }
   }, [])
@@ -373,7 +426,6 @@ export default function CricketPageContent({
       if (matchToExpand) {
         setExpandedMatch(matchToExpand.gmid)
         setShowScore(true)
-        setShowTV(false)
         
         // Fetch scorecard data
         if (matchToExpand.beventId) {
@@ -400,6 +452,9 @@ export default function CricketPageContent({
     if (socket && expandedMatch) {
       const match = matches.find(m => m.gmid === expandedMatch)
       if (match) {
+        // Keep current event id ref in sync
+        currentEventIdRef.current = (match.beventId || match.gmid.toString()) as string
+
         if (match.beventId) {
           socket.emit('request_odds', {
             eventId: match.beventId
@@ -424,13 +479,45 @@ export default function CricketPageContent({
     }
   }, [socket, expandedMatch, matches])
 
+  // Subscribe/unsubscribe to server match room to activate publisher (populate active rooms)
+  useEffect(() => {
+    if (!socket) return
+    const match = matches.find(m => m.gmid === expandedMatch)
+    const eventId = match ? (match.beventId || match.gmid.toString()) : null
+    const isLive = !!match?.iplay
+
+    if (eventId && isLive) {
+      // Unsubscribe previous
+      if (subscribedMatchRef.current && subscribedMatchRef.current !== eventId) {
+        socket.emit('unsubscribe_match', { matchId: subscribedMatchRef.current })
+      }
+      // Subscribe current
+      socket.emit('subscribe_match', { matchId: eventId })
+      subscribedMatchRef.current = eventId
+    } else {
+      // If no live/expanded match, ensure unsubscribe
+      if (subscribedMatchRef.current) {
+        socket.emit('unsubscribe_match', { matchId: subscribedMatchRef.current })
+        subscribedMatchRef.current = null
+      }
+    }
+
+    return () => {
+      // Cleanup on dependency change
+      if (subscribedMatchRef.current) {
+        socket.emit('unsubscribe_match', { matchId: subscribedMatchRef.current })
+        subscribedMatchRef.current = null
+      }
+    }
+  }, [socket, expandedMatch, matches])
+
   // Start polling fallback for scorecard updates
   const startScorecardPolling = (eventId: string) => {
     stopScorecardPolling() // Clear any existing polling
     
     const interval = setInterval(() => {
       fetchScorecardData(eventId)
-    }, 10000) // Poll every 10 seconds as fallback
+    }, 30000) // Poll every 30 seconds to prevent rate limiting
     
     setScorecardPollingInterval(interval)
   }
@@ -789,12 +876,10 @@ export default function CricketPageContent({
     if (expandedMatch === match.gmid) {
       setExpandedMatch(null)
       setShowScore(false)
-      setShowTV(false)
       router.push('/cricket')
     } else {
       setExpandedMatch(match.gmid)
       setShowScore(true)
-      setShowTV(false)
       
       const eventId = match.beventId || match.gmid
       router.push(`/cricket/${eventId}`)
@@ -910,84 +995,76 @@ export default function CricketPageContent({
                       <div className="space-y-4">
                         {/* TV and Scorecard Buttons */}
                         <div className="flex space-x-2">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setShowTV(true)
-                              setShowScore(false)
-                            }}
+                          <button
                             className={`flex-1 py-2 px-4 rounded text-sm font-bold transition-all duration-300 ease-in-out transform ${
-                              showTV 
+                              !showScore 
                                 ? 'bg-blue-600 text-white scale-105 shadow-lg' 
                                 : 'bg-blue-500 text-white hover:bg-blue-600 hover:scale-102'
                             }`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowScore(false)
+                            }}
                           >
                             <span className="text-lg mr-2">📺</span>
                             TV
                           </button>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setShowScore(true)
-                              setShowTV(false)
-                            }}
+                          <button
                             className={`flex-1 py-2 px-4 rounded text-sm font-bold transition-all duration-300 ease-in-out transform ${
                               showScore 
                                 ? 'bg-blue-600 text-white scale-105 shadow-lg' 
                                 : 'bg-blue-500 text-white hover:bg-blue-600 hover:scale-102'
                             }`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShowScore(true)
+                            }}
                           >
                             SCORE
                           </button>
                         </div>
 
-                        {/* TV/Scorecard Content */}
-                        <div className="overflow-hidden">
-                          <div className={`transition-all duration-500 ease-in-out transform ${
-                            showTV 
-                              ? 'max-h-[500px] opacity-100 translate-y-0' 
-                              : 'max-h-0 opacity-0 -translate-y-4'
-                          }`}>
-                            {showTV && (
-                              <div className="bg-gray-100 p-4 rounded">
-                                <h4 className="font-bold mb-2">TV Stream</h4>
-                                <p className="text-sm text-gray-600">TV content for {match.ename}</p>
-                              </div>
-                            )}
+                        {/* TV Content - Embedded Player (Only for Live Matches, shown when TV tab active) */}
+                        {match.iplay && !showScore && (
+                          <div className="bg-gray-100 p-4 rounded mb-4">
+                            <h4 className="font-bold mb-3 text-center">📺 Live TV Stream - {match.ename}</h4>
+                            <TVPlayer 
+                              eventId={match.beventId || match.gmid.toString()} 
+                            />
                           </div>
-                          
-                          <div className={`transition-all duration-500 ease-in-out transform ${
-                            showScore 
-                              ? 'max-h-[800px] opacity-100 translate-y-0' 
-                              : 'max-h-0 opacity-0 -translate-y-4'
-                          }`}>
-                            {showScore && (
-                              <div className="bg-gray-100 p-3 rounded">
-                                <h4 className="font-bold mb-3 text-center">Scorecard for {match.ename}</h4>
-                                {scorecardLoading ? (
-                                  <div className="text-center py-8">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                                    <p className="text-sm text-gray-600">Loading scorecard...</p>
-                                  </div>
-                                ) : scorecardError ? (
-                                  <div className="text-center py-8">
-                                    <div className="text-red-500 text-4xl mb-2">⚠️</div>
-                                    <p className="text-sm text-red-600 mb-3">{scorecardError}</p>
-                                    <button
-                                      onClick={() => fetchScorecardData(match.beventId || match.gmid.toString())}
-                                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-                                    >
-                                      Retry
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="w-full">
-                                    <ScorecardDisplay data={scorecardData} matchEname={match.ename} />
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                        )}
+
+                        {/* Scorecard Content */}
+                        <div className={`transition-all duration-500 ease-in-out transform ${
+                          showScore 
+                            ? 'max-h-[800px] opacity-100 translate-y-0' 
+                            : 'max-h-0 opacity-0 -translate-y-4'
+                        }`}>
+                          {showScore && (
+                            <div className="bg-gray-100 p-3 rounded">
+                              {scorecardLoading ? (
+                                <div className="text-center py-8">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                                  <p className="text-sm text-gray-600">Loading scorecard...</p>
+                                </div>
+                              ) : scorecardError ? (
+                                <div className="text-center py-8">
+                                  <div className="text-red-500 text-4xl mb-2">⚠️</div>
+                                  <p className="text-sm text-red-600 mb-3">{scorecardError}</p>
+                                  <button
+                                    onClick={() => fetchScorecardData(match.beventId || match.gmid.toString())}
+                                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                                  >
+                                    Retry
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="w-full">
+                                  <ScorecardDisplay data={scorecardData} matchEname={match.ename} />
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Betting Table */}

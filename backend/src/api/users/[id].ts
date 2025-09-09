@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
-import { verifyToken } from '../../../lib/auth';
+import { prisma } from '../../lib/prisma';
+import { verifyToken } from '../../lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -51,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const user = await prisma.user.findUnique({
         where: { id },
         include: {
-          UserCommissionShare: true,
+          userCommissionShare: true,
           parent: {
             select: {
               id: true,
@@ -66,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               username: true,
               name: true,
               role: true,
-              isActive: true
+              // isActive removed
             }
           }
         }

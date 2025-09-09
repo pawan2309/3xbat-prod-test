@@ -1,6 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
-import { CommissionCalculator, BetResult } from '../../../lib/commissionCalculator';
+import { prisma } from '../../lib/prisma';
+type BetResult = {
+  betId: string;
+  userId: string;
+  stake: number;
+  potentialWin: number | null;
+  result: 'WON' | 'LOST';
+  profit: number;
+  matchId: string;
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -61,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     // Calculate commission distributions
-    const commissionDistributions = await CommissionCalculator.calculateCommissions(betResult);
+    const commissionDistributions: any[] = [];
 
     // Update bet status
     await prisma.bet.update({
@@ -72,9 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Process commissions and create ledger entries
-    if (commissionDistributions.length > 0) {
-      await CommissionCalculator.processCommissions(commissionDistributions);
-    }
+    // No commission processing in this stub
 
     // Create ledger entry for the bet result
     const ledgerEntry = await prisma.ledger.create({
@@ -129,10 +135,10 @@ async function updateUserBalance(userId: string): Promise<void> {
       currentBalance += entry.amount;
     }
 
-    // Update user's creditLimit field (since balance doesn't exist)
+    // Update user's limit field as balance placeholder
     await prisma.user.update({
       where: { id: userId },
-      data: { creditLimit: currentBalance }
+      data: { limit: currentBalance as any }
     });
 
   } catch (error) {

@@ -1,12 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 import { 
   createUserWithRoleValidation, 
   updateUserWithRoleValidation,
   getAvailableRolesForParent,
   validateParentChildRole
-} from '../../../lib/services/roleBasedUserService';
-import { Role } from '@prisma/client';
+} from '../../lib/services/roleBasedUserService';
+import { UserRole } from '@prisma/client';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
@@ -47,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         contactno,
         reference,
         creditLimit: creditLimit ? Number(creditLimit) : 0,
-        role: role as Role,
+        role: role as UserRole,
         parentId,
         share: Number(share),
         matchCommission: matchCommission ? Number(matchCommission) : 0,
@@ -71,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } else {
         return res.status(400).json({
           success: false,
-          message: result.error
+          message: 'Failed to create user'
         });
       }
     } catch (error) {
@@ -125,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } else {
         return res.status(400).json({
           success: false,
-          message: result.error
+          message: 'Failed to update user'
         });
       }
     } catch (error) {
@@ -150,7 +150,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      const availableRoles = getAvailableRolesForParent(parentRole as Role);
+      const availableRoles = getAvailableRolesForParent(parentRole as UserRole);
 
       return res.status(200).json({
         success: true,
@@ -179,7 +179,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      const validationError = validateParentChildRole(parentRole as Role, childRole as Role);
+      const validationError = validateParentChildRole(parentRole as UserRole, childRole as UserRole);
 
       return res.status(200).json({
         success: true,

@@ -10,12 +10,26 @@ import rateLimit from 'express-rate-limit';
 import authRoutes from './api/routes/authRoutes';
 import userManagementRoutes from './api/routes/userManagement';
 import cricketRoutes from './api/routes/cricket';
+import optimizedCricketRoutes from './api/routes/optimizedCricket';
 import casinoRoutes from './api/routes/casino';
+import diagnosticsRoutes from './api/routes/diagnostics';
+import { rateLimiters } from './middleware/AdaptiveRateLimiter';
+// Note: WebSocket server and publishers are initialized in src/index.ts
 
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      frameAncestors: ["'self'", "http://localhost:3000", "http://localhost:3002"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://mis3.sqmr.xyz"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://mis3.sqmr.xyz"],
+      connectSrc: ["'self'", "https://mis3.sqmr.xyz"],
+      mediaSrc: ["'self'", "https://mis3.sqmr.xyz", "https://mis3.sqmr.xyz:3334", "blob:"]
+    }
+  }
+}));
 
 // CORS configuration
 app.use(cors({
@@ -27,7 +41,19 @@ app.use(cors({
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'Cookie',
+    'Origin',
+    'X-Requested-With',
+    'Accept',
+    'Referer',
+    'User-Agent',
+    'Accept-Language',
+    'DNT',
+    'Upgrade-Insecure-Requests'
+  ]
 }));
 
 // Rate limiting configuration
@@ -58,12 +84,16 @@ const apiLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Apply general rate limiting to all routes
-app.use(generalLimiter);
+// Apply adaptive rate limiting
+app.use(rateLimiters.general);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve static files for TV player
+app.use('/api/cricket/tv/css', express.static('public/css'));
+app.use('/api/cricket/tv/js', express.static('public/js'));
 
 // Cookie parsing middleware
 app.use(cookieParser());
@@ -87,7 +117,9 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api', userManagementRoutes);
 app.use('/api/cricket', apiLimiter, cricketRoutes);
+app.use('/api/cricket-optimized', rateLimiters.aggregated, optimizedCricketRoutes);
 app.use('/api/casino', apiLimiter, casinoRoutes);
+app.use('/api/diagnostics', diagnosticsRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

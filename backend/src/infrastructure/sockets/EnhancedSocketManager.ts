@@ -46,14 +46,22 @@ export class EnhancedSocketManager {
       
       logInfo(`🔌 Client connected: ${socket.id} (Total: ${this.stats.activeConnections})`);
 
-      // Handle joining casino game rooms
+      // Handle joining casino game rooms (support both legacy and new names)
       socket.on('join-casino-game', (data: { gameType: string }) => {
         this.joinCasinoGame(socket, data.gameType);
       });
+      socket.on('join-casino', (payload: any) => {
+        const gameType = typeof payload === 'string' ? payload : payload?.gameType;
+        if (gameType) this.joinCasinoGame(socket, gameType);
+      });
 
-      // Handle leaving casino game rooms
+      // Handle leaving casino game rooms (support both legacy and new names)
       socket.on('leave-casino-game', (data: { gameType: string }) => {
         this.leaveCasinoGame(socket, data.gameType);
+      });
+      socket.on('leave-casino', (payload: any) => {
+        const gameType = typeof payload === 'string' ? payload : payload?.gameType;
+        if (gameType) this.leaveCasinoGame(socket, gameType);
       });
 
       // Handle joining cricket rooms
@@ -351,7 +359,13 @@ export class EnhancedSocketManager {
     const room = this.rooms.get(roomName);
     
     if (room && room.clients.size > 0) {
+      // Emit both hyphen and underscore variants for compatibility with clients
       this.io.to(roomName).emit('casino-update', {
+        gameType,
+        data,
+        timestamp: new Date().toISOString()
+      });
+      this.io.to(roomName).emit('casino_update', {
         gameType,
         data,
         timestamp: new Date().toISOString()

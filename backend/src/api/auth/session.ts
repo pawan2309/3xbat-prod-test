@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 import jwt from 'jsonwebtoken';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -79,8 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         id: true,
         username: true,
         name: true,
-        role: true,
-        isActive: true
+        role: true
       }
     });
 
@@ -89,11 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ valid: false, message: 'User not found' });
     }
 
-    // Check if user is still active
-    if (!user.isActive) {
-      console.log('❌ User account not active:', user.username);
-      return res.status(401).json({ valid: false, message: 'Account not active' });
-    }
+    // No isActive field in schema; skip
 
     console.log('✅ Valid session for user:', user.username, 'Role:', user.role);
 

@@ -123,6 +123,39 @@ router.get('/tv', async (req, res) => {
 });
 
 /**
+ * @route GET /api/cricket/tv/html
+ * @desc Get cricket TV streaming HTML (for iframe embedding)
+ * @access Public
+ */
+router.get('/tv/html', async (req, res) => {
+    try {
+        const { eventId } = req.query;
+        
+        if (!eventId) {
+            return res.status(400).send('Missing eventId parameter');
+        }
+
+        logger.info(`📺 Fetching cricket TV HTML for event: ${eventId}`);
+
+        // Use external API service with retry logic
+        const tvData = await apiService.getCricketTV(eventId as string);
+        
+        logger.info(`✅ Successfully fetched TV HTML for event: ${eventId}`);
+
+        // Return HTML directly
+        if (tvData.html) {
+            res.setHeader('Content-Type', 'text/html');
+            res.send(tvData.html);
+        } else {
+            res.status(404).send('No TV stream available for this event');
+        }
+    } catch (error) {
+        logger.error('❌ Failed to fetch TV HTML:', error);
+        res.status(500).send('Failed to fetch TV stream');
+    }
+});
+
+/**
  * @route GET /api/cricket/scorecard
  * @desc Get cricket scorecard for a specific market
  * @access Public

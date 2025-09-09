@@ -88,19 +88,25 @@ export function createWorkers() {
         const { getRedisClient } = require('../infrastructure/redis/redis');
         const redis = getRedisClient();
         
-        if (redis && result.data) {
+        const anyResult: any = result as any;
+        if (redis && anyResult.data) {
           const oddsKey = `odds:${eventId}`;
           const ttl = 6; // 6 seconds TTL
           
-          await redis.setex(oddsKey, ttl, JSON.stringify(result.data));
-          logger.info(`🎯 Cached ${result.data.length} odds for event: ${eventId} with TTL: ${ttl}s`);
+          // Redis v4 setEx
+          if (typeof (redis as any).setEx === 'function') {
+            await (redis as any).setEx(oddsKey, ttl, JSON.stringify(anyResult.data));
+          } else {
+            await (redis as any).setex(oddsKey, ttl, JSON.stringify(anyResult.data));
+          }
+          logger.info(`🎯 Cached ${anyResult.data.length} odds for event: ${eventId} with TTL: ${ttl}s`);
           
           // Publish update notification
           await redis.publish('odds:updated', JSON.stringify({
             eventId,
-            data: result.data,
+            data: anyResult.data,
             timestamp: Date.now(),
-            count: result.data.length,
+            count: anyResult.data.length,
             changed: true
           }));
         }

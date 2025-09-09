@@ -77,11 +77,11 @@ export default function ScorecardPage() {
       // Initial data fetch
       fetchScorecardData();
 
-      // Listen for scorecard updates
-      newSocket.on('cricket_scorecard', (data) => {
-        console.log('📊 Received scorecard data via WebSocket:', data);
-        if (data.type === 'cricket_scorecard' && data.data) {
-          setScorecardData(data.data);
+      // Listen for new scorecard updates
+      newSocket.on('scorecard_updated', (payload: any) => {
+        console.log('📊 Received scorecard data via WebSocket:', payload);
+        if (payload?.matchId === eventId && payload.data) {
+          setScorecardData({ type: 1, data: payload.data });
           setError(null);
         }
       });
@@ -99,8 +99,8 @@ export default function ScorecardPage() {
         console.error('❌ WebSocket error for scorecard:', error);
       });
 
-      // Request scorecard data
-      newSocket.emit('request_scorecard', { eventId });
+      // Request scorecard data via unified request_data
+      newSocket.emit('request_data', { type: 'scorecard', matchId: eventId });
       console.log('📡 Requested scorecard data for eventId:', eventId);
 
       return () => {
@@ -112,7 +112,7 @@ export default function ScorecardPage() {
   // Request scorecard data when socket is ready
   useEffect(() => {
     if (socket && eventId) {
-      socket.emit('request_scorecard', { eventId });
+      socket.emit('request_data', { type: 'scorecard', matchId: eventId });
     }
   }, [socket, eventId]);
 

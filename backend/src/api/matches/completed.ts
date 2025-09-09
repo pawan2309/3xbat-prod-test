@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -13,12 +13,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isActive: true,
         isDeleted: false,
         status: {
-          in: ['COMPLETED', 'CANCELED', 'SETTLED', 'ABANDONED']
+          in: ['COMPLETED'] as any
         }
       },
       select: {
         id: true,
-        matchId: true,
+        externalMatchId: true,
         matchName: true,
         sport: true,
         bevent: true,
@@ -27,7 +27,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status: true,
         startTime: true,
         isActive: true,
-        teams: true,
         winner: true,
         result: true,
         settledAt: true,
@@ -42,14 +41,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Transform the data to match the table structure
     const transformedMatches = completedMatches.map(match => ({
       id: match.id,
-      code: match.matchId || match.id.substring(0, 8),
+      code: match.externalMatchId || match.id.substring(0, 8),
       name: match.matchName || 'Match',
       dateTime: match.startTime,
       matchType: match.sport || 'Cricket',
       declare: match.status,
       wonBy: match.winner || 'Not declared',
       plusMinus: '0', // This would be calculated from bet settlements
-      teams: match.teams,
       tournament: match.tournament,
       settledAt: match.settledAt,
       result: match.result

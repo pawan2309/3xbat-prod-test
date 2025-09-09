@@ -71,7 +71,7 @@ export class EnhancedAPIService {
     // Casino data processor
     this.queue.registerProcessor('casino_data', async (item: QueueItem) => {
       return await this.makeAPICall(
-        () => this.realService.getCasinoGameData(item.gameType!, item.streamingId),
+        () => this.realService.getCasinoGameData(item.gameType!),
         `casino_data_${item.gameType}`
       );
     });
@@ -79,7 +79,7 @@ export class EnhancedAPIService {
     // Casino results processor
     this.queue.registerProcessor('casino_results', async (item: QueueItem) => {
       return await this.makeAPICall(
-        () => this.realService.getCasinoGameResults(item.gameType!, item.streamingId),
+        () => this.realService.getCasinoGameResults(item.gameType!),
         `casino_results_${item.gameType}`
       );
     });

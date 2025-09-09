@@ -12,7 +12,7 @@
     "start:full": "node dist/index.js"
   },
   "dependencies": {
-    "@prisma/client": "^5.7.1",
+    "@prisma/client": "^5.22.0",
     "@types/helmet": "^0.0.48",
     "axios": "^1.11.0",
     "bcryptjs": "^2.4.3",
@@ -30,6 +30,7 @@
     "morgan": "^1.10.1",
     "node-cron": "^3.0.3",
     "nodemon": "^3.1.10",
+    "redis": "^4.6.0",
     "socket.io": "^4.7.4",
     "socket.io-client": "^4.7.4",
     "winston": "^3.11.0"
@@ -46,7 +47,7 @@
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
     "eslint": "^8.56.0",
-    "prisma": "^5.7.1",
+    "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "tsconfig-paths": "^4.1.0",

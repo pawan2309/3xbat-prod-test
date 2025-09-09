@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
-import jwt from 'jsonwebtoken';
+import { prisma } from '../../lib/prisma';
+import { sign, SignOptions } from 'jsonwebtoken';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -57,23 +57,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const token = jwt.sign(
-      { 
-        user: {
-          id: user.id,
-          username: user.username,
-          name: user.name,
-          role: user.role,
-          status: user.status
-        }
-      },
-      JWT_SECRET,
-      { 
-        expiresIn: process.env.JWT_EXPIRES_IN || '24h',
-        issuer: process.env.JWT_ISSUER || '3xbat-client-panel',
-        audience: process.env.JWT_AUDIENCE || '3xbat-users'
+    const payload = {
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        status: user.status
       }
-    );
+    };
+    const expiresInConfig = (process.env.JWT_EXPIRES_IN ?? '24h') as unknown as number; // allow string like '24h'
+    const options: SignOptions = {
+      expiresIn: expiresInConfig as any,
+      issuer: process.env.JWT_ISSUER || undefined,
+      audience: process.env.JWT_AUDIENCE || undefined
+    };
+    const token = sign(payload, JWT_SECRET as string, options);
 
     // Set session cookie
     res.setHeader('Set-Cookie', [

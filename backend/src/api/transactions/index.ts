@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -120,7 +120,7 @@ async function createTransaction(req: NextApiRequest, res: NextApiResponse, curr
         // Get user's current credit limit
     const user = await prisma.user.findUnique({
       where: { id: targetUserId },
-      select: { creditLimit: true }
+      select: { limit: true }
     });
 
     if (!user) {

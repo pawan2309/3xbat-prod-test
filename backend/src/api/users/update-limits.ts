@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'PUT') {
@@ -21,12 +21,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
-        creditLimit: limits.creditLimit || 0,
+        limit: (limits as any).creditLimit || 0,
         exposure: limits.exposure || 0,
         // Add other limit fields as needed
       },
               include: {
-          UserCommissionShare: true
+          userCommissionShare: true
         }
     });
 

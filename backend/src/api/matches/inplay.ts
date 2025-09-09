@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -14,12 +14,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isActive: true,
         isDeleted: false,
         status: {
-          in: ['LIVE', 'UPCOMING']
+          in: ['INPLAY', 'UPCOMING'] as any
         }
       },
       select: {
         id: true,
-        matchId: true,
+        externalMatchId: true,
         matchName: true,
         sport: true,
         bevent: true,
@@ -29,7 +29,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         startTime: true,
         isLive: true,
         isActive: true,
-        teams: true,
         createdAt: true,
         lastUpdated: true
       },

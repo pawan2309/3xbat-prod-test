@@ -1,11 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 import { 
   getRoleBasedNavigation, 
   getAccessibleRoles, 
   canAccessFeature,
   canAccessRole 
-} from '../../../lib/hierarchyUtils';
+} from '../../lib/hierarchyUtils';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -40,12 +40,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         id: true,
         username: true,
         name: true,
-        role: true,
-        isActive: true
+        role: true
       }
     });
 
-    if (!user || !user.isActive) {
+    if (!user) {
       return res.status(401).json({ success: false, message: 'User not found or inactive' });
     }
 
@@ -73,14 +72,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         const users = await prisma.user.findMany({
           where: {
-            role: role as any,
-            isActive: true
+            role: role as any
           },
           select: {
             id: true,
             username: true,
             name: true,
-            code: true,
             role: true
           },
           orderBy: {

@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -48,26 +48,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Check if user has sufficient limit for deduction
-    if (type === 'deduct' && (user.creditLimit || 0) < parsedAmount) {
+    if (type === 'deduct' && (user.limit || 0) < parsedAmount) {
       return res.status(400).json({ 
         message: 'Insufficient credit limit for deduction',
-        currentLimit: user.creditLimit || 0,
+        currentLimit: user.limit || 0,
         requestedAmount: parsedAmount
       });
     }
 
     // Check if parent has sufficient limit for addition
-    if (type === 'add' && (parentUser.creditLimit || 0) < parsedAmount) {
+    if (type === 'add' && (parentUser.limit || 0) < parsedAmount) {
       return res.status(400).json({ 
         message: 'Parent has insufficient credit limit for this operation',
-        parentCurrentLimit: parentUser.creditLimit || 0,
+        parentCurrentLimit: parentUser.limit || 0,
         requestedAmount: parsedAmount
       });
     }
 
     // Calculate new limits
-    const currentUserLimit = user.creditLimit || 0;
-    const currentParentLimit = parentUser.creditLimit || 0;
+    const currentUserLimit = user.limit || 0;
+    const currentParentLimit = parentUser.limit || 0;
     let newUserLimit: number;
     let newParentLimit: number;
 
@@ -105,12 +105,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Update child user credit limit
       prisma.user.update({
         where: { id: userId },
-        data: { creditLimit: newUserLimit }
+        data: { limit: newUserLimit }
       }),
       // Update parent user credit limit
       prisma.user.update({
         where: { id: user.parentId },
-        data: { creditLimit: newParentLimit }
+        data: { limit: newParentLimit }
       })
     ]);
 
@@ -159,10 +159,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('Error stack:', error.stack);
     }
     
+    const e = error as Error;
     return res.status(500).json({ 
       success: false, 
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: process.env.NODE_ENV === 'development' ? e.message : 'Internal server error'
     });
   }
 } 

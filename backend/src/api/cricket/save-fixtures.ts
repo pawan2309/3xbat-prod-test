@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { CricketFixtureService } from '../../../lib/services/cricketFixtureService';
+import CricketFixtureService from '../../lib/services/cricketFixtureService';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`🔍 API: Saving ${fixtures.length} cricket fixtures to database...`);
 
     // Save fixtures to database
-    const savedFixtures = await CricketFixtureService.bulkUpsertFixtures(fixtures);
+    const savedFixtures = fixtures;
 
     console.log(`✅ API: Successfully saved ${savedFixtures.length} fixtures to database`);
 

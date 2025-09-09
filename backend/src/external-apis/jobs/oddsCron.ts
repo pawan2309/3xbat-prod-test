@@ -2,6 +2,9 @@ import { getRedisClient } from '../../infrastructure/redis/redis';
 import { addCricketOddsJob, addCricketScorecardJob, createWorkers } from '../../queues/apiRequestQueue';
 import logger from '../../monitoring/logging/logger';
 
+// Gatekeeper: allow enabling/disabling cron via env to avoid duplication with publishers
+const CRON_ENABLED = (process.env.CRON_ENABLED || 'false').toLowerCase() === 'true';
+
 // Track system state
 let cronJobsRunning = false;
 let oddsInterval: NodeJS.Timeout | null = null;
@@ -22,9 +25,9 @@ let lastScorecardCheckResult = { hasEvents: false, timestamp: 0 };
 let systemIdleStart: number | null = null;
 const IDLE_THRESHOLD = 5 * 60 * 1000; // 5 minutes without events = idle
 
-// Fixed intervals as per requirements
-const ODDS_INTERVAL = 1000; // 1 second for odds
-const SCORECARD_INTERVAL = 2000; // 2 seconds for scorecard
+// Normalized intervals (kept here only if CRON_ENABLED=true); otherwise publishers handle updates
+const ODDS_INTERVAL = 30000; // 30 seconds for odds
+const SCORECARD_INTERVAL = 60000; // 60 seconds for scorecard
 
 // Get active events from Redis
 async function getActiveEventIds(): Promise<string[]> {
@@ -37,7 +40,7 @@ async function getActiveEventIds(): Promise<string[]> {
     }
 
     // Get all active events from Redis
-    const activeEvents = await redis.smembers('active_events');
+    const activeEvents = await (redis as any).sMembers('active_events');
     const eventIds = activeEvents.filter(id => id && id.trim() !== '');
     
     logger.info(`🏏 Retrieved ${eventIds.length} active event IDs from Redis: ${eventIds.join(', ')}`);
@@ -86,7 +89,7 @@ async function getEventsWithActiveSubscribers(eventIds: string[]): Promise<strin
     for (const eventId of eventIds) {
       // Check if event has active subscribers in Redis
       const subscriberKey = `subscribers:${eventId}`;
-      const subscriberCount = await redis.scard(subscriberKey);
+      const subscriberCount = await (redis as any).sCard(subscriberKey);
       
       if (subscriberCount > 0) {
         eventsWithSubscribers.push(eventId);
@@ -103,6 +106,10 @@ async function getEventsWithActiveSubscribers(eventIds: string[]): Promise<strin
 
 // Start odds updates every 1 second
 export function startOddsUpdates(): void {
+  if (!CRON_ENABLED) {
+    logger.info('🎯 [CRON] Odds updates disabled (CRON_ENABLED=false). Using publishers instead.');
+    return;
+  }
   if (oddsInterval) {
     clearInterval(oddsInterval);
   }
@@ -169,6 +176,10 @@ export function startOddsUpdates(): void {
 
 // Start scorecard updates every 2 seconds
 export function startScorecardUpdates(): void {
+  if (!CRON_ENABLED) {
+    logger.info('📊 [CRON] Scorecard updates disabled (CRON_ENABLED=false). Using publishers instead.');
+    return;
+  }
   if (scorecardInterval) {
     clearInterval(scorecardInterval);
   }

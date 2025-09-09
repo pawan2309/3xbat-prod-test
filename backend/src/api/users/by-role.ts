@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -15,14 +15,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const users = await prisma.user.findMany({
       where: {
-        role: role as any,
-        isActive: true
+        role: role as any
       },
       select: {
         id: true,
         username: true,
-        name: true,
-        code: true
+        name: true
       },
       orderBy: {
         name: 'asc'
@@ -33,11 +31,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true, 
       users: users.map(user => ({
         id: user.id,
-        label: `${user.code} ${user.name}`,
+        label: `${user.name || user.username}`,
         value: user.id,
         username: user.username,
-        name: user.name,
-        code: user.code
+        name: user.name
       }))
     });
 

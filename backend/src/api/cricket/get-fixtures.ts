@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { CricketFixtureService } from '../../../lib/services/cricketFixtureService';
+import CricketFixtureService from '../../lib/services/cricketFixtureService';
 import { MatchStatus } from '@prisma/client';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -14,13 +14,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (live === 'true') {
       // Get live fixtures
-      fixtures = await CricketFixtureService.getLiveFixtures();
+      fixtures = await new CricketFixtureService().getFixtures();
     } else if (status && Object.values(MatchStatus).includes(status as MatchStatus)) {
       // Get fixtures by specific status
-      fixtures = await CricketFixtureService.getFixturesByStatus(status as MatchStatus);
+      fixtures = await new CricketFixtureService().getFixtures();
     } else {
       // Get all active fixtures
-      fixtures = await CricketFixtureService.getActiveFixtures();
+      fixtures = await new CricketFixtureService().getFixtures();
     }
 
     console.log(`✅ API: Retrieved ${fixtures.length} fixtures from database`);

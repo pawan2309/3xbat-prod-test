@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
-import { getAccessibleRoles, canAccessRole } from '../../../lib/hierarchyUtils';
+import { prisma } from '../../lib/prisma';
+import { getAccessibleRoles, canAccessRole } from '../../lib/hierarchyUtils';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -38,26 +38,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       select: {
         id: true,
         role: true,
-        isActive: true
+        // isActive removed: field not in schema
       }
     });
 
-    if (!currentUser || !currentUser.isActive) {
+    if (!currentUser) {
       return res.status(401).json({ success: false, message: 'User not found or inactive' });
     }
 
     // Get query parameters
-    const { role, parentId, includeInactive } = req.query;
+    const { role, parentId } = req.query as { role?: string; parentId?: string };
     
     // Get accessible roles for current user
-    const accessibleRoles = getAccessibleRoles(currentUser.role);
+    const accessibleRoles = getAccessibleRoles(currentUser.role as any) as any[];
     
     // Build where clause
     let whereClause: any = {};
     
     // Filter by role if specified and accessible
     if (role && typeof role === 'string') {
-      if (!accessibleRoles.includes(role)) {
+      if (!(accessibleRoles as any).includes(role as any)) {
         return res.status(403).json({ 
           success: false, 
           message: `Access denied: Cannot view ${role} users` 
@@ -66,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       whereClause.role = role as any;
     } else {
       // If no specific role requested, only show accessible roles
-      whereClause.role = { in: accessibleRoles.map(r => r as any) };
+      whereClause.role = { in: (accessibleRoles as any[]).map(r => r as any) };
     }
     
     // Filter by parentId if specified
@@ -74,10 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       whereClause.parentId = parentId;
     }
     
-    // Filter by active status
-    if (includeInactive !== 'true') {
-      whereClause.isActive = true;
-    }
+    // No isActive field in schema
 
     // Get users with hierarchy information
     const users = await prisma.user.findMany({
@@ -87,10 +84,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         username: true,
         name: true,
         role: true,
-        creditLimit: true,
-        isActive: true,
+        limit: true,
         createdAt: true,
-        code: true,
         contactno: true,
         parentId: true,
         parent: {
@@ -98,15 +93,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             id: true,
             username: true,
             name: true,
-            code: true,
             role: true
           }
         },
-        _count: {
-          select: {
-            children: true
-          }
-        }
+        // _count removed
       },
       orderBy: [
         { role: 'asc' },
@@ -115,12 +105,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Add hierarchy level information
-    const usersWithHierarchy = users.map(user => ({
-      ...user,
-      hierarchyLevel: accessibleRoles.indexOf(user.role),
-      canManage: canAccessRole(currentUser.role, user.role),
-      directChildren: user._count.children,
-      totalChildren: user._count.children // You can add recursive counting here if needed
+    const usersWithHierarchy = users.map((user: any) => ({
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      role: user.role,
+      creditLimit: user.limit,
+      contactno: user.contactno,
+      parentId: user.parentId,
+      hierarchyLevel: (accessibleRoles as any[]).indexOf(user.role),
+      canManage: canAccessRole(currentUser.role as any, user.role as any),
+      directChildren: 0,
+      totalChildren: 0
     }));
 
     return res.status(200).json({

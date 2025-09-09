@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -20,11 +20,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ] = await Promise.all([
       // User statistics
       prisma.user.count(),
-      prisma.user.count({ where: { isActive: true } }),
+      prisma.user.count(),
       
       // Match statistics
       prisma.match.count(),
-      prisma.match.count({ where: { status: 'LIVE' } }),
+      prisma.match.count({ where: { status: 'INPLAY' as any } }),
       
       // Bet statistics
       prisma.bet.count({ where: { status: 'PENDING' } }),
@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       // Balance statistics
       prisma.user.aggregate({
-        _sum: { creditLimit: true }
+        _sum: { limit: true }
       }),
       
       // Today's bets
@@ -59,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         match: {
           select: {
             matchName: true,
-            matchId: true
+            externalMatchId: true
           }
         }
       }
@@ -87,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           total: totalMatches,
           live: liveMatches,
           upcoming: await prisma.match.count({ where: { status: 'UPCOMING' } }),
-          closed: await prisma.match.count({ where: { status: 'CLOSED' } })
+          closed: await prisma.match.count({ where: { status: 'COMPLETED' as any } })
         },
         bets: {
           total: totalBets,
@@ -97,14 +97,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           lost: await prisma.bet.count({ where: { status: 'LOST' } })
         },
         financial: {
-          totalBalance: totalBalance._sum.creditLimit || 0,
+          totalBalance: (totalBalance._sum as any).limit || 0,
           totalStake: await prisma.bet.aggregate({
             _sum: { stake: true }
           }).then(result => result._sum.stake || 0),
           totalWinnings: await prisma.bet.aggregate({
             where: { status: 'WON' },
-            _sum: { wonAmount: true }
-          }).then(result => result._sum.wonAmount || 0)
+            _sum: { profitLoss: true }
+          }).then(result => (result._sum as any).profitLoss || 0)
         },
         recent: {
           bets: recentBets,

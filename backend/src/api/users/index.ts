@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export const runtime = 'nodejs';
 
@@ -37,9 +37,9 @@ function generateCode(role: string, existingCodes: string[] = []) {
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
-    // List users with optional role, parentId, and isActive filtering
+    // List users with optional role, parentId, and status filtering
     try {
-      const { role, parentId, isActive, excludeInactiveParents } = req.query;
+      const { role, parentId, status, isActive, excludeInactiveParents } = req.query;
       
       let whereClause: any = {};
       if (role && typeof role === 'string') {
@@ -48,11 +48,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       if (parentId && typeof parentId === 'string') {
         whereClause.parentId = parentId;
       }
-      if (isActive !== undefined) {
-        // Convert string to boolean for isActive filter
+      if (typeof status === 'string') {
+        whereClause.status = status as any;
+      } else if (isActive !== undefined) {
+        // Support legacy isActive by mapping to status
         const isActiveBool = String(isActive) === 'true';
-        whereClause.isActive = isActiveBool;
-        console.log('Filtering by isActive:', isActiveBool, 'Query param:', isActive);
+        whereClause.status = isActiveBool ? 'ACTIVE' : 'INACTIVE';
       }
       
       // If excludeInactiveParents is true, we need to filter out users whose parents are inactive
@@ -61,7 +62,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           { parentId: null }, // Top-level users (no parent)
           {
             parent: {
-              isActive: true // Only users whose parent is active
+              status: 'ACTIVE' // Only users whose parent is active
             }
           }
         ];
@@ -74,10 +75,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           username: true,
           name: true,
           role: true,
-          creditLimit: true,
-          isActive: true,
+          limit: true,
+          status: true,
           createdAt: true,
-          code: true,
           contactno: true,
           password: true, // Include password for credential sharing
           parentId: true,
@@ -88,12 +88,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               name: true,
             }
           },
-          UserCommissionShare: {
+          userCommissionShare: {
             select: {
               share: true,
               available_share_percent: true,
               cshare: true,
-              icshare: true,
               casinocommission: true,
               matchcommission: true,
               sessioncommission: true,
@@ -108,7 +107,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       
       console.log('Found users:', users.length);
       console.log('Where clause:', whereClause);
-      console.log('Sample users:', users.slice(0, 3).map(u => ({ id: u.id, username: u.username, role: u.role, isActive: u.isActive })));
+      console.log('Sample users:', users.slice(0, 3).map(u => ({ id: u.id, username: u.username, role: u.role, status: u.status })));
       
       return res.status(200).json({ success: true, users });
     } catch (error) {
@@ -129,8 +128,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         reference,
         share,
         cshare,
-        icshare,
-        mobileshare,
+        // icshare removed (not in schema)
+        // mobileshare removed (not in schema)
         session_commission_type,
         matchcommission,
         sessioncommission,
@@ -146,7 +145,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         myMatchCommission,
         mySessionCommission,
         myCasinoCommission,
-        myCasinoShare
+        myCasinoShare,
+        // requested initial limit
+        limit: requestedLimitInput
       } = req.body;
 
       console.log('Extracted fields:', { role, name, contactno, parentId });
@@ -157,8 +158,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(400).json({ success: false, message: 'Role, password, and name are required' });
       }
 
-      // Validate role
-      const validRoles = ['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER', 'SUB', 'MASTER', 'SUPER_AGENT', 'AGENT', 'USER'];
+      // Validate role (align with schema)
+      const validRoles = ['OWNER','SUB_OWN','SUP_ADM','ADMIN','SUB_ADM','MAS_AGENT','SUP_AGENT','AGENT','USER'];
       if (!validRoles.includes(role)) {
         return res.status(400).json({ success: false, message: `Invalid role: ${role}. Valid roles are: ${validRoles.join(', ')}` });
       }
@@ -168,33 +169,30 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(400).json({ success: false, message: 'Contact number must contain only numbers' });
       }
 
-      // Get existing usernames and codes
+      // Get existing usernames
       const existingUsers = await prisma.user.findMany({ 
-        select: { username: true, code: true } 
+        select: { username: true } 
       });
       const existingUsernames = existingUsers.map((u: { username: string }) => u.username);
-      const existingCodes = existingUsers.map((u: { code: string | null }) => u.code).filter((code): code is string => code !== null);
 
-      // Generate unique code (and use as username)
-      const code = generateCode(role, existingCodes);
-      const username = code; // Username is now the same as code
+      // Generate unique username
+      const username = generateUsername(role, existingUsernames);
 
       // Store password in plain text for credential sharing
       console.log('Generated username:', username);
-      console.log('Generated code:', code);
       console.log('Password stored in plain text for sharing');
 
       // Get the id of the currently logged-in user from the session
       const session = req.cookies['betx_session'];
-      let creatorId = null;
+      let creatorId: string | null = null;
       if (session) {
         try {
           const jwt = require('jsonwebtoken');
           const JWT_SECRET = process.env.JWT_SECRET;
-        if (!JWT_SECRET) {
-          return res.status(500).json({ success: false, message: 'Server configuration error' });
-        }
-        const decoded = jwt.verify(session, JWT_SECRET);
+          if (!JWT_SECRET) {
+            return res.status(500).json({ success: false, message: 'Server configuration error' });
+          }
+          const decoded = jwt.verify(session, JWT_SECRET);
           creatorId = decoded.user?.id || null;
         } catch (e) {
           console.error('Error decoding session:', e);
@@ -203,8 +201,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       }
 
       // Ensure parentId is a valid UUID, not a role name
-      let resolvedParentId = null;
-      let parentUser = null;
+      let resolvedParentId: string | null = null;
+      let parentUser: any = null;
       
       if (typeof parentId !== 'undefined' && parentId !== null) {
         // If parentId looks like a UUID, use it directly
@@ -227,7 +225,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
       } else {
         // Determine if the new user is a top-level role
-        const topLevelRoles = ['SUB_OWNER']; // Add other top-level roles if needed
+        const topLevelRoles = ['SUB_OWNER']; // legacy value retained, adjust as needed
         const isTopLevel = topLevelRoles.includes(role);
         resolvedParentId = isTopLevel ? null : creatorId;
         
@@ -272,136 +270,86 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           console.log(`Casino share validation passed: Child cshare ${childCshare}% <= Parent cshare ${parentCshare}%`);
         }
 
-        // Validate icshare (international casino share)
-        if (icshare !== undefined && icshare !== null) {
-          const childIshare = parseFloat(icshare) || 0;
-          const parentIshare = parentCommissionShare?.icshare || 0;
-          
-          if (childIshare > parentIshare) {
-            return res.status(400).json({ 
-              success: false, 
-              message: `Child international casino share (${childIshare}%) cannot exceed parent international casino share (${parentIshare}%). Please set child international casino share to ${parentIshare}% or less.` 
-            });
-          }
-          console.log(`International casino share validation passed: Child ishare ${childIshare}% <= Parent ishare ${parentIshare}%`);
+        // Schema has no icshare/mobileshare on user; skip
+      }
+
+      const requestedLimit = requestedLimitInput !== undefined ? Number(requestedLimitInput) : 0;
+
+      // Create user with basic fields
+      const userData: any = {
+        username,
+        name,
+        password: password, // Store in plain text for credential sharing
+        role: role as any, // Cast to schema enum
+        parentId: resolvedParentId,
+        limit: requestedLimit,
+        status: 'ACTIVE',
+        reference: reference || null,
+        contactno: contactno || null,
+        casinoStatus: typeof casinoStatus === 'boolean' ? casinoStatus : (casinoStatus === 'true'),
+      };
+
+      console.log('Creating user with data:', userData);
+
+      const user = await prisma.user.create({
+        data: userData
+      });
+
+      // Create UserCommissionShare record with actual values from frontend
+      const commissionShareData = {
+        userId: user.id,
+        share: parseFloat(share) || 0,
+        available_share_percent: parseFloat(share) || 0, // Initially, available share equals assigned share
+        cshare: parseFloat(cshare) || 0,
+        casinocommission: parseFloat(casinocommission) || 0,
+        matchcommission: parseFloat(matchcommission) || 0, // Use actual value from frontend
+        sessioncommission: parseFloat(sessioncommission) || 0, // Use actual value from frontend
+        sessionCommission: sessionCommission !== undefined ? parseFloat(sessionCommission) : null,
+        session_commission_type: session_commission_type || "No Comm",
+        commissionType: commissionType || null,
+      };
+
+      // Update parent's commission values if provided
+      if (parentUser && (myMatchCommission !== undefined || mySessionCommission !== undefined || myCasinoCommission !== undefined || myCasinoShare !== undefined)) {
+        const parentUpdateData: any = {};
+        
+        if (myMatchCommission !== undefined) {
+          parentUpdateData.matchcommission = parseFloat(myMatchCommission) || 0;
+        }
+        if (mySessionCommission !== undefined) {
+          parentUpdateData.sessioncommission = parseFloat(mySessionCommission) || 0;
+        }
+        if (myCasinoCommission !== undefined) {
+          parentUpdateData.casinocommission = parseFloat(myCasinoCommission) || 0;
+        }
+        if (myCasinoShare !== undefined) {
+          parentUpdateData.cshare = parseFloat(myCasinoShare) || 0;
         }
 
-        // Validate mobileshare (mobile share)
-        if (mobileshare !== undefined && mobileshare !== null) {
-          const childMobileshare = parseFloat(mobileshare) || 0;
-          const parentMobileshare = parentUser.mobileshare || 100;
-          
-          if (childMobileshare > parentMobileshare) {
-            return res.status(400).json({ 
-              success: false, 
-              message: `Child mobile share (${childMobileshare}%) cannot exceed parent mobile share (${parentMobileshare}%). Please set child mobile share to ${parentMobileshare}% or less.` 
-            });
-          }
-          console.log(`Mobile share validation passed: Child mobileshare ${childMobileshare}% <= Parent mobileshare ${parentMobileshare}%`);
+        if (Object.keys(parentUpdateData).length > 0) {
+          await prisma.userCommissionShare.update({
+            where: { userId: parentUser.id },
+            data: parentUpdateData
+          });
+          console.log('Updated parent commission values:', parentUpdateData);
         }
       }
 
-             // Validate credit limit deduction from parent
-             const requestedCreditLimit = req.body.creditLimit !== undefined ? Number(req.body.creditLimit) : 0;
-             
-             if (requestedCreditLimit > 0 && parentUser) {
-               // Check if parent has enough credit limit
-               if (parentUser.creditLimit < requestedCreditLimit) {
-                 return res.status(400).json({ 
-                   success: false, 
-                   message: `Parent user (${parentUser.name || parentUser.code || parentUser.username}) does not have enough credit limit. Parent has ${parentUser.creditLimit} but ${requestedCreditLimit} is required. Please reduce the credit limit or add more limit to the parent first.` 
-                 });
-               }
-               
-               // Deduct from parent's credit limit
-               await prisma.user.update({
-                 where: { id: parentUser.id },
-                 data: { creditLimit: parentUser.creditLimit - requestedCreditLimit }
-               });
-               
-               console.log(`Deducted ${requestedCreditLimit} from parent ${parentUser.username}. New parent limit: ${parentUser.creditLimit - requestedCreditLimit}`);
-             }
+      // Handle casinoShare and casinoCommission fields consistently
+      if (casinoShare !== undefined && casinoShare !== '') {
+        commissionShareData.cshare = parseFloat(casinoShare) || 0;
+      }
+      if (casinoCommission !== undefined && casinoCommission !== '') {
+        commissionShareData.casinocommission = parseFloat(casinoCommission) || 0;
+      }
 
-             // Create user with basic fields
-       const userData: any = {
-         username,
-         name,
-         password: password, // Store in plain text for credential sharing
-         role: role as any, // Cast to Role enum
-         parentId: resolvedParentId,
-         creditLimit: requestedCreditLimit,
-         balance: 0,
-         isActive: true,
-         code,
-         reference: reference || null,
-         contactno: contactno || null,
-         mobileshare: parseFloat(mobileshare) || 100,
-         casinoStatus: typeof casinoStatus === 'boolean' ? casinoStatus : (casinoStatus === 'true'),
-       };
-
-       console.log('Creating user with data:', userData);
-
-       const user = await prisma.user.create({
-         data: userData
-       });
-
-       // Create UserCommissionShare record with actual values from frontend
-       const commissionShareData = {
-         userId: user.id,
-         share: parseFloat(share) || 0,
-         available_share_percent: parseFloat(share) || 0, // Initially, available share equals assigned share
-         cshare: parseFloat(cshare) || 0,
-         icshare: parseFloat(icshare) || 0,
-         casinocommission: parseFloat(casinocommission) || 0,
-         matchcommission: parseFloat(matchcommission) || 0, // Use actual value from frontend
-         sessioncommission: parseFloat(sessioncommission) || 0, // Use actual value from frontend
-         sessionCommission: sessionCommission !== undefined ? parseFloat(sessionCommission) : null,
-         session_commission_type: session_commission_type || "No Comm",
-         commissionType: commissionType || null,
-       };
-
-       // Update parent's commission values if provided
-       if (parentUser && (myMatchCommission !== undefined || mySessionCommission !== undefined || myCasinoCommission !== undefined || myCasinoShare !== undefined)) {
-         const parentUpdateData: any = {};
-         
-         if (myMatchCommission !== undefined) {
-           parentUpdateData.matchcommission = parseFloat(myMatchCommission) || 0;
-         }
-         if (mySessionCommission !== undefined) {
-           parentUpdateData.sessioncommission = parseFloat(mySessionCommission) || 0;
-         }
-         if (myCasinoCommission !== undefined) {
-           parentUpdateData.casinocommission = parseFloat(myCasinoCommission) || 0;
-         }
-         if (myCasinoShare !== undefined) {
-           parentUpdateData.cshare = parseFloat(myCasinoShare) || 0;
-         }
-
-         if (Object.keys(parentUpdateData).length > 0) {
-           await prisma.userCommissionShare.update({
-             where: { userId: parentUser.id },
-             data: parentUpdateData
-           });
-           console.log('Updated parent commission values:', parentUpdateData);
-         }
-       }
-
-       // Handle casinoShare and casinoCommission fields consistently
-       if (casinoShare !== undefined && casinoShare !== '') {
-         commissionShareData.cshare = parseFloat(casinoShare) || 0;
-       }
-       if (casinoCommission !== undefined && casinoCommission !== '') {
-         commissionShareData.casinocommission = parseFloat(casinoCommission) || 0;
-       }
-
-               console.log('Creating commission share with data:', commissionShareData);
-               await prisma.userCommissionShare.create({
+      console.log('Creating commission share with data:', commissionShareData);
+      await prisma.userCommissionShare.create({
         data: {
-          User: { connect: { id: user.id } },
+          user: { connect: { id: user.id } },
           share: commissionShareData.share,
           available_share_percent: commissionShareData.available_share_percent,
           cshare: commissionShareData.cshare,
-          icshare: commissionShareData.icshare,
           casinocommission: commissionShareData.casinocommission,
           matchcommission: commissionShareData.matchcommission,
           sessioncommission: commissionShareData.sessioncommission,
@@ -411,47 +359,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           updatedAt: new Date()
         }
       });
-        console.log('Commission share created successfully for user:', user.id);
-
-      // Create ledger entries for credit limit allocation
-      if (user.creditLimit > 0) {
-        // Fetch parent/creator user info if available
-        let parentName = 'System';
-        if (user.parentId) {
-          const parentUser = await prisma.user.findUnique({ where: { id: user.parentId } });
-          if (parentUser) {
-            parentName = `${parentUser.code || ''} ${parentUser.name || ''}`.trim();
-          }
-        }
-        
-        // Create ledger entry for the new user
-        await prisma.ledger.create({
-          data: {
-            userId: user.id,
-            collection: 'LIMIT_UPDATE',
-            debit: 0,
-            credit: user.creditLimit,
-            balanceAfter: user.creditLimit,
-            type: 'ADJUSTMENT' as any,
-            remark: `Credit limit allocation from parent: ${parentName}`,
-          } as any
-        });
-        
-        // Create ledger entry for parent if deduction occurred
-        if (parentUser && user.creditLimit > 0) {
-          await prisma.ledger.create({
-            data: {
-              userId: parentUser.id,
-              collection: 'LIMIT_UPDATE',
-              debit: user.creditLimit,
-              credit: 0,
-              balanceAfter: parentUser.creditLimit - user.creditLimit,
-              type: 'ADJUSTMENT' as any,
-              remark: `Credit limit deduction for new user: ${user.name || user.username}`,
-            } as any
-          });
-        }
-      }
+      console.log('Commission share created successfully for user:', user.id);
 
       console.log('User created successfully:', user.id);
 
@@ -462,16 +370,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           username: user.username, 
           name: user.name,
           role: user.role, 
-          isActive: user.isActive,
-          code: user.code
+          status: user.status
         } 
       });
     } catch (error) {
       console.error('Error creating user:', error);
       
       // Check for specific database errors
-      if (error.code === 'P2002') {
-        return res.status(400).json({ success: false, message: 'Username or code already exists. Please try again.' });
+      const e: any = error;
+      if (e && e.code === 'P2002') {
+        return res.status(400).json({ success: false, message: 'Username already exists. Please try again.' });
       }
       
       return res.status(500).json({ success: false, message: 'Failed to create user', error: (error as Error).message });

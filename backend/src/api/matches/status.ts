@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'PUT') {
@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Validate status
-    const validStatuses = ['UPCOMING', 'LIVE', 'CLOSED'];
+    const validStatuses = ['UPCOMING', 'INPLAY', 'COMPLETED'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ 
         success: false, 
@@ -38,10 +38,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Update match status
+    const mappedStatus = status === 'LIVE' ? 'INPLAY' : (status === 'CLOSED' ? 'COMPLETED' : status);
     const updatedMatch = await prisma.match.update({
       where: { id: matchId },
       data: { 
-        status: status as 'UPCOMING' | 'LIVE' | 'CLOSED'
+        status: mappedStatus as any
       }
     });
 

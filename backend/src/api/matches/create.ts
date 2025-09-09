@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -16,9 +16,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Check if match with matchId already exists
+    // Check if match with externalMatchId already exists
     const existingMatch = await prisma.match.findUnique({
-      where: { matchId }
+      where: { externalMatchId: matchId }
     });
 
     if (existingMatch) {
@@ -29,15 +29,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Create the match
+    const mappedStatus = status === 'LIVE' ? 'INPLAY' : (status === 'CLOSED' ? 'COMPLETED' : status);
     const match = await prisma.match.create({
       data: {
         matchName: title,
-        matchId,
+        name: title,
+        externalMatchId: matchId,
         sport: 'cricket',
         bevent: `event_${Date.now()}`,
         bmarket: `market_${Date.now()}`,
         tournament: 'Custom Match',
-        status: status as 'UPCOMING' | 'LIVE' | 'CLOSED'
+        status: mappedStatus as any
       }
     });
 

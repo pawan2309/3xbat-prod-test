@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -34,10 +34,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Check if fromUser has sufficient limit
-    if ((fromUser.creditLimit || 0) < parsedAmount) {
+    if (((fromUser as any).limit || 0) < parsedAmount) {
       return res.status(400).json({ 
         message: 'Insufficient credit limit for transfer',
-        currentLimit: fromUser.creditLimit || 0,
+        currentLimit: (fromUser as any).limit || 0,
         requestedAmount: parsedAmount
       });
     }
@@ -47,13 +47,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Deduct from source user
       const updatedFromUser = await tx.user.update({
         where: { id: fromUserId },
-        data: { creditLimit: (fromUser.creditLimit || 0) - parsedAmount }
+        data: { limit: (((fromUser as any).limit || 0) - parsedAmount) as any }
       });
 
       // Add to destination user
       const updatedToUser = await tx.user.update({
         where: { id: toUserId },
-        data: { creditLimit: (toUser.creditLimit || 0) + parsedAmount }
+        data: { limit: (((toUser as any).limit || 0) + parsedAmount) as any }
       });
 
       // Create ledger entry for source user (debit)
@@ -79,14 +79,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: {
         fromUser: {
           id: fromUserId,
-          oldLimit: fromUser.creditLimit || 0,
-          newLimit: result.updatedFromUser.creditLimit,
+          oldLimit: (fromUser as any).limit || 0,
+          newLimit: (result.updatedFromUser as any).limit,
           change: -parsedAmount
         },
         toUser: {
           id: toUserId,
-          oldLimit: toUser.creditLimit || 0,
-          newLimit: result.updatedToUser.creditLimit,
+          oldLimit: (toUser as any).limit || 0,
+          newLimit: (result.updatedToUser as any).limit,
           change: parsedAmount
         },
         amount: parsedAmount,

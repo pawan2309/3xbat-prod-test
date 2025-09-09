@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -103,7 +103,7 @@ async function createGame(req: NextApiRequest, res: NextApiResponse, currentUser
     }
 
     // Validate game type
-    const validTypes = ['FOOTBALL', 'CRICKET', 'TENNIS', 'BASKETBALL', 'HORSE_RACING', 'CASINO', 'LOTTERY', 'OTHER'];
+    const validTypes = ['CRICKET', 'OTHER'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({ 
         success: false, 
@@ -115,7 +115,8 @@ async function createGame(req: NextApiRequest, res: NextApiResponse, currentUser
     const match = await prisma.match.create({
       data: {
         matchName: name,
-        matchId: `match_${Date.now()}`,
+        name: name,
+        externalMatchId: `match_${Date.now()}`,
         sport: 'cricket',
         bevent: `event_${Date.now()}`,
         bmarket: `market_${Date.now()}`,

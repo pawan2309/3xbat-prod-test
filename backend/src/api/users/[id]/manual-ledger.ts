@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../../lib/prisma';
-import { verifyToken } from '../../../../lib/auth';
+import { prisma } from '../../../lib/prisma';
+import { verifyToken } from '../../../lib/auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -49,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const currentLimit = user.creditLimit || 0;
+    const currentLimit = (user as any).limit || 0;
     let newLimit = currentLimit;
 
     // Calculate new limit based on type
@@ -65,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Update user credit limit
     await prisma.user.update({
       where: { id: id as string },
-      data: { creditLimit: newLimit }
+      data: { limit: newLimit as any }
     });
 
     // Create ledger entry

@@ -72,7 +72,7 @@ class WebSocketManager {
    */
   joinCasinoGame(gameType: string) {
     if (this.socket && this.isConnected) {
-      this.socket.emit('join-casino', gameType)
+      this.socket.emit('join-casino', { gameType })
       console.log(`🎰 Joined casino game: ${gameType}`)
     }
   }
@@ -82,7 +82,7 @@ class WebSocketManager {
    */
   leaveCasinoGame(gameType: string) {
     if (this.socket && this.isConnected) {
-      this.socket.emit('leave-casino', gameType)
+      this.socket.emit('leave-casino', { gameType })
       console.log(`🎰 Left casino game: ${gameType}`)
     }
   }
