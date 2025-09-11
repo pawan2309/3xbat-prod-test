@@ -12,6 +12,8 @@ import userManagementRoutes from './api/routes/userManagement';
 import cricketRoutes from './api/routes/cricket';
 import optimizedCricketRoutes from './api/routes/optimizedCricket';
 import casinoRoutes from './api/routes/casino';
+import bettingRoutes from './api/routes/betting';
+import betsRoutes from './api/routes/bets';
 import diagnosticsRoutes from './api/routes/diagnostics';
 import { rateLimiters } from './middleware/AdaptiveRateLimiter';
 // Note: WebSocket server and publishers are initialized in src/index.ts
@@ -119,6 +121,8 @@ app.use('/api', userManagementRoutes);
 app.use('/api/cricket', apiLimiter, cricketRoutes);
 app.use('/api/cricket-optimized', rateLimiters.aggregated, optimizedCricketRoutes);
 app.use('/api/casino', apiLimiter, casinoRoutes);
+app.use('/api/betting', apiLimiter, bettingRoutes);
+app.use('/api/bets', apiLimiter, betsRoutes);
 app.use('/api/diagnostics', diagnosticsRoutes);
 
 // 404 handler

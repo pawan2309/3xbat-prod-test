@@ -9,6 +9,15 @@ export const useCricketScorecard = (matches: Match[], expandedMatch: string | nu
   const [scorecardPollingInterval, setScorecardPollingInterval] = useState<NodeJS.Timeout | null>(null)
   const [retryCount, setRetryCount] = useState<number>(0)
   const subscribedMatchRef = useRef<string | null>(null)
+  const isMountedRef = useRef<boolean>(false)
+
+  // Set mounted flag when component mounts
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   // WebSocket connection for scorecard data
   useEffect(() => {
@@ -89,6 +98,11 @@ export const useCricketScorecard = (matches: Match[], expandedMatch: string | nu
 
   // Fetch scorecard data (fallback)
   const fetchScorecardData = async (eventId: string) => {
+    // Temporarily disable mount check to debug scorecard rendering
+    // if (!isMountedRef.current) {
+    //   return
+    // }
+
     try {
       setScorecardLoading(true)
       setScorecardError(null)
@@ -98,6 +112,11 @@ export const useCricketScorecard = (matches: Match[], expandedMatch: string | nu
       }
       
       const response = await fetch(`http://localhost:4000/api/cricket/scorecard/${eventId}`)
+      
+      // Check if component is still mounted after async operation
+      if (!isMountedRef.current) {
+        return
+      }
       
       if (process.env.NODE_ENV === 'development') {
         console.log('📊 Scorecard API response status:', response.status)
@@ -137,7 +156,12 @@ export const useCricketScorecard = (matches: Match[], expandedMatch: string | nu
     }
     
     const interval = setInterval(() => {
-      fetchScorecardData(eventId)
+      // Temporarily disable mount check to debug scorecard rendering
+      // if (isMountedRef.current) {
+        fetchScorecardData(eventId)
+      // } else {
+      //   clearInterval(interval)
+      // }
     }, 30000) // Poll every 30 seconds
     
     setScorecardPollingInterval(interval)
@@ -154,9 +178,14 @@ export const useCricketScorecard = (matches: Match[], expandedMatch: string | nu
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      isMountedRef.current = false
       stopScorecardPolling()
+      // Unsubscribe from any active match
+      if (subscribedMatchRef.current && socket) {
+        socket.emit('unsubscribe_match', { matchId: subscribedMatchRef.current })
+      }
     }
-  }, [])
+  }, [socket])
 
   return {
     scorecardData,

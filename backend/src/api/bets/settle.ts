@@ -7,7 +7,7 @@ type BetResult = {
   potentialWin: number | null;
   result: 'WON' | 'LOST';
   profit: number;
-  matchId: string;
+  matchId: string | null;
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

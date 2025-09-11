@@ -35,27 +35,66 @@ export const closeBetSlipModal = (setBetSlipModal: (modal: BetSlipModal) => void
 
 export const handleBetAmountClick = (
   amount: number,
-  setBetAmount: (amount: number) => void,
-  setBetSlipTimer: (timer: number) => void
+  setBetAmount: (amount: number) => void
 ) => {
   setBetAmount(amount)
-  setBetSlipTimer(10)
 }
 
-export const handlePlaceBet = (
+export const handlePlaceBet = async (
   betSlipModal: BetSlipModal,
   betAmount: number,
-  closeBetSlipModal: () => void
+  userId?: string
 ) => {
-  console.log('Placing bet:', {
-    team: betSlipModal.team,
-    rate: betSlipModal.rate,
-    mode: betSlipModal.mode,
-    amount: betAmount,
-    market: betSlipModal.marketName
-  })
-  
-  // Here you would typically send the bet to your backend API
-  // For now, we'll just close the modal
-  closeBetSlipModal()
+  try {
+    console.log('Placing bet:', {
+      team: betSlipModal.team,
+      rate: betSlipModal.rate,
+      mode: betSlipModal.mode,
+      amount: betAmount,
+      market: betSlipModal.marketName
+    })
+
+    if (!userId) {
+      console.error('User ID is required to place a bet')
+      alert('User authentication required to place bet')
+      return
+    }
+
+    // Prepare bet data - only include serializable data
+    const betData = {
+      userId,
+      marketName: betSlipModal.marketName,
+      odds: parseFloat(betSlipModal.rate),
+      stake: betAmount
+      // matchId and marketId are optional and will be set to null by the backend
+    }
+
+    console.log('Sending bet data:', betData)
+
+    // Send bet to backend API
+    const response = await fetch('/api/betting/place', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(betData)
+    })
+
+    const result = await response.json()
+
+    if (result.success) {
+      console.log('Bet placed successfully:', result.data)
+      alert(`Bet placed successfully! Bet ID: ${result.data.betId} (${result.data.betType})`)
+      return true // Return success status
+    } else {
+      console.error('Failed to place bet:', result.message)
+      alert(`Failed to place bet: ${result.message}`)
+      return false
+    }
+
+  } catch (error) {
+    console.error('Error placing bet:', error)
+    alert('Error placing bet. Please try again.')
+    return false
+  }
 }

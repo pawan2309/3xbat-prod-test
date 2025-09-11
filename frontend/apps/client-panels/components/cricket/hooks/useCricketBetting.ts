@@ -14,6 +14,13 @@ export const useCricketBetting = () => {
   const [betAmount, setBetAmount] = useState<number>(0)
   const [betSlipTimer, setBetSlipTimer] = useState<number>(10)
 
+  // Reset timer when modal opens
+  useEffect(() => {
+    if (betSlipModal.isOpen) {
+      setBetSlipTimer(10)
+    }
+  }, [betSlipModal.isOpen])
+
   // Timer countdown for bet slip
   useEffect(() => {
     if (!betSlipModal.isOpen) return
@@ -31,15 +38,16 @@ export const useCricketBetting = () => {
     return () => clearInterval(timer)
   }, [betSlipModal.isOpen])
 
-  // Reset timer when bet amount changes
+  // Handle bet amount change (no timer reset)
   const handleBetAmountChange = (amount: number) => {
     setBetAmount(amount)
-    setBetSlipTimer(10)
   }
 
   // Handle odds click with modal opening
   const onOddsClick = (odd: any, section: any, market: any) => {
     handleOddsClick(odd, section, market, setBetSlipModal)
+    // Reset timer to 10 seconds when bet slip opens
+    setBetSlipTimer(10)
   }
 
   // Close bet slip modal
@@ -49,12 +57,19 @@ export const useCricketBetting = () => {
 
   // Handle bet amount button click
   const onBetAmountClick = (amount: number) => {
-    handleBetAmountClick(amount, setBetAmount, setBetSlipTimer)
+    handleBetAmountClick(amount, setBetAmount)
   }
 
   // Handle place bet
-  const onPlaceBet = () => {
-    handlePlaceBet(betSlipModal, betAmount, onCloseBetSlipModal)
+  const onPlaceBet = async () => {
+    // Use default userId for testing
+    const effectiveUserId = 'demo-user'
+    const success = await handlePlaceBet(betSlipModal, betAmount, effectiveUserId)
+    
+    // Close modal if bet was placed successfully
+    if (success) {
+      onCloseBetSlipModal()
+    }
   }
 
   return {

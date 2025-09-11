@@ -10,6 +10,15 @@ export const useCricketOdds = (matches: Match[], expandedMatch: string | number 
   const [oddsChanges, setOddsChanges] = useState<Set<string>>(new Set())
   const subscribedMatchRef = useRef<string | null>(null)
   const currentEventIdRef = useRef<string | null>(null)
+  const isMountedRef = useRef<boolean>(false)
+
+  // Set mounted flag when component mounts
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   // WebSocket connection for odds data
   useEffect(() => {
@@ -23,6 +32,14 @@ export const useCricketOdds = (matches: Match[], expandedMatch: string | number 
     })
 
     newSocket.on('odds_updated', (data: any) => {
+      // Temporarily disable mount check to debug odds rendering
+      // if (!isMountedRef.current) {
+      //   if (process.env.NODE_ENV === 'development') {
+      //     console.log('📊 Odds update ignored - component unmounted')
+      //   }
+      //   return
+      // }
+
       // Only log essential info in development
       if (process.env.NODE_ENV === 'development') {
         console.log('📊 Odds update received from API 400:', {
@@ -70,7 +87,7 @@ export const useCricketOdds = (matches: Match[], expandedMatch: string | number 
           const sections = market.section || market.selections || []
           
           // Transform sections to have the expected structure
-          const transformedSections = sections.map((section: any) => {
+          const transformedSections = sections.map((section: any, index: number) => {
             // Find odds in the section - check different possible structures
             let odds = section.odds || []
             
@@ -224,6 +241,21 @@ export const useCricketOdds = (matches: Match[], expandedMatch: string | number 
     // No odds data available yet
     return null
   }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+      if (socket) {
+        // Unsubscribe from any active match
+        if (subscribedMatchRef.current) {
+          socket.emit('unsubscribe_match', { matchId: subscribedMatchRef.current })
+        }
+        // Close socket connection
+        socket.disconnect()
+      }
+    }
+  }, [socket])
 
   return {
     oddsData: getCurrentOddsData(),

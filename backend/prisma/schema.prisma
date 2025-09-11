@@ -180,13 +180,15 @@ model Selection {
 model Bet {
   id                String       @id @default(cuid())
   userId            String
-  matchId           String
-  marketId          String
+  matchId           String?
+  marketId          String?
   selectionId       String?
   selection         String?
+  marketName        String?      // Added for better categorization
   stake             Float
   odds              Float
-  betType           String?
+  betType           String?      // Keep for backward compatibility
+  betCategory       BettingScope @default(MATCH) // Renamed from scope for clarity
   potentialWin      Float?
   status            BetStatus    @default(PENDING)
   profitLoss        Float?
@@ -196,9 +198,19 @@ model Bet {
   cancelReason      String?
   cancelledAt       DateTime?
   payout            Float?
-  scope             BettingScope @default(MATCH)
-  market            Market       @relation(fields: [marketId], references: [id], onDelete: Cascade)
-  match             Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  
+  // Additional fields for table display
+  teamName          String?      // For MATCH BETS - TEAM column
+  betMode           String?      // For MODE column (back/lay)
+  sessionDescription String?     // For SESSION BETS - SESSION column
+  targetValue       String?      // For SESSION BETS - RUNS column
+  casinoGame        String?      // For CASINO BETS - CASINO column
+  betDescription    String?      // For CASINO BETS - NAME column
+  roundId           String?      // For CASINO BETS - ROUND ID column
+  transactionId     String?      // For CASINO BETS - TRANSACTION ID column
+  
+  market            Market?      @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  match             Match?       @relation(fields: [matchId], references: [id], onDelete: Cascade)
   selectionRelation Selection?   @relation(fields: [selectionId], references: [id], onDelete: Cascade)
   user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   ledger            Ledger[]
@@ -207,8 +219,10 @@ model Bet {
   @@index([matchId])
   @@index([marketId])
   @@index([status])
+  @@index([betCategory])
   @@map("bets")
 }
+
 
 model Notification {
   id        String             @id @default(cuid())
@@ -439,6 +453,7 @@ enum MatchStatus {
 enum BettingScope {
   MATCH
   SESSION
+  CASINO
 }
 
 enum MarketType {
