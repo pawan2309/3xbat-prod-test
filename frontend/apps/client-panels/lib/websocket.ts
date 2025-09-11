@@ -37,6 +37,9 @@ class WebSocketManager {
   }
 
   private connect() {
+    // Don't connect during build time or server-side rendering
+    if (typeof window === 'undefined') return;
+    
     try {
       this.socket = io('http://localhost:4000', {
         transports: ['websocket', 'polling'],

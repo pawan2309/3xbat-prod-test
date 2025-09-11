@@ -37,6 +37,15 @@ export class WebSocketDataPublisher {
 
     // TV availability less frequent (120s) to reduce load
     this.scheduleUpdate('tv', 120000, () => this.publishTvAvailability());
+
+    // Casino TV polling every 60s
+    this.scheduleUpdate('casino-tv', 60000, () => this.publishCasinoTvData());
+
+    // Casino data polling every 1s
+    this.scheduleUpdate('casino-data', 1000, () => this.publishCasinoData());
+
+    // Casino results polling every 1s
+    this.scheduleUpdate('casino-results', 1000, () => this.publishCasinoResults());
   }
 
   /**
@@ -183,6 +192,140 @@ export class WebSocketDataPublisher {
       logger.info(`📺 Published TV availability for ${tvData.size} matches`);
     } catch (error) {
       logger.error('❌ Error publishing TV availability:', error);
+    }
+  }
+
+  /**
+   * Publish casino TV data for active casino rooms
+   */
+  private async publishCasinoTvData() {
+    try {
+      if (!webSocketManager) return;
+
+      const activeCasinoRooms = webSocketManager.getActiveRooms('casino:');
+      if (activeCasinoRooms.length === 0) return;
+
+      if (!tokenBucketService.tryTake('provider:global')) return;
+      if (!tokenBucketService.tryTake('provider:casino-tv')) return;
+
+      // Casino TV stream IDs
+      const casinoStreams = [
+        { id: '3030', game: 'teen20' },
+        { id: '3035', game: 'dt20' },
+        { id: '3036', game: 'ab20' },
+        { id: '3056', game: 'aaa' },
+        { id: '3034', game: 'card32eu' },
+        { id: '3032', game: 'lucky7eu' }
+      ];
+
+      // Fetch casino TV data for each stream
+      for (const stream of casinoStreams) {
+        try {
+          const tvData = await smartCache.get(
+            `casino:tv:${stream.id}`,
+            () => this.apiService.getCasinoTV(stream.id),
+            { customTtl: 60 } // 1 minute cache
+          );
+
+          // Broadcast to casino room
+          await webSocketManager.broadcastToRoom(`casino:${stream.game}`, 'casino_tv_updated', {
+            game: stream.game,
+            streamId: stream.id,
+            data: tvData,
+            timestamp: Date.now()
+          });
+        } catch (error) {
+          logger.error(`❌ Error fetching casino TV for ${stream.game}:`, error);
+        }
+      }
+
+      logger.info(`🎰 Published casino TV data for ${casinoStreams.length} streams`);
+    } catch (error) {
+      logger.error('❌ Error publishing casino TV data:', error);
+    }
+  }
+
+  /**
+   * Publish casino data for active casino rooms only
+   */
+  private async publishCasinoData() {
+    try {
+      if (!webSocketManager) return;
+
+      const activeCasinoRooms = webSocketManager.getActiveRooms('casino:');
+      if (activeCasinoRooms.length === 0) return;
+
+      if (!tokenBucketService.tryTake('provider:global')) return;
+      if (!tokenBucketService.tryTake('provider:casino-data')) return;
+
+      // Only poll games that have active users
+      const activeGames = activeCasinoRooms.map(room => room.replace('casino:', ''));
+      
+      // Fetch casino data for active games only
+      for (const game of activeGames) {
+        try {
+          const gameData = await smartCache.get(
+            `casino:data:${game}`,
+            () => this.apiService.getCasinoGameData(game),
+            { customTtl: 2 } // 2 seconds cache for live data
+          );
+
+          // Broadcast to casino room
+          await webSocketManager.broadcastToRoom(`casino:${game}`, 'casino_data_updated', {
+            game: game,
+            data: gameData,
+            timestamp: Date.now()
+          });
+        } catch (error) {
+          logger.error(`❌ Error fetching casino data for ${game}:`, error);
+        }
+      }
+
+      logger.info(`🎰 Published casino data for ${activeGames.length} active games: ${activeGames.join(', ')}`);
+    } catch (error) {
+      logger.error('❌ Error publishing casino data:', error);
+    }
+  }
+
+  /**
+   * Publish casino results for active casino rooms only
+   */
+  private async publishCasinoResults() {
+    try {
+      if (!webSocketManager) return;
+
+      const activeCasinoRooms = webSocketManager.getActiveRooms('casino:');
+      if (activeCasinoRooms.length === 0) return;
+
+      if (!tokenBucketService.tryTake('provider:global')) return;
+      if (!tokenBucketService.tryTake('provider:casino-results')) return;
+
+      // Only poll games that have active users
+      const activeGames = activeCasinoRooms.map(room => room.replace('casino:', ''));
+      
+      // Fetch casino results for active games only
+      for (const game of activeGames) {
+        try {
+          const resultsData = await smartCache.get(
+            `casino:results:${game}`,
+            () => this.apiService.getCasinoGameResults(game),
+            { customTtl: 2 } // 2 seconds cache for live data
+          );
+
+          // Broadcast to casino room
+          await webSocketManager.broadcastToRoom(`casino:${game}`, 'casino_results_updated', {
+            game: game,
+            data: resultsData,
+            timestamp: Date.now()
+          });
+        } catch (error) {
+          logger.error(`❌ Error fetching casino results for ${game}:`, error);
+        }
+      }
+
+      logger.info(`🎰 Published casino results for ${activeGames.length} active games: ${activeGames.join(', ')}`);
+    } catch (error) {
+      logger.error('❌ Error publishing casino results:', error);
     }
   }
 

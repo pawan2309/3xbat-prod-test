@@ -2,10 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { Table } from './Table';
 
+interface Bet {
+  id: number;
+  userId: string;
+  username: string;
+  matchName: string;
+  betType: string;
+  betAmount: number;
+  odds: number;
+  potentialWin: number;
+  status: string;
+  placedAt: string;
+  matchDate: string;
+}
+
 const UndeclareMatchBetListContent: React.FC = () => {
-  const [bets, setBets] = useState([]);
+  const [bets, setBets] = useState<Bet[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedBets, setSelectedBets] = useState([]);
+  const [selectedBets, setSelectedBets] = useState<number[]>([]);
   const [filter, setFilter] = useState('all');
 
   // Sample data for demonstration

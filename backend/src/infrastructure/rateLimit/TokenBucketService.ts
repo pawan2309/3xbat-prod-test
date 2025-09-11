@@ -129,7 +129,9 @@ tokenBucketService.setBucketConfig('provider:fixtures', { capacity: 1, refillPer
 tokenBucketService.setBucketConfig('provider:odds', { capacity: 10, refillPerSecond: 10 });
 tokenBucketService.setBucketConfig('provider:scorecard', { capacity: 8, refillPerSecond: 8 });
 tokenBucketService.setBucketConfig('provider:tv', { capacity: 5, refillPerSecond: 5 });
-tokenBucketService.setBucketConfig('provider:casino-data', { capacity: 10, refillPerSecond: 10 });
-tokenBucketService.setBucketConfig('provider:casino-results', { capacity: 10, refillPerSecond: 10 });
+// Casino data: 20 requests per second (supports 6 games × 1s polling)
+tokenBucketService.setBucketConfig('provider:casino-data', { capacity: 30, refillPerSecond: 20 });
+// Casino results: 20 requests per second (supports 6 games × 1s polling)  
+tokenBucketService.setBucketConfig('provider:casino-results', { capacity: 30, refillPerSecond: 20 });
 
 

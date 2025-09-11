@@ -3,6 +3,12 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
+  // Suppress build warnings for dynamic routes
+  experimental: {
+    serverComponentsExternalPackages: ['socket.io-client'],
+  },
+  // Skip static optimization for pages that use dynamic features
+  trailingSlash: false,
   async rewrites() {
     return [
       {

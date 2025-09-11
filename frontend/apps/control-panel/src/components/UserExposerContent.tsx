@@ -2,10 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { Table } from './Table';
 
+interface User {
+  id: number;
+  userId: string;
+  username: string;
+  email: string;
+  totalBets: number;
+  totalAmount: number;
+  totalWins: number;
+  totalLosses: number;
+  winRate: number;
+  riskLevel: string;
+  status: string;
+  lastLogin: string;
+  registrationDate: string;
+  currentBalance: number;
+}
+
 const UserExposerContent: React.FC = () => {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [filter, setFilter] = useState('all');
 
   // Sample data for demonstration

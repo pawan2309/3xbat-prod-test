@@ -43,28 +43,8 @@ export default function ScorecardPage() {
   };
 
   const fetchScorecardData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${getApiBaseUrl()}/api/cricket/scorecard?marketId=${eventId}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        setScorecardData(result.data);
-        setError(null);
-      } else {
-        throw new Error(result.error || 'Failed to fetch scorecard data');
-      }
-    } catch (err) {
-      console.error('Error fetching scorecard:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch scorecard data');
-    } finally {
-      setLoading(false);
-    }
+    // No-op: Server handles all API calls and sends data via WebSocket
+    console.log('Scorecard data will come via WebSocket for event:', eventId);
   };
 
   // WebSocket connection
@@ -74,8 +54,7 @@ export default function ScorecardPage() {
       const newSocket = io(getApiBaseUrl());
       setSocket(newSocket);
 
-      // Initial data fetch
-      fetchScorecardData();
+      // Initial data will come via WebSocket
 
       // Listen for new scorecard updates
       newSocket.on('scorecard_updated', (payload: any) => {
@@ -135,7 +114,7 @@ export default function ScorecardPage() {
           <h2 className="text-xl font-bold text-gray-800 mb-2">Error Loading Scorecard</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button 
-            onClick={fetchScorecardData}
+            onClick={() => console.log('Retry requested - server will handle via WebSocket')}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             Retry

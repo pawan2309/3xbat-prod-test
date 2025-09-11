@@ -31,7 +31,8 @@ export const useOptimizedWebSocket = (config: WebSocketConfig) => {
   };
 
   const connect = useCallback(() => {
-    if (socket?.connected) return;
+    // Don't connect during build time or server-side rendering
+    if (typeof window === 'undefined' || socket?.connected) return;
 
     const newSocket = io(getApiBaseUrl(), {
       query: { userId: config.userId },

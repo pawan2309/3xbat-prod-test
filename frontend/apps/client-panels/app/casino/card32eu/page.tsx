@@ -3,12 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { websocketManager } from '@/lib/websocket';
+import { io } from 'socket.io-client';
 
 export default function Card32EUPage() {
   const router = useRouter();
   const [gameData, setGameData] = useState<any>(null);
   const [results, setResults] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(0);
+  const [casinoTvUrl, setCasinoTvUrl] = useState<string | null>(null);
+  const [socket, setSocket] = useState<any>(null);
 
   // Get API base URL based on environment
   const getApiBaseUrl = () => {
@@ -18,30 +23,63 @@ export default function Card32EUPage() {
     return 'http://localhost:3000';
   };
 
+  // Initialize WebSocket connection for casino TV
   useEffect(() => {
-    // Fetch initial data
-    const fetchData = async () => {
-      try {
-        const [dataResponse, resultsResponse] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/casino/data/card32eu`),
-          fetch(`${getApiBaseUrl()}/api/casino/results/card32eu`)
-        ]);
+    if (typeof window === 'undefined') return
 
-        if (dataResponse.ok) {
-          const data = await dataResponse.json();
-          setGameData(data);
-        }
+    const socketUrl = 'http://localhost:4000'
+    const newSocket = io(socketUrl, {
+      timeout: 10000,
+      reconnection: true,
+      forceNew: true,
+      transports: ['websocket']
+    })
 
-        if (resultsResponse.ok) {
-          const resultsData = await resultsResponse.json();
-          setResults(resultsData);
+    newSocket.on('connect', () => {
+      console.log('✅ Casino WebSocket connected')
+      setSocket(newSocket)
+      // Join casino room
+      newSocket.emit('join_casino_room', { game: 'card32eu' })
+    })
+
+    newSocket.on('casino_tv_updated', (payload: any) => {
+      if (payload.game === 'card32eu' && payload.data) {
+        console.log('🎰 Received casino TV data:', payload)
+        // Extract stream URL from the data - use the actual stream URL from jmdapi
+        if (payload.data && payload.data.data) {
+          // The data comes from jmdapi.com/tablevideo/?id=3034
+          setCasinoTvUrl(`https://jmdapi.com/tablevideo/?id=3034`)
         }
-      } catch (error) {
-        console.error('Error fetching Card32EU data:', error);
       }
-    };
+    })
 
-    fetchData();
+    newSocket.on('casino_data_updated', (payload: any) => {
+      if (payload.game === 'card32eu' && payload.data) {
+        console.log('🎰 Received casino data:', payload)
+        setGameData(payload.data)
+      }
+    })
+
+    newSocket.on('casino_results_updated', (payload: any) => {
+      if (payload.game === 'card32eu' && payload.data) {
+        console.log('🎰 Received casino results:', payload)
+        setResults(payload.data)
+      }
+    })
+
+    newSocket.on('disconnect', () => {
+      console.log('❌ Casino WebSocket disconnected')
+      setSocket(null)
+    })
+
+    return () => {
+      newSocket.close()
+    }
+  }, [])
+
+  useEffect(() => {
+    // Data will come via WebSocket - no direct API calls
+    console.log('🎰 Casino data will come via WebSocket for: card32eu')
 
     // Join casino game for real-time updates
     websocketManager.joinCasinoGame('card32eu');
@@ -137,15 +175,24 @@ export default function Card32EUPage() {
         <div className="relative">
           <div className="bg-black">
             <div className="flex">
-              <iframe 
-                className="mx-auto w-[80%] h-[250px] p-2" 
-                title="card32eu" 
-                frameBorder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                referrerPolicy="strict-origin-when-cross-origin" 
-                allowFullScreen 
-                src="https://casinostream.trovetown.co/route/?id=3034"
-              ></iframe>
+              {casinoTvUrl ? (
+                <iframe 
+                  className="mx-auto w-[80%] h-[250px] p-2" 
+                  title="card32eu" 
+                  frameBorder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                  referrerPolicy="strict-origin-when-cross-origin" 
+                  allowFullScreen 
+                  src={casinoTvUrl}
+                ></iframe>
+              ) : (
+                <div className="mx-auto w-[80%] h-[250px] p-2 bg-gray-800 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                    <p>Loading casino stream...</p>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="heading-sidebar">
               <div className="absolute top-[5px] left-1 z-2">

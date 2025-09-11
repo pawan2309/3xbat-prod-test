@@ -3,6 +3,31 @@ import { addCricketOddsJob, addCricketScorecardJob, addCricketFixturesJob, addCr
 import RealExternalAPIService from '../../external-apis/RealExternalAPIService';
 import logger from '../../monitoring/logging/logger';
 
+// Simple in-memory cache for HLS streams (short TTL)
+const hlsCache = new Map<string, { content: string; expires: number }>();
+
+// Rate limiter to prevent too many external API calls
+const requestLimiter = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 10; // Max 10 requests per second per stream
+const RATE_WINDOW = 1000; // 1 second window
+
+// Clean up expired cache entries every 30 seconds
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of hlsCache.entries()) {
+        if (value.expires < now) {
+            hlsCache.delete(key);
+        }
+    }
+    
+    // Clean up rate limiter
+    for (const [key, value] of requestLimiter.entries()) {
+        if (value.resetTime < now) {
+            requestLimiter.delete(key);
+        }
+    }
+}, 30000);
+
 const router = express.Router();
 const apiService = new RealExternalAPIService();
 
@@ -142,16 +167,149 @@ router.get('/tv/html', async (req, res) => {
         
         logger.info(`✅ Successfully fetched TV HTML for event: ${eventId}`);
 
-        // Return HTML directly
+        // Return HTML directly with corrected asset paths
         if (tvData.html) {
+            // Fix relative paths to absolute paths for iframe embedding
+            const correctedHtml = tvData.html
+                .replace(/href="\.\/css\//g, 'href="https://mis3.sqmr.xyz/css/')
+                .replace(/src="\.\/js\//g, 'src="https://mis3.sqmr.xyz/js/')
+                .replace(/href='\.\/css\//g, "href='https://mis3.sqmr.xyz/css/")
+                .replace(/src='\.\/js\//g, "src='https://mis3.sqmr.xyz/js/")
+                // Replace HLS stream URLs to use our proxy
+                .replace(/https:\/\/mis3\.sqmr\.xyz:3334\/app\//g, 'http://localhost:4000/api/cricket/tv/stream/')
+                // Replace the HLS stream URL in JavaScript (handle multiline with dotall flag)
+                .replace(
+                    /"file":\s*"https:\/\/mis3\.sqmr\.xyz:3334\/app\/"\s*\+\s*eventId\s*\+\s*"\/llhls\.m3u8"/gs,
+                    '"file": "http://localhost:4000/api/cricket/tv/stream/" + eventId + "/llhls.m3u8"'
+                );
+            
             res.setHeader('Content-Type', 'text/html');
-            res.send(tvData.html);
+            res.send(correctedHtml);
         } else {
             res.status(404).send('No TV stream available for this event');
         }
     } catch (error) {
         logger.error('❌ Failed to fetch TV HTML:', error);
         res.status(500).send('Failed to fetch TV stream');
+    }
+});
+
+/**
+ * @route GET /api/cricket/tv/stream/*
+ * @desc Proxy HLS stream requests with proper headers
+ * @access Public
+ */
+router.get('/tv/stream/*', async (req, res) => {
+    try {
+        const streamPath = req.params[0]; // Get everything after /tv/stream/
+        const queryString = req.url.split('?')[1] || ''; // Get query string
+        const streamUrl = `https://mis3.sqmr.xyz:3334/app/${streamPath}${queryString ? '?' + queryString : ''}`;
+        
+        // Create cache key for this stream resource
+        const cacheKey = `tv_stream:${streamPath}:${queryString}`;
+        
+        logger.info(`📺 Proxying HLS stream: ${streamUrl}`);
+
+        // Check cache first (short TTL for HLS content)
+        const cached = hlsCache.get(cacheKey);
+        if (cached && cached.expires > Date.now()) {
+            logger.info(`📺 Serving HLS stream from cache: ${streamPath}`);
+            
+            // Set appropriate headers for HLS stream
+            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'GET');
+            res.setHeader('Access-Control-Allow-Headers', 'Range');
+            
+            res.send(cached.content);
+            return;
+        }
+
+        // Check rate limit for external API calls
+        const streamId = streamPath.split('/')[0]; // Get event ID
+        const now = Date.now();
+        const limiterKey = `stream:${streamId}`;
+        const limiter = requestLimiter.get(limiterKey);
+        
+        if (limiter && limiter.resetTime > now && limiter.count >= RATE_LIMIT) {
+            logger.warn(`⚠️ Rate limit exceeded for stream ${streamId}, serving stale cache or 429`);
+            res.status(429).send('Rate limit exceeded, please try again later');
+            return;
+        }
+        
+        // Update rate limiter
+        if (!limiter || limiter.resetTime <= now) {
+            requestLimiter.set(limiterKey, { count: 1, resetTime: now + RATE_WINDOW });
+        } else {
+            limiter.count++;
+        }
+
+        // Fetch from external API only if not cached and within rate limit
+        const response = await fetch(streamUrl, {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Referer': 'https://batxgames.site',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'DNT': '1',
+                'Connection': 'keep-alive'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        // Set appropriate headers for HLS stream
+        res.setHeader('Content-Type', response.headers.get('content-type') || 'application/vnd.apple.mpegurl');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET');
+        res.setHeader('Access-Control-Allow-Headers', 'Range');
+
+        // Stream the response
+        if (response.body) {
+            const reader = response.body.getReader();
+            const pump = async () => {
+                try {
+                    let content = '';
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        content += new TextDecoder().decode(value);
+                    }
+                    
+                    // If this is an HLS playlist, replace relative paths with our proxy URLs
+                    if (content.includes('#EXTM3U') && content.includes('/app/')) {
+                        content = content.replace(/\/app\//g, '/api/cricket/tv/stream/');
+                        logger.info(`🔄 Replaced relative paths in HLS playlist`);
+                    }
+                    
+                    // Cache the content for future requests (2 seconds TTL for video chunks)
+                    const ttl = streamPath.includes('part_') || streamPath.includes('chunklist_') ? 2000 : 5000; // 2s for chunks, 5s for playlists
+                    hlsCache.set(cacheKey, {
+                        content,
+                        expires: Date.now() + ttl
+                    });
+                    
+                    res.write(content);
+                    res.end();
+                } catch (error) {
+                    logger.error('Error streaming response:', error);
+                    res.end();
+                }
+            };
+            pump();
+        } else {
+            res.status(500).send('No response body');
+        }
+        
+        logger.info(`✅ Successfully proxied HLS stream: ${streamUrl}`);
+    } catch (error) {
+        logger.error('❌ Failed to proxy HLS stream:', error);
+        res.status(500).send('Failed to proxy stream');
     }
 });
 
@@ -179,6 +337,45 @@ router.get('/scorecard', async (req, res) => {
         const result = await apiService.getCricketScorecard(marketId as string);
         
         logger.info(`✅ Successfully fetched scorecard for market: ${marketId}`);
+
+        res.json({
+            success: true,
+            data: result,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        logger.error('❌ Failed to fetch scorecard:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch scorecard',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+/**
+ * @route GET /api/cricket/scorecard/:eventId
+ * @desc Get cricket scorecard for a specific event
+ * @access Public
+ */
+router.get('/scorecard/:eventId', async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        
+        if (!eventId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Event ID is required',
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        logger.info(`📊 Fetching scorecard for event: ${eventId}`);
+
+        // Use eventId as marketId for now (they might be the same)
+        const result = await apiService.getCricketScorecard(eventId);
+        
+        logger.info(`✅ Successfully fetched scorecard for event: ${eventId}`);
 
         res.json({
             success: true,

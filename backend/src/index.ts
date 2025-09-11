@@ -3,7 +3,7 @@ import app from './app';
 import { Server as SocketIOServer } from 'socket.io';
 import { connectRedis, getRedisClient } from './infrastructure/redis/redis';
 import { initializeWebSocketManager } from './infrastructure/websockets/WebSocketManager';
-// Optionally import publishers/cron after sockets
+import { webSocketDataPublisher } from './services/WebSocketDataPublisher';
 
 const PORT = parseInt(process.env.PORT || '4000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -31,6 +31,10 @@ async function initializeServices() {
     initializeWebSocketManager(io);
     console.log('✅ WebSocket server initialized successfully');
 
+    console.log('🔌 Starting WebSocket data publisher...');
+    // WebSocketDataPublisher starts automatically in constructor
+    console.log('✅ WebSocket data publisher started successfully');
+
     // Defer cron/BullMQ startup to avoid double-runs; wire here later if needed
     // const { startOddsUpdates, startScorecardUpdates } = require('./external-apis/jobs/oddsCron');
     // startOddsUpdates();
@@ -54,7 +58,7 @@ httpServer.listen(PORT, HOST, async () => {
   await initializeServices();
 });
 
-// Graceful shutdown
+// Graceful shutdown handlers
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully');
   await gracefulShutdown();
@@ -65,8 +69,30 @@ process.on('SIGINT', async () => {
   await gracefulShutdown();
 });
 
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  gracefulShutdown();
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown();
+});
+
 async function gracefulShutdown() {
   try {
+    console.log('🛑 Starting graceful shutdown...');
+    
+    // Stop WebSocket data publisher
+    console.log('🛑 Stopping WebSocket data publisher...');
+    try {
+      webSocketDataPublisher.stop();
+      console.log('✅ WebSocket data publisher stopped');
+    } catch (e) {
+      console.warn('⚠️ WebSocket data publisher stop failed:', (e as any)?.message);
+    }
+    
     // Stop cron jobs if enabled
     if (process.env.CRON_ENABLED === 'true') {
       console.log('🛑 Stopping cron jobs...');
@@ -81,12 +107,41 @@ async function gracefulShutdown() {
       }
     }
     
+    // Close WebSocket server
+    console.log('🛑 Closing WebSocket server...');
+    try {
+      io.close();
+      console.log('✅ WebSocket server closed');
+    } catch (e) {
+      console.warn('⚠️ WebSocket server close failed:', (e as any)?.message);
+    }
+    
+    // Close Redis connection
+    console.log('🛑 Closing Redis connection...');
+    try {
+      const redisClient = getRedisClient();
+      if (redisClient) {
+        await redisClient.quit();
+        console.log('✅ Redis connection closed');
+      }
+    } catch (e) {
+      console.warn('⚠️ Redis close failed:', (e as any)?.message);
+    }
+    
     // Close HTTP server
     console.log('🛑 Closing HTTP server...');
     httpServer.close(() => {
       console.log('✅ HTTP server closed');
+      console.log('✅ Graceful shutdown completed');
       process.exit(0);
     });
+    
+    // Force exit after timeout
+    setTimeout(() => {
+      console.log('⚠️ Forced shutdown after timeout');
+      process.exit(1);
+    }, 10000); // 10 second timeout
+    
   } catch (error) {
     console.error('❌ Error during shutdown:', error);
     process.exit(1);

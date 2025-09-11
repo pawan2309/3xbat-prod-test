@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import websocketManager from '@/lib/websocket'
+import { io } from 'socket.io-client'
+import { PlayingCard } from '@/components/PlayingCard'
 
 interface GameData {
   mid: string
@@ -44,6 +46,8 @@ export default function Teen20Page() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState(0)
+  const [casinoTvUrl, setCasinoTvUrl] = useState<string | null>(null)
+  const [socket, setSocket] = useState<any>(null)
 
   // Get API base URL based on environment
   const getApiBaseUrl = () => {
@@ -53,35 +57,70 @@ export default function Teen20Page() {
     return 'http://localhost:3000';
   };
 
-  // Initialize WebSocket connection and fetch initial data
+  // Initialize WebSocket connection for casino TV
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const socketUrl = 'http://localhost:4000'
+    const newSocket = io(socketUrl, {
+      timeout: 10000,
+      reconnection: true,
+      forceNew: true,
+      transports: ['websocket']
+    })
+
+    newSocket.on('connect', () => {
+      console.log('✅ Casino WebSocket connected')
+      setSocket(newSocket)
+      // Join casino room
+      newSocket.emit('join_casino_room', { game: 'teen20' })
+    })
+
+    newSocket.on('casino_tv_updated', (payload: any) => {
+      if (payload.game === 'teen20' && payload.data) {
+        console.log('🎰 Received casino TV data:', payload)
+        // Extract stream URL from the data - use the actual stream URL from jmdapi
+        if (payload.data && payload.data.data) {
+          // The data comes from jmdapi.com/tablevideo/?id=3030
+          setCasinoTvUrl(`https://jmdapi.com/tablevideo/?id=3030`)
+        }
+      }
+    })
+
+    newSocket.on('casino_data_updated', (payload: any) => {
+      if (payload.game === 'teen20' && payload.data) {
+        console.log('🎰 Received casino data:', payload)
+        setGameData(payload.data)
+      }
+    })
+
+    newSocket.on('casino_results_updated', (payload: any) => {
+      if (payload.game === 'teen20' && payload.data) {
+        console.log('🎰 Received casino results:', payload)
+        setResults(payload.data)
+      }
+    })
+
+    newSocket.on('disconnect', () => {
+      console.log('❌ Casino WebSocket disconnected')
+      setSocket(null)
+    })
+
+    return () => {
+      newSocket.close()
+    }
+  }, [])
+
+  // Initialize WebSocket connection - data comes via WebSocket
   useEffect(() => {
     const gameType = 'teen20'
     
     // Join casino game room
     websocketManager.joinCasinoGame(gameType)
     
-    // Fetch initial data
-    const fetchInitialData = async () => {
-      try {
-        const [gameResponse, resultsResponse] = await Promise.all([
-          fetch(`${getApiBaseUrl()}/api/casino/data/teen20`),
-          fetch(`${getApiBaseUrl()}/api/casino/results/teen20`)
-        ])
-        
-        const gameData = await gameResponse.json()
-        const resultsData = await resultsResponse.json()
-        
-        setGameData(gameData.data)
-        setResults(resultsData.data)
-        setLoading(false)
-      } catch (err) {
-        setError('Failed to fetch initial data')
-        console.error('Error fetching initial data:', err)
-        setLoading(false)
-      }
-    }
-
-    fetchInitialData()
+    // Data will come via WebSocket - no direct API calls
+    console.log('🎰 Casino data will come via WebSocket for:', gameType)
+    setLoading(false)
 
     // Set up WebSocket listeners
     const handleGameUpdate = (data: any) => {
@@ -152,6 +191,30 @@ export default function Teen20Page() {
     }
   }, [gameData])
 
+  // Countdown timer that decrements every second
+  useEffect(() => {
+    if (countdown > 0) {
+      console.log('⏰ Starting countdown timer:', countdown)
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          const newCount = prev - 1
+          console.log('⏰ Countdown:', newCount)
+          if (newCount <= 0) {
+            return 0
+          }
+          return newCount
+        })
+      }, 1000)
+
+      return () => clearInterval(timer)
+    }
+  }, [countdown])
+
+  // Debug countdown value
+  useEffect(() => {
+    console.log('⏰ Current countdown value:', countdown)
+  }, [countdown])
+
   const currentRound = gameData?.data?.t1?.[0] || null
   const lastResults = results?.data?.slice(0, 10) || []
 
@@ -214,15 +277,24 @@ export default function Teen20Page() {
         <div className="relative">
           <div className="bg-black">
             <div className="flex">
-              <iframe 
-                className="mx-auto w-[80%] h-[250px] p-2" 
-                title="teen20" 
-                frameBorder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                referrerPolicy="strict-origin-when-cross-origin" 
-                allowFullScreen 
-                src="https://casinostream.trovetown.co/route/?id=3030"
-              ></iframe>
+              {casinoTvUrl ? (
+                <iframe 
+                  className="mx-auto w-[80%] h-[250px] p-2" 
+                  title="teen20" 
+                  frameBorder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                  referrerPolicy="strict-origin-when-cross-origin" 
+                  allowFullScreen 
+                  src={casinoTvUrl}
+                ></iframe>
+              ) : (
+                <div className="mx-auto w-[80%] h-[250px] p-2 bg-gray-800 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                    <p>Loading casino stream...</p>
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Player Cards Overlay */}
@@ -232,15 +304,15 @@ export default function Teen20Page() {
                   <div className="!font-black">
                     <div className="text-white text-[13px]">PLAYER A</div>
                     <div className="flex flex-wrap gap-1">
-                      <img alt="card1" className="w-[24px] h-[35px]" src="/cards/1.svg" />
-                      <img alt="card2" className="w-[24px] h-[35px]" src="/cards/1.svg" />
-                      <img alt="card3" className="w-[24px] h-[35px]" src="/cards/1.svg" />
+                      <PlayingCard cardValue={currentRound?.C1 || '1'} alt="Player A Card 1" />
+                      <PlayingCard cardValue={currentRound?.C2 || '1'} alt="Player A Card 2" />
+                      <PlayingCard cardValue={currentRound?.C3 || '1'} alt="Player A Card 3" />
                     </div>
                     <div className="text-white text-[13px] mt-1">PLAYER B</div>
                     <div className="flex flex-wrap gap-1">
-                      <img alt="card1" className="w-[24px] h-[35px]" src="/cards/1.svg" />
-                      <img alt="card2" className="w-[24px] h-[35px]" src="/cards/1.svg" />
-                      <img alt="card3" className="w-[24px] h-[35px]" src="/cards/1.svg" />
+                      <PlayingCard cardValue={currentRound?.C4 || '1'} alt="Player B Card 1" />
+                      <PlayingCard cardValue={currentRound?.C5 || '1'} alt="Player B Card 2" />
+                      <PlayingCard cardValue={currentRound?.C6 || '1'} alt="Player B Card 3" />
                     </div>
                   </div>
                 </div>
@@ -249,23 +321,23 @@ export default function Teen20Page() {
           </div>
 
           {/* Countdown Timer */}
-          <div className="absolute -bottom-4 right-0">
-            <div className="relative -right-[30px]" style={{ transform: 'scale(0.45)' }}>
-              <div className="flip-countdown theme-dark size-medium">
+          <div className="absolute bottom-2 right-2 z-50">
+            <div className="relative" style={{ transform: 'scale(0.6)' }}>
+              <div className="flip-countdown theme-dark size-medium bg-black p-2 rounded-lg shadow-lg">
                 <span className="flip-countdown-piece">
                   <span className="flip-countdown-card">
                     <span className="flip-countdown-card-sec one flip">
-                      <span className="card__top">{Math.floor(countdown / 10)}</span>
-                      <span className="card__bottom" data-value="0"></span>
-                      <span className="card__back" data-value="0">
-                        <span className="card__bottom" data-value={Math.floor(countdown / 10)}></span>
+                      <span className="card__top text-white font-bold text-2xl">{Math.floor((countdown || 0) / 10)}</span>
+                      <span className="card__bottom text-white font-bold text-2xl" data-value="0"></span>
+                      <span className="card__back text-white font-bold text-2xl" data-value="0">
+                        <span className="card__bottom" data-value={Math.floor((countdown || 0) / 10)}></span>
                       </span>
                     </span>
                     <span className="flip-countdown-card-sec two flip">
-                      <span className="card__top">{countdown % 10}</span>
-                      <span className="card__bottom" data-value="0"></span>
-                      <span className="card__back" data-value="0">
-                        <span className="card__bottom" data-value={countdown % 10}></span>
+                      <span className="card__top text-white font-bold text-2xl">{(countdown || 0) % 10}</span>
+                      <span className="card__bottom text-white font-bold text-2xl" data-value="0"></span>
+                      <span className="card__back text-white font-bold text-2xl" data-value="0">
+                        <span className="card__bottom" data-value={(countdown || 0) % 10}></span>
                       </span>
                     </span>
                   </span>
@@ -293,7 +365,7 @@ export default function Teen20Page() {
                   <div className="w-full h-full">
                     <div className="w-full h-full">
                       <div className="font-bold text-[14px] text-center z-0 text-white w-full p-[8px] bg-blue-600 rounded">
-                        {currentRound?.C1 || '1.00'}
+                        {currentRound?.C1 ? parseFloat(currentRound.C1).toFixed(2) : '1.00'}
                       </div>
                     </div>
                   </div>
@@ -311,7 +383,7 @@ export default function Teen20Page() {
                   <div className="w-full h-full">
                     <div className="w-full h-full">
                       <div className="font-bold text-[14px] text-center rounded-[3px] text-white z-0 bg-blue-600 p-2">
-                        {currentRound?.C2 || '1.00'}
+                        {currentRound?.C2 ? parseFloat(currentRound.C2).toFixed(2) : '1.00'}
                       </div>
                     </div>
                   </div>
@@ -335,10 +407,10 @@ export default function Teen20Page() {
               <span 
                 key={index}
                 className={`resulta bg-green-600 w-[28px] h-[28px] cursor-pointer flex justify-center items-center rounded-full text-[12px] font-bold ${
-                  result.result === 'A' ? 'text-orange-500' : 'text-white'
+                  result.result === '1' ? 'text-orange-500' : 'text-white'
                 }`}
               >
-                {result.result}
+                {result.result === '1' ? 'A' : result.result === '3' ? 'B' : result.result}
               </span>
             ))}
           </div>

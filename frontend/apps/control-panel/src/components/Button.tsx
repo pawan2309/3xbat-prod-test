@@ -8,6 +8,7 @@ interface ButtonProps {
   disabled?: boolean;
   type?: 'button' | 'submit' | 'reset';
   style?: React.CSSProperties;
+  className?: string;
   isMobile?: boolean;
 }
 
@@ -19,6 +20,7 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   type = 'button',
   style = {},
+  className = '',
   isMobile = false
 }) => {
   const getVariantStyles = (): React.CSSProperties => {
@@ -130,6 +132,7 @@ export const Button: React.FC<ButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       style={baseStyles}
+      className={className}
       onMouseEnter={(e) => {
         if (!disabled) {
           e.currentTarget.style.transform = 'translateY(-2px)';

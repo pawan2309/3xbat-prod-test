@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useOptimizedWebSocket } from '../hooks/useOptimizedWebSocket'
 import TVPlayer from './TVPlayer'
+import { getCurrentTimeString } from '../lib/utils/dateFormat'
 
 interface Match {
   gmid: number
@@ -52,6 +53,7 @@ export default function ProgressiveCricketLoader({
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentTime, setCurrentTime] = useState<string>('')
   const [userPreferences, setUserPreferences] = useState({
     favoriteMatches: [] as string[],
     autoRefresh: true,
@@ -92,25 +94,8 @@ export default function ProgressiveCricketLoader({
       setLoading(true)
       setError(null)
 
-      // Load basic match data first
-      const response = await fetch(`${getApiBaseUrl()}/api/cricket-optimized/aggregated?userId=${userId}`)
-      const data = await response.json()
-      
-      if (data.success && data.data.matches) {
-        setMatches(data.data.matches)
-        
-        // Auto-expand if specified
-        if (autoExpandEventId) {
-          const match = data.data.matches.find((m: Match) => 
-            m.beventId === autoExpandEventId || m.gmid.toString() === autoExpandEventId
-          )
-          if (match) {
-            setExpandedMatch(match.gmid)
-          }
-        }
-      } else {
-        throw new Error(data.error || 'Failed to load matches')
-      }
+      // Match data will come via WebSocket - no client-side fetching
+      console.log('Match data will come via WebSocket from server')
     } catch (err) {
       console.error('Error loading initial data:', err)
       setError('Failed to load matches')
@@ -132,40 +117,8 @@ export default function ProgressiveCricketLoader({
         return
       }
 
-      // Fetch detailed data for this match
-      const response = await fetch(`${getApiBaseUrl()}/api/cricket-optimized/match-data`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          matchIds: [match.beventId],
-          userId
-        })
-      })
-
-      const data = await response.json()
-      if (data.success && data.data) {
-        const matchData = data.data.get(match.beventId)
-        if (matchData) {
-          // Update the specific match with enriched data
-          setMatches(prev => prev.map(m => 
-            m.gmid === matchId 
-              ? { 
-                  ...m, 
-                  odds: matchData.odds,
-                  scorecard: matchData.scorecard,
-                  tvAvailable: matchData.tvAvailable,
-                  lastUpdated: matchData.lastUpdated
-                }
-              : m
-          ))
-
-          // Cache the data
-          expandedMatchDataRef.current.set(match.beventId, {
-            ...matchData,
-            lastUpdated: now
-          })
-        }
-      }
+      // Detailed match data will come via WebSocket - no client-side fetching
+      console.log('Detailed match data will come via WebSocket for:', match.beventId)
     } catch (error) {
       console.error('Error loading expanded match data:', error)
     }
@@ -232,20 +185,23 @@ export default function ProgressiveCricketLoader({
     }
   }, [expandedMatch, loadExpandedMatchData])
 
-  // Setup auto-refresh
+  // Auto-refresh disabled - server handles all data updates via WebSocket
   useEffect(() => {
-    if (userPreferences.autoRefresh && userPreferences.refreshInterval > 0) {
-      refreshIntervalRef.current = setInterval(() => {
-        loadInitialData()
-      }, userPreferences.refreshInterval * 1000)
-    }
+    console.log('Auto-refresh disabled - server handles updates via WebSocket')
+  }, [])
 
-    return () => {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current)
-      }
+  // Update current time every second to avoid hydration issues
+  useEffect(() => {
+    const updateTime = () => {
+      const timeString = getCurrentTimeString()
+      setCurrentTime(timeString)
     }
-  }, [userPreferences.autoRefresh, userPreferences.refreshInterval, loadInitialData])
+    
+    updateTime() // Set initial time
+    const interval = setInterval(updateTime, 1000)
+    
+    return () => clearInterval(interval)
+  }, [])
 
   // Handle match expansion
   const handleMatchExpand = (matchId: string | number) => {
@@ -435,7 +391,7 @@ export default function ProgressiveCricketLoader({
       {/* User Stats */}
       <div className="mt-6 text-center text-sm text-gray-500">
         Showing {matches.length} matches • User: {userId} • 
-        Last updated: {new Date().toLocaleTimeString()}
+        {currentTime && `Last updated: ${currentTime}`}
       </div>
     </div>
   )

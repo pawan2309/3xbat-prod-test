@@ -16,7 +16,7 @@ export interface UserSession {
 
 export interface RoomData {
   roomId: string;
-  type: 'match' | 'user' | 'global';
+  type: 'match' | 'user' | 'global' | 'casino';
   subscribers: Set<string>;
   lastUpdate: number;
   data: any;
@@ -92,6 +92,11 @@ export class WebSocketManager {
       this.handleDataRequest(socket, data);
     });
 
+    // Handle casino room joining
+    socket.on('join_casino_room', (data: { game: string }) => {
+      this.handleJoinCasinoRoom(socket, data);
+    });
+
     socket.on('disconnect', () => {
       this.handleDisconnect(socket);
     });
@@ -142,6 +147,33 @@ export class WebSocketManager {
 
     // Untrack subscriber
     this.removeSubscriber(fullRoomId, socket.id);
+  }
+
+  private async handleJoinCasinoRoom(socket: Socket, data: { game: string }) {
+    const session = this.userSessions.get(socket.id);
+    if (!session) return;
+
+    const { game } = data;
+    const roomId = `casino:${game}`;
+
+    socket.join(roomId);
+    session.rooms.add(roomId);
+    session.lastActivity = Date.now();
+
+    logger.info(`🎰 User ${session.userId} joined casino room: ${roomId}`);
+
+    // Track subscriber
+    this.addSubscriber(roomId, 'casino', socket.id);
+
+    // Send room data if available
+    const roomData = this.roomData.get(roomId);
+    if (roomData) {
+      socket.emit('room_data', {
+        roomId: roomId,
+        data: roomData.data,
+        timestamp: roomData.lastUpdate
+      });
+    }
   }
 
   private async handleSubscribeMatch(socket: Socket, data: { matchId: string }) {
@@ -454,7 +486,7 @@ export class WebSocketManager {
     }
   }
 
-  private addSubscriber(roomId: string, type: 'match' | 'user' | 'global', socketId: string) {
+  private addSubscriber(roomId: string, type: 'match' | 'user' | 'global' | 'casino', socketId: string) {
     const existing = this.roomData.get(roomId);
     if (existing) {
       existing.subscribers?.add(socketId);

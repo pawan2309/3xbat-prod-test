@@ -68,40 +68,40 @@ export class EnhancedCasinoScheduler {
    * Configure rate limits for different API endpoints
    */
   private configureRateLimits() {
-    // Casino data - higher priority, more frequent
+    // Casino data - optimized for 1s polling (20-30s game rounds)
     this.enhancedAPIService.updateRateLimiterConfig('casino_data_teen20', {
       windowMs: 60000, // 1 minute
-      maxRequests: 20, // 20 requests per minute
-      minInterval: 3000, // 3 seconds between requests
-      backoffMs: 30000, // 30 seconds backoff
+      maxRequests: 60, // 60 requests per minute (1 per second)
+      minInterval: 1000, // 1 second between requests
+      backoffMs: 10000, // 10 seconds backoff
       adaptive: true
     });
 
-    // Casino results - medium priority
+    // Casino results - optimized for 1s polling (20-30s game rounds)
     this.enhancedAPIService.updateRateLimiterConfig('casino_results_teen20', {
       windowMs: 60000, // 1 minute
-      maxRequests: 15, // 15 requests per minute
-      minInterval: 4000, // 4 seconds between requests
-      backoffMs: 30000, // 30 seconds backoff
+      maxRequests: 60, // 60 requests per minute (1 per second)
+      minInterval: 1000, // 1 second between requests
+      backoffMs: 10000, // 10 seconds backoff
       adaptive: true
     });
 
-    // Apply same config to all games
+    // Apply same config to all games - optimized for 1s polling
     SCHEDULE_CONFIG.SUPPORTED_GAMES.forEach(gameType => {
       if (gameType !== 'teen20') {
         this.enhancedAPIService.updateRateLimiterConfig(`casino_data_${gameType}`, {
           windowMs: 60000,
-          maxRequests: 20,
-          minInterval: 3000,
-          backoffMs: 30000,
+          maxRequests: 60, // 60 requests per minute (1 per second)
+          minInterval: 1000, // 1 second between requests
+          backoffMs: 10000, // 10 seconds backoff
           adaptive: true
         });
 
         this.enhancedAPIService.updateRateLimiterConfig(`casino_results_${gameType}`, {
           windowMs: 60000,
-          maxRequests: 15,
-          minInterval: 4000,
-          backoffMs: 30000,
+          maxRequests: 60, // 60 requests per minute (1 per second)
+          minInterval: 1000, // 1 second between requests
+          backoffMs: 10000, // 10 seconds backoff
           adaptive: true
         });
       }

@@ -63,7 +63,7 @@ router.get('/tv', async (req, res) => {
             });
         }
 
-        // Call external API via localhost:8000 proxy
+        // Call external API via localhost:8000 proxy (jmdapi.com)
         const response = await fetch(`http://localhost:8000/casino/tv?streamid=${streamid}`, {
             method: 'GET',
             headers: {

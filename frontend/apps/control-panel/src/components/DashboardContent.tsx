@@ -2,8 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { Table } from './Table';
 
+interface Match {
+  id: number;
+  matchName: string;
+  date: string;
+  time: string;
+  status: string;
+  odds: {
+    team1: number;
+    team2: number;
+    draw: number;
+  };
+  venue: string;
+  series: string;
+}
+
 const DashboardContent: React.FC = () => {
-  const [matches, setMatches] = useState([]);
+  const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
     totalMatches: 0,

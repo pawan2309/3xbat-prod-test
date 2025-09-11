@@ -2,10 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { Table } from './Table';
 
+interface Game {
+  id: number;
+  gameName: string;
+  gameType: string;
+  status: string;
+  minBet: number;
+  maxBet: number;
+  houseEdge: number;
+  playersOnline: number;
+  totalBets: number;
+  lastResult: string;
+  nextDraw: string;
+}
+
 const CasinoListContent: React.FC = () => {
-  const [games, setGames] = useState([]);
+  const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedGames, setSelectedGames] = useState([]);
+  const [selectedGames, setSelectedGames] = useState<number[]>([]);
 
   // Sample data for demonstration
   useEffect(() => {
