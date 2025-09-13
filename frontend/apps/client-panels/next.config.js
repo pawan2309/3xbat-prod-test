@@ -9,11 +9,13 @@ const nextConfig = {
   },
   // Skip static optimization for pages that use dynamic features
   trailingSlash: false,
+  // Disable static generation to prevent styled-jsx context issues
+  // output: 'standalone', // Only use for production builds
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3000/api/:path*',
+        destination: 'http://localhost:4000/api/:path*',
       },
     ]
   },

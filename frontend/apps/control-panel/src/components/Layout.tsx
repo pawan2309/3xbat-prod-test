@@ -42,10 +42,20 @@ const COLLAPSED_WIDTH = 80;
 
 function Layout({ children }: { children: React.ReactNode }) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [currentDate, setCurrentDate] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
+
+  // Set current date on client side only to prevent hydration issues
+  useEffect(() => {
+    setCurrentDate(new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    }));
+  }, []);
 
   // Mobile detection
   useEffect(() => {
@@ -165,7 +175,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             display: isMobile ? "none" : "block",
             fontWeight: "500"
           }}>
-            {new Date().toLocaleDateString()}
+            {currentDate}
           </div>
           <div style={{ 
             padding: isMobile ? "6px 12px" : "8px 16px", 

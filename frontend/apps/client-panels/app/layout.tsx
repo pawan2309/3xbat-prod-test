@@ -1,6 +1,7 @@
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Header from '@/components/Header';
 import './globals.css';
+import '../styles/casino.css';
 
 export default function RootLayout({
   children,

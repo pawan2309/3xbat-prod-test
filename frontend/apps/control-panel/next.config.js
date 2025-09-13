@@ -14,6 +14,10 @@ const nextConfig = {
   },
   // Ensure proper SSR handling
   reactStrictMode: true,
+  // Disable styled-jsx to avoid context issues
+  compiler: {
+    styledComponents: false,
+  },
   // Disable static optimization to avoid context issues during build
   generateBuildId: async () => {
     return 'build-' + Date.now();

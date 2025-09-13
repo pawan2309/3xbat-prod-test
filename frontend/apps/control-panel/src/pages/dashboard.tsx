@@ -1,40 +1,27 @@
-import React from "react";
-import dynamic from "next/dynamic";
-import Layout from "../components/Layout";
-import ProtectedRoute from "../components/ProtectedRoute";
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 
-// Dynamically import the dashboard content to avoid SSR issues
-const DashboardContent = dynamic(() => import("../components/DashboardContent"), {
-  ssr: false,
-  loading: () => (
+export default function Dashboard() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/dashboard-new');
+  }, [router]);
+
+  return (
     <div style={{
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      height: '400px',
+      height: '100vh',
       fontSize: '18px',
-      color: '#6b7280'
+      color: '#6b7280',
+      fontFamily: 'Arial, sans-serif'
     }}>
-      Loading Dashboard...
+      <div>
+        <h1>Dashboard Loading...</h1>
+        <p>Redirecting to dashboard...</p>
+      </div>
     </div>
-  )
-});
-
-function Dashboard() {
-  return (
-    <ProtectedRoute>
-      <Layout>
-        <DashboardContent />
-      </Layout>
-    </ProtectedRoute>
   );
 }
-
-// Force server-side rendering
-export async function getServerSideProps() {
-  return {
-    props: {},
-  };
-}
-
-export default Dashboard;

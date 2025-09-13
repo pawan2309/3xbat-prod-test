@@ -5,8 +5,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 export default function Header() {
-  console.log('🔍 Header: Component function called');
-  
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
@@ -34,20 +32,7 @@ export default function Header() {
   // Set mounted state to prevent SSR execution
   useEffect(() => {
     setIsMounted(true);
-    console.log('🔍 Header component mounted in browser');
   }, []);
-
-  // Debug logging to see what data we're getting
-  useEffect(() => {
-    if (!isMounted) return; // Skip if not mounted
-    
-    console.log('🔍 Header component received user data:', {
-      user,
-      liveBalance,
-      exposure,
-      isBalanceLoading
-    });
-  }, [user, liveBalance, exposure, isBalanceLoading, isMounted]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -89,7 +74,24 @@ export default function Header() {
   const handleLogout = () => {
     setIsDropdownOpen(false)
     // For testing, just refresh the page
-    window.location.reload()
+    if (typeof window !== 'undefined') {
+      window.location.reload()
+    }
+  }
+
+  // Don't render during SSR to prevent context errors
+  if (!isMounted) {
+    return (
+      <header className="fixed top-0 left-0 right-0 z-50 p-4 flex items-center justify-between h-[70px] border-b border-gray-200" style={{backgroundColor: '#1e3a8a'}}>
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-600 rounded"></div>
+          <span className="text-lg sm:text-xl font-bold text-white">Betting Panel</span>
+        </div>
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-600 rounded-full"></div>
+        </div>
+      </header>
+    )
   }
 
   return (
@@ -127,7 +129,11 @@ export default function Header() {
             </span>
             {/* Manual refresh button */}
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.reload()
+                }
+              }}
               className="ml-1 sm:ml-2 p-1 text-blue-300 hover:text-white transition-colors"
               title="Refresh balance and exposure"
             >

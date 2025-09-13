@@ -1,5 +1,5 @@
-import React from 'react';
-import { getCardPath } from '@/lib/utils/cardMapper';
+import React, { useState } from 'react';
+import { parseCardValue } from '@/lib/utils/cardMapper';
 
 interface PlayingCardProps {
   cardValue: string;
@@ -12,9 +12,10 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
   className = "w-[24px] h-[35px]", 
   alt = "playing card" 
 }) => {
+  const [imageError, setImageError] = useState(false);
   const isFaceDown = cardValue === '1';
   
-  if (isFaceDown) {
+  if (isFaceDown || imageError) {
     // Show a simple face-down card
     return (
       <div className={`${className} bg-gradient-to-br from-blue-600 to-blue-800 rounded border-2 border-white flex items-center justify-center`}>
@@ -23,33 +24,52 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({
     );
   }
   
-  const cardPath = getCardPath(cardValue);
+  // Parse the card value to get rank and suit
+  const parsedCard = parseCardValue(cardValue);
+  
+  if (!parsedCard) {
+    // Fallback to face-down card if parsing fails
+    return (
+      <div className={`${className} bg-gradient-to-br from-blue-600 to-blue-800 rounded border-2 border-white flex items-center justify-center`}>
+        <div className="text-white text-xs font-bold">?</div>
+      </div>
+    );
+  }
+  
+  // Generate a simple card representation
+  const getSuitSymbol = (suit: string) => {
+    switch (suit) {
+      case 'h': return '♥';
+      case 'd': return '♦';
+      case 'c': return '♣';
+      case 's': return '♠';
+      default: return '?';
+    }
+  };
+  
+  const getSuitColor = (suit: string) => {
+    return suit === 'h' || suit === 'd' ? 'text-red-600' : 'text-black';
+  };
+  
+  const getDisplayRank = (rank: string) => {
+    switch (rank) {
+      case '1': return 'A';
+      case '11': return 'J';
+      case '12': return 'Q';
+      case '13': return 'K';
+      default: return rank;
+    }
+  };
   
   return (
-    <img 
-      src={cardPath}
-      alt={alt}
-      className={className}
-      style={{
-        // Force the simplified style (like the 20px version)
-        maxWidth: '24px',
-        maxHeight: '35px',
-        objectFit: 'contain'
-      }}
-      onError={(e) => {
-        // Fallback to face-down card if image fails to load
-        const target = e.target as HTMLImageElement;
-        target.style.display = 'none';
-        const parent = target.parentElement;
-        if (parent) {
-          parent.innerHTML = `
-            <div class="${className} bg-gradient-to-br from-blue-600 to-blue-800 rounded border-2 border-white flex items-center justify-center">
-              <div class="text-white text-xs font-bold">?</div>
-            </div>
-          `;
-        }
-      }}
-    />
+    <div className={`${className} bg-white rounded border-2 border-gray-300 flex flex-col items-center justify-center text-xs font-bold`}>
+      <div className={`${getSuitColor(parsedCard.suit)} text-[8px]`}>
+        {getDisplayRank(parsedCard.rank)}
+      </div>
+      <div className={`${getSuitColor(parsedCard.suit)} text-[6px]`}>
+        {getSuitSymbol(parsedCard.suit)}
+      </div>
+    </div>
   );
 };
 

@@ -68,6 +68,8 @@ export const getCardFileName = (cardValue: string): string => {
 
 export const getCardPath = (cardValue: string): string => {
   const fileName = getCardFileName(cardValue);
-  return `/node_modules/@younestouati/playing-cards-standard-deck/cards/${fileName}.svg`;
+  // For now, use the available card from public directory
+  // In a real implementation, you would have all card files
+  return `/cards/1.svg`;
 };
 

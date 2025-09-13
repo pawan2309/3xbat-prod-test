@@ -17,6 +17,7 @@ export class AdaptiveRateLimiter {
   private loadHistory: number[] = [];
   private lastAdaptation: number = 0;
   private adaptationCooldown: number = 60000; // 1 minute
+  private rateLimiter: any; // Store the rate limiter instance
 
   constructor(config: AdaptiveConfig) {
     this.config = config;
@@ -24,6 +25,42 @@ export class AdaptiveRateLimiter {
       windowMs: config.baseWindowMs,
       max: config.baseMaxRequests
     };
+    
+    // Create the rate limiter instance at initialization
+    this.createRateLimiter();
+  }
+
+  /**
+   * Create the rate limiter instance
+   */
+  private createRateLimiter() {
+    this.rateLimiter = rateLimit({
+      windowMs: this.currentConfig.windowMs,
+      max: this.currentConfig.max,
+      message: {
+        success: false,
+        error: 'Rate limit exceeded. Please try again later.',
+        retryAfter: Math.ceil(this.currentConfig.windowMs / 1000),
+        currentLimit: this.currentConfig.max,
+        windowMs: this.currentConfig.windowMs
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      skip: (req: Request) => {
+        // Skip rate limiting for health checks and selected endpoints
+        if (req.path.includes('/health')) return true;
+        // Allow fixtures and TV endpoints (these are server-polled and cached)
+        const allowlist = [
+          '/api/cricket/fixtures',
+          '/api/cricket/tv',
+          '/api/cricket/tv/html'
+        ];
+        if (allowlist.some((p) => req.path.startsWith(p))) return true;
+        // Ignore HEAD probes entirely
+        if (req.method === 'HEAD') return true;
+        return false;
+      }
+    });
   }
 
   /**
@@ -34,37 +71,8 @@ export class AdaptiveRateLimiter {
       // Check if we need to adapt
       this.adaptIfNeeded();
 
-      // Create rate limiter with current config
-      const limiter = rateLimit({
-        windowMs: this.currentConfig.windowMs,
-        max: this.currentConfig.max,
-        message: {
-          success: false,
-          error: 'Rate limit exceeded. Please try again later.',
-          retryAfter: Math.ceil(this.currentConfig.windowMs / 1000),
-          currentLimit: this.currentConfig.max,
-          windowMs: this.currentConfig.windowMs
-        },
-        standardHeaders: true,
-        legacyHeaders: false,
-        skip: (req) => {
-          // Skip rate limiting for health checks and selected endpoints
-          if (req.path.includes('/health')) return true;
-          // Allow fixtures and TV endpoints (these are server-polled and cached)
-          const allowlist = [
-            '/api/cricket/fixtures',
-            '/api/cricket/tv',
-            '/api/cricket/tv/html'
-          ];
-          if (allowlist.some((p) => req.path.startsWith(p))) return true;
-          // Ignore HEAD probes entirely
-          if (req.method === 'HEAD') return true;
-          return false;
-        }
-      });
-
-      // Apply the rate limiter
-      limiter(req, res, next);
+      // Apply the existing rate limiter
+      this.rateLimiter(req, res, next);
     };
   }
 
@@ -130,6 +138,8 @@ export class AdaptiveRateLimiter {
 
     if (newMax !== this.currentConfig.max || newWindowMs !== this.currentConfig.windowMs) {
       this.currentConfig = { max: newMax, windowMs: newWindowMs };
+      // Recreate the rate limiter with new configuration
+      this.createRateLimiter();
       logger.warn(`📉 Scaled down rate limiting: ${newMax} requests per ${newWindowMs}ms`);
     }
   }
@@ -150,6 +160,8 @@ export class AdaptiveRateLimiter {
 
     if (newMax !== this.currentConfig.max || newWindowMs !== this.currentConfig.windowMs) {
       this.currentConfig = { max: newMax, windowMs: newWindowMs };
+      // Recreate the rate limiter with new configuration
+      this.createRateLimiter();
       logger.info(`📈 Scaled up rate limiting: ${newMax} requests per ${newWindowMs}ms`);
     }
   }
@@ -170,6 +182,8 @@ export class AdaptiveRateLimiter {
       max: this.config.baseMaxRequests
     };
     this.loadHistory = [];
+    // Recreate the rate limiter with base configuration
+    this.createRateLimiter();
     logger.info('🔄 Reset rate limiting to base configuration');
   }
 }
