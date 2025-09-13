@@ -18,13 +18,21 @@ export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
   body?: any;
+  data?: any;
+  params?: any;
   timeout?: number;
 }
 
-export interface SharedDataError {
-  message: string;
+export class SharedDataError extends Error {
   code?: string;
   status?: number;
+
+  constructor(message: string, code?: string, status?: number) {
+    super(message);
+    this.name = 'SharedDataError';
+    this.code = code;
+    this.status = status;
+  }
 }
 
 // Casino types
@@ -51,6 +59,8 @@ export interface WebSocketMessage {
 export interface WebSocketEventHandlers {
   onOpen?: () => void;
   onClose?: () => void;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
   onError?: (error: any) => void;
   onMessage?: (message: any) => void;
 }
@@ -88,7 +98,9 @@ export interface FilterOptions {
   offset?: number;
   gameType?: string;
   minHouseEdge?: string;
+  maxHouseEdge?: string;
   minBet?: string;
+  maxBet?: string;
 }
 
 export interface PaginationInfo {
