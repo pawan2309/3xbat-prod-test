@@ -1,66 +1,225 @@
-import jwt from 'jsonwebtoken';
+// Authentication service for user-panel
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
+  ? `${process.env.NEXT_PUBLIC_API_URL}/api/auth`
+  : 'http://localhost:4000/api/auth';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable not set');
-}
-
-export interface UserData {
-  id?: string;
-  userId?: string;
+export interface User {
+  id: string;
   username: string;
+  name: string | null;
   role: string;
-  name?: string;
+  status: string;
+  limit: number;
+  contactno: string | null;
+  userCommissionShare: any;
 }
 
-/**
- * Verify JWT token and return user data
- */
-export function verifyToken(token: string): UserData | null {
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  user?: User;
+  token?: string;
+  navigation?: any;
+  accessibleRoles?: string[];
+  redirectInfo?: {
+    shouldRedirect: boolean;
+    targetDomain: string;
+  };
+}
+
+export class AuthService {
+  private static instance: AuthService;
+  private user: User | null = null;
+  private token: string | null = null;
+
+  private constructor() {
+    this.loadFromStorage();
+  }
+
+  public static getInstance(): AuthService {
+    if (!AuthService.instance) {
+      AuthService.instance = new AuthService();
+    }
+    return AuthService.instance;
+  }
+
+  private loadFromStorage() {
+    if (typeof window !== 'undefined') {
+      const userStr = localStorage.getItem('user');
+      const tokenStr = localStorage.getItem('token');
+      
+      if (userStr) {
+        this.user = JSON.parse(userStr);
+      }
+      if (tokenStr) {
+        this.token = tokenStr;
+      }
+    }
+  }
+
+  private saveToStorage(user: User, token: string) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', token);
+    }
+  }
+
+  private clearStorage() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+    }
+  }
+
+  public async login(username: string, password: string): Promise<LoginResponse> {
+    try {
+      const response = await fetch('/api/auth/unified-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data: LoginResponse = await response.json();
+
+      if (data.success && data.user && data.token) {
+        this.user = data.user;
+        this.token = data.token;
+        this.saveToStorage(data.user, data.token);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Login error:', error);
+      return {
+        success: false,
+        message: 'Network error. Please try again.'
+      };
+    }
+  }
+
+  public async logout(): Promise<boolean> {
+    try {
+      await fetch('/api/auth/unified-logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      this.user = null;
+      this.token = null;
+      this.clearStorage();
+      return true;
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Clear local state even if server call fails
+      this.user = null;
+      this.token = null;
+      this.clearStorage();
+      return true;
+    }
+  }
+
+  public async checkSession(): Promise<boolean> {
+    try {
+      const response = await fetch('/api/auth/unified-session-check', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.valid && data.user) {
+        this.user = data.user;
+        this.saveToStorage(data.user, this.token || '');
+        return true;
+      } else {
+        this.user = null;
+        this.token = null;
+        this.clearStorage();
+        return false;
+      }
+    } catch (error) {
+      console.error('Session check error:', error);
+      this.user = null;
+      this.token = null;
+      this.clearStorage();
+      return false;
+    }
+  }
+
+  // Helper method to get session data from backend
+  public async getSessionData(): Promise<{ success: boolean; user?: User; message?: string }> {
+    try {
+      const response = await fetch('/api/auth/unified-session-check', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.valid && data.user) {
+        this.user = data.user;
+        this.saveToStorage(data.user, this.token || '');
+        return { success: true, user: data.user };
+      } else {
+        this.user = null;
+        this.token = null;
+        this.clearStorage();
+        return { success: false, message: data.message || 'Session invalid' };
+      }
+    } catch (error) {
+      console.error('Session data fetch error:', error);
+      this.user = null;
+      this.token = null;
+      this.clearStorage();
+      return { success: false, message: 'Network error' };
+    }
+  }
+
+  public isAuthenticated(): boolean {
+    return this.user !== null && this.token !== null;
+  }
+
+  public getUser(): User | null {
+    return this.user;
+  }
+
+  public getToken(): string | null {
+    return this.token;
+  }
+
+  public hasRole(role: string): boolean {
+    return this.user?.role === role;
+  }
+
+  public hasAnyRole(roles: string[]): boolean {
+    return this.user ? roles.includes(this.user.role) : false;
+  }
+}
+
+export const authService = AuthService.getInstance();
+
+// Helper function for API routes
+export async function verifyToken(token: string): Promise<{ success: boolean; user?: User; error?: string }> {
   try {
-    console.log('🔍 Auth utility: Verifying token with secret:', JWT_SECRET.substring(0, 10) + '...');
-    console.log('🔍 Auth utility: Token to verify:', token.substring(0, 20) + '...');
-    
-    const payload = jwt.verify(token, JWT_SECRET) as UserData;
-    console.log('🔍 Auth utility: JWT payload:', payload);
-    
-    // Normalize the payload to ensure consistent structure
-    const normalizedPayload = {
-      id: payload.id || payload.userId,
-      userId: payload.userId || payload.id,
-      username: payload.username,
-      role: payload.role,
-      name: payload.name
-    };
-    
-    console.log('🔍 Auth utility: Normalized payload:', normalizedPayload);
-    return normalizedPayload;
-  } catch (error) {
-    console.error('❌ Auth utility: Token verification failed:', error);
-    console.error('❌ Auth utility: Error details:', {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : 'Unknown',
-      stack: error instanceof Error ? error.stack : 'Unknown'
+    const response = await fetch('http://localhost:5000/api/auth/unified-session-check', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      credentials: 'include',
     });
-    return null;
-  }
-}
 
-/**
- * Generate JWT token for user
- */
-export function generateToken(userData: UserData): string {
-  return jwt.sign(userData, JWT_SECRET, { expiresIn: '10m' });
-}
+    const data = await response.json();
 
-/**
- * Decode JWT token without verification (for debugging)
- */
-export function decodeToken(token: string): any {
-  try {
-    return jwt.decode(token);
+    if (data.success && data.valid && data.user) {
+      return { success: true, user: data.user };
+    } else {
+      return { success: false, error: 'Invalid token' };
+    }
   } catch (error) {
-    console.error('Token decode failed:', error);
-    return null;
+    return { success: false, error: 'Token verification failed' };
   }
-} 
+}

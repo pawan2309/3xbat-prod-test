@@ -38,7 +38,7 @@ function generateCode(role: string, existingCodes: string[] = []) {
 // GET /api/users - List users with optional filtering
 export const getUsers = async (req: Request, res: Response) => {
   try {
-    const { role, parentId, isActive, excludeInactiveParents } = req.query;
+    const { role, parentId, status, excludeInactiveParents } = req.query;
     
     let whereClause: any = {};
     if (role && typeof role === 'string') {
@@ -47,119 +47,55 @@ export const getUsers = async (req: Request, res: Response) => {
     if (parentId && typeof parentId === 'string') {
       whereClause.parentId = parentId;
     }
-    if (isActive !== undefined) {
-      whereClause.isActive = isActive === 'true';
+    if (status !== undefined) {
+      whereClause.status = status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE';
     }
     if (excludeInactiveParents === 'true') {
       whereClause.parent = {
-        isActive: true
+        status: 'ACTIVE'
       };
     }
 
-    // TEMPORARY: BYPASS DATABASE VALIDATION FOR TESTING
-    // const users = await prisma.user.findMany({
-    //   where: whereClause,
-    //   select: {
-    //     id: true,
-    //     username: true,
-    //     name: true,
-    //     role: true,
-    //     creditLimit: true,
-    //     isActive: true,
-    //     createdAt: true,
-    //     code: true,
-    //     contactno: true,
-    //     password: true,
-    //     parentId: true,
-    //     updatedAt: true,
-    //     parent: {
-    //       select: {
-    //         username: true,
-    //         name: true,
-    //       }
-    //     },
-    //     UserCommissionShare: {
-    //       select: {
-    //         share: true,
-    //         available_share_percent: true,
-    //         cshare: true,
-    //         icshare: true,
-    //         casinocommission: true,
-    //         matchcommission: true,
-    //         sessioncommission: true,
-    //         sessionCommission: true,
-    //         session_commission_type: true,
-    //         commissionType: true,
-    //       }
-    //     }
-    //   },
-    //   orderBy: { createdAt: 'desc' }
-    // });
-
-    // MOCK DATA FOR TESTING - Remove this in production!
-    const users = [
-      {
-        id: 'mock-sub-owner-1',
-        username: 'SUB_OWNER_001',
-        name: 'Test Sub Owner 1',
-        role: 'SUB_OWNER',
-        creditLimit: 1000000,
-        isActive: true,
-        createdAt: new Date(),
-        code: 'SUB_OWNER_001',
-        contactno: '1234567890',
-        password: 'test123',
-        parentId: null,
-        updatedAt: new Date(),
-        parent: null,
-        userCommissionShare: {
-          share: 100,
-          available_share_percent: 100,
-          cshare: 100,
-          icshare: 100,
-          casinocommission: 100,
-          matchcommission: 100,
-          sessioncommission: 100,
-          sessionCommission: 100,
-          session_commission_type: 'PERCENTAGE',
-          commissionType: 'PERCENTAGE'
-        }
-      },
-      {
-        id: 'mock-super-admin-1',
-        username: 'SUD0001',
-        name: 'Test Super Admin 1',
-        role: 'SUPER_ADMIN',
-        creditLimit: 100000,
-        isActive: true,
-        createdAt: new Date(),
-        code: 'SUD0001',
-        contactno: '1234567890',
-        password: 'test123',
-        parentId: 'mock-sub-owner-1',
-        updatedAt: new Date(),
+    const users = await prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true,
+        limit: true,
+        status: true,
+        createdAt: true,
+        contactno: true,
+        password: true,
+        parentId: true,
+        updatedAt: true,
         parent: {
-          username: 'SUB_OWNER_001',
-          name: 'Test Sub Owner 1'
+          select: {
+            username: true,
+            name: true,
+          }
         },
         userCommissionShare: {
-          share: 100,
-          available_share_percent: 100,
-          cshare: 100,
-          icshare: 100,
-          casinocommission: 100,
-          matchcommission: 100,
-          sessioncommission: 100,
-          sessionCommission: 100,
-          session_commission_type: 'PERCENTAGE',
-          commissionType: 'PERCENTAGE'
+          select: {
+            share: true,
+            available_share_percent: true,
+            cshare: true,
+            casinocommission: true,
+            matchcommission: true,
+            sessioncommission: true,
+            sessionCommission: true,
+            session_commission_type: true,
+            commissionType: true,
+          }
         }
-      }
-    ];
+      },
+      orderBy: { createdAt: 'desc' }
+    });
     
     console.log('Found users:', users.length);
     console.log('Where clause:', whereClause);
-    console.log('Sample users:', users.slice(0, 3).map(u => ({ id: u.id, username: u.username, role: u.role, isActive: u.isActive })));
+    console.log('Sample users:', users.slice(0, 3).map(u => ({ id: u.id, username: u.username, role: u.role, status: u.status })));
     
     return res.status(200).json({ success: true, users });
   } catch (error) {

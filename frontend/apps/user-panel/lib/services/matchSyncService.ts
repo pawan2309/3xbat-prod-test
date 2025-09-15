@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { MatchStatus } from '@prisma/client';
+import { MatchStatus } from '../types';
 
 export interface MatchData {
   eventId: string;

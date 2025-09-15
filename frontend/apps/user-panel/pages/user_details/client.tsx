@@ -90,7 +90,7 @@ export default function ClientPage() {
   const [activating, setActivating] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [entriesPerPage, setEntriesPerPage] = useState(config.pagination.defaultEntriesPerPage);
+  const [entriesPerPage, setEntriesPerPage] = useState<number>(config.pagination.defaultEntriesPerPage);
   const [currentPage, setCurrentPage] = useState(1);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);

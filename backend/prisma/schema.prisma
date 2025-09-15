@@ -38,6 +38,30 @@ model User {
   @@map("users")
 }
 
+model CasinoGame {
+  id            Int      @id @default(autoincrement())
+  name          String
+  shortName     String
+  eventId       String
+  cacheUrl      String
+  socketUrl     String
+  videoUrl1     String
+  videoUrl2     String
+  videoUrl3     String?
+  minStake      Int
+  maxStake      Int
+  fetchDataType String   @default("socket")
+  videoUrlType  String   @default("1")
+  betStatus     Boolean  @default(true)
+  casinoStatus  Boolean  @default(true)
+  errorMessage  String   @default("Game is under maintenance")
+  oddsDifference String  @default("0.01")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("casino_games")
+}
+
 model Session {
   id        String   @id @default(cuid())
   userId    String
@@ -371,16 +395,6 @@ model Ledger {
   @@map("ledger")
 }
 
-model CasinoGame {
-  id        String     @id @default(cuid())
-  name      String
-  type      String
-  status    GameStatus @default(ACTIVE)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  @@map("casino_games")
-}
 
 model CasinoTable {
   id          Int             @id @default(autoincrement())

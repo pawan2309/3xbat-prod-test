@@ -2,7 +2,7 @@ import React from 'react';
 
 interface Column {
   key: string;
-  label: string;
+  label: string | React.ReactNode;
   width?: string;
   render?: (value: any, row: any) => React.ReactNode;
 }
@@ -86,24 +86,35 @@ export const Table: React.FC<TableProps> = ({
   }
 
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div style={{ 
+      overflowX: 'auto', 
+      maxHeight: '600px',
+      backgroundColor: '#ffffff',
+      borderRadius: '8px',
+      border: '1px solid #e5e7eb'
+    }}>
       <table style={{
         width: '100%',
         borderCollapse: 'collapse',
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-        overflow: 'hidden'
+        fontSize: '12px',
+        backgroundColor: '#ffffff'
       }}>
         <thead>
           <tr style={{
-            background: '#17445A',
-            color: '#fff'
+            background: '#1e40af',
+            color: '#ffffff',
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            borderBottom: '2px solid #1e40af'
           }}>
             {selectable && (
               <th style={{
-                padding: '12px 8px',
+                padding: '8px 6px',
                 textAlign: 'center',
-                width: '50px'
+                width: '40px',
+                color: '#ffffff',
+                backgroundColor: '#1e40af'
               }}>
                 <input
                   type="checkbox"
@@ -121,11 +132,13 @@ export const Table: React.FC<TableProps> = ({
               <th
                 key={column.key}
                 style={{
-                  padding: '12px 8px',
+                  padding: '8px 6px',
                   textAlign: 'left',
                   fontWeight: '600',
-                  fontSize: '14px',
-                  width: column.width || 'auto'
+                  fontSize: '12px',
+                  width: column.width || 'auto',
+                  color: '#ffffff',
+                  backgroundColor: '#1e40af'
                 }}
               >
                 {column.label}
@@ -144,7 +157,7 @@ export const Table: React.FC<TableProps> = ({
             >
               {selectable && (
                 <td style={{
-                  padding: '12px 8px',
+                  padding: '8px 6px',
                   textAlign: 'center'
                 }}>
                   <input
@@ -163,8 +176,8 @@ export const Table: React.FC<TableProps> = ({
                 <td
                   key={column.key}
                   style={{
-                    padding: '12px 8px',
-                    fontSize: '14px',
+                    padding: '8px 6px',
+                    fontSize: '12px',
                     color: '#374151'
                   }}
                 >

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import ProtectedLayout from '@/components/ProtectedLayout'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -20,7 +21,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <ProtectedLayout>
+      <div className="min-h-screen bg-white">
       <div className="w-full">
         {/* Back to Menu Button */}
         <div>
@@ -88,6 +90,6 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </div>
+    </ProtectedLayout>
   )
 }

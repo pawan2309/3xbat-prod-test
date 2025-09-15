@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/router";
 import { useAuth } from "../contexts/AuthContext";
 import { getRoleDisplayName } from "../lib/auth";
 
@@ -41,12 +42,18 @@ const SIDEBAR_WIDTH = 280;
 const COLLAPSED_WIDTH = 80;
 
 function Layout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth();
+
+  // If it's the login page, render children without layout
+  if (router.pathname === '/login') {
+    return <>{children}</>;
+  }
 
   // Set current date on client side only to prevent hydration issues
   useEffect(() => {
@@ -64,10 +71,10 @@ function Layout({ children }: { children: React.ReactNode }) {
       const mobile = width <= 768;
       setIsMobile(mobile);
       
-      if (mobile && !isMobile) {
+      if (mobile) {
         setIsSidebarOpen(false);
         setIsCollapsed(false);
-      } else if (!mobile && isMobile) {
+      } else {
         setIsSidebarOpen(false);
         setIsCollapsed(false);
       }
@@ -89,7 +96,7 @@ function Layout({ children }: { children: React.ReactNode }) {
       window.removeEventListener('orientationchange', checkMobile);
       clearTimeout(resizeTimeout);
     };
-  }, [isMobile, isSidebarOpen, isCollapsed]);
+  }, []); // Empty dependency array - only run on mount/unmount
 
   const handleDropdownToggle = (label: string) => {
     setOpenDropdown(openDropdown === label ? null : label);
@@ -192,7 +199,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <div style={{
             padding: isMobile ? "6px 12px" : "8px 16px",
-            background: "rgba(16, 185, 129, 0.8)",
+            background: isLoggingOut ? "rgba(107, 114, 128, 0.8)" : "rgba(16, 185, 129, 0.8)",
             color: "#fff",
             borderRadius: "6px",
             fontSize: isMobile ? 12 : 14,
@@ -200,13 +207,18 @@ function Layout({ children }: { children: React.ReactNode }) {
             display: "flex",
             alignItems: "center",
             gap: 8,
-            cursor: "pointer",
-            transition: "all 0.15s ease-in-out"
+            cursor: isLoggingOut ? "not-allowed" : "pointer",
+            transition: "all 0.15s ease-in-out",
+            opacity: isLoggingOut ? 0.7 : 1
           }}
-          onClick={logout}
-          title="Logout"
+          onClick={isLoggingOut ? undefined : logout}
+          title={isLoggingOut ? "Logging out..." : "Logout"}
           >
-            {isMobile ? "🚪" : "🚪 Logout"}
+            {isLoggingOut ? (
+              isMobile ? "⏳" : "⏳ Logging out..."
+            ) : (
+              isMobile ? "🚪" : "🚪 Logout"
+            )}
           </div>
         </div>
       </div>

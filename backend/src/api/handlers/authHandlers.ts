@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'L9vY7z!pQkR#eA1dT3u*Xj5@FbNmC2Ws';
 
@@ -31,7 +30,7 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: 'Account is inactive' });
     }
 
-    // Verify password (stored in plain text for now)
+    // Verify password (plain text comparison)
     if (user.password !== password) {
       return res.status(401).json({ success: false, message: 'Invalid username or password' });
     }
@@ -162,131 +161,74 @@ export const logout = async (req: Request, res: Response) => {
 // GET /api/auth/session - Get current session
 export const getSession = async (req: Request, res: Response) => {
   try {
-    // TEMPORARY: BYPASS SESSION VALIDATION FOR TESTING - Remove this in production!
-    console.log('🚀 BYPASS MODE: Skipping session validation for testing');
+    // Get token from cookie
+    const authToken = req.cookies.betx_session;
+    console.log('🔍 Session API: Checking for auth token');
+
+    if (!authToken) {
+      console.log('❌ No auth token found in cookies');
+      return res.status(401).json({ valid: false, message: 'No authentication token' });
+    }
     
-    // Mock user session data for testing - SUB_OWNER role for full access
-    const mockUser = {
-      id: 'mock-sub-owner-id',
-      username: 'SUB_OWNER_001',
-      name: 'Sub Owner Test User',
-      role: 'SUB_OWNER',
-      isActive: true
-    };
+    console.log('🔍 Token content (first 20 chars):', authToken.substring(0, 20) + '...');
 
-    console.log('✅ Mock session for user:', mockUser.username, 'Role:', mockUser.role);
+    // Verify JWT token
+    let decoded: any;
+    try {
+      console.log('🔍 Verifying JWT token...');
+      const JWT_SECRET = process.env.JWT_SECRET;
+      if (!JWT_SECRET) {
+        console.error('❌ JWT_SECRET environment variable not set');
+        return res.status(500).json({ valid: false, message: 'Server configuration error' });
+      }
+      
+      decoded = jwt.verify(authToken, JWT_SECRET);
+      console.log('✅ JWT token verified successfully:', {
+        userId: decoded.user?.id || decoded.userId,
+        username: decoded.user?.username || decoded.username,
+        role: decoded.user?.role || decoded.role
+      });
+    } catch (error) {
+      console.log('❌ Invalid JWT token:', error);
+      return res.status(401).json({ valid: false, message: 'Invalid token' });
+    }
 
-    // Return mock user session data
-    return res.status(200).json({
-      valid: true,
-      user: {
-        id: mockUser.id,
-        username: mockUser.username,
-        name: mockUser.name,
-        role: mockUser.role
+    // Get user from database
+    const userId = decoded.user?.id || decoded.userId;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true,
+        status: true
       }
     });
 
-    // ORIGINAL SESSION VALIDATION CODE - COMMENTED OUT FOR TESTING
-    // // Get token from cookie
-    // const authToken = req.cookies.betx_session;
-    // console.log('🔍 Session API: Checking for auth token');
-    // console.log('🔍 Session API: Request headers:', Object.keys(req.headers));
-    // console.log('🔍 Session API: Cookie header:', req.headers.cookie);
-    // console.log('🍪 All cookies:', req.cookies);
-    // console.log('🔑 Auth token found:', !!authToken, 'Length:', authToken?.length || 0);
-    // console.log('🔑 Auth token value:', authToken);
+    if (!user) {
+      console.log('❌ User not found for token');
+      return res.status(401).json({ valid: false, message: 'User not found' });
+    }
 
-    // if (!authToken) {
-    //   console.log('❌ No auth token found in cookies');
-    //   return res.status(401).json({ valid: false, message: 'No authentication token' });
-    // }
-    
-    // console.log('🔍 Token content (first 20 chars):', authToken.substring(0, 20) + '...');
+    // Check if user is still active
+    if (user.status !== 'ACTIVE') {
+      console.log('❌ User account not active:', user.username);
+      return res.status(401).json({ valid: false, message: 'Account not active' });
+    }
 
-    // // Verify JWT token
-    // let decoded: any;
-    // try {
-    //   console.log('🔍 Verifying JWT token...');
-    //   const JWT_SECRET = process.env.JWT_SECRET;
-    //   if (!JWT_SECRET) {
-    //     console.error('❌ JWT_SECRET environment variable not set');
-    //     return res.status(500).json({ valid: false, message: 'Server configuration error' });
-    //   }
-      
-    //   console.log('🔍 Session API: Using JWT secret from env');
-    //   console.log('🔍 Session API: Token to verify:', authToken.substring(0, 30) + '...');
-    //   console.log('🔍 Session API: Token length:', authToken.length);
-    //   console.log('🔍 Session API: Token format check:', {
-    //     hasDots: authToken.includes('.'),
-    //     parts: authToken.split('.').length,
-    //     firstPart: authToken.split('.')[0]?.substring(0, 10) + '...',
-    //     secondPart: authToken.split('.')[1]?.substring(0, 10) + '...',
-    //     thirdPart: authToken.split('.')[2]?.substring(0, 10) + '...'
-    //   });
-      
-    //   decoded = jwt.verify(authToken, JWT_SECRET);
-    //   console.log('✅ JWT token verified successfully:', {
-    //     userId: decoded.userId,
-    //     id: decoded.id,
-    //     username: decoded.username,
-    //     role: decoded.role
-    //   });
-    // } catch (error) {
-    //   console.log('❌ Invalid JWT token:', error);
-    //   console.log('❌ Token verification error details:', {
-    //     name: error instanceof Error ? error.name : 'Unknown',
-    //     message: error instanceof Error ? error.message : 'Unknown',
-    //     stack: error instanceof Error ? error.stack : 'Unknown'
-    //   });
-      
-    //   // Try to decode without verification to see the payload
-    //   try {
-    //     const unverifiedPayload = jwt.decode(authToken);
-    //     console.log('🔍 Unverified payload:', unverifiedPayload);
-    //   } catch (decodeError) {
-    //     console.log('❌ Even decode failed:', decodeError);
-    //   }
-      
-    //   return res.status(401).json({ valid: false, message: 'Invalid token' });
-    // }
+    console.log('✅ Valid session for user:', user.username, 'Role:', user.role);
 
-    // // Get user from database
-    // const userId = decoded.userId || decoded.id;
-    // const user = await prisma.user.findUnique({
-    //   where: { id: userId },
-    //   select: {
-    //     id: true,
-    //     username: true,
-    //     name: true,
-    //     role: true,
-    //     isActive: true
-    //   }
-    // });
-
-    // if (!user) {
-    //   console.log('❌ User not found for token');
-    //   return res.status(401).json({ valid: false, message: 'User not found' });
-    // }
-
-    // // Check if user is still active
-    // if (!user.isActive) {
-    //   console.log('❌ User account not active:', user.username);
-    //   return res.status(401).json({ valid: false, message: 'Account not active' });
-    // }
-
-    // console.log('✅ Valid session for user:', user.username, 'Role:', user.role);
-
-    // // Return user session data
-    // return res.status(200).json({
-    //   valid: true,
-    //   user: {
-    //     id: user.id,
-    //     username: user.username,
-    //     name: user.name,
-    //     role: user.role
-    //   }
-    // });
+    // Return user session data
+    return res.status(200).json({
+      valid: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        role: user.role
+      }
+    });
 
   } catch (error) {
     console.error('💥 Session validation error:', error);
@@ -353,35 +295,62 @@ export const getProfile = async (req: Request, res: Response) => {
 // POST /api/auth/refresh - Refresh token
 export const refreshToken = async (req: Request, res: Response) => {
   try {
-    // Mock refresh for testing
-    const mockUser = {
-      id: 'mock-sub-owner-id',
-      username: 'SUB_OWNER_001',
-      name: 'Sub Owner Test User',
-      role: 'SUB_OWNER',
-      isActive: true
-    };
+    // Get current token from cookie
+    const currentToken = req.cookies.betx_session;
+    
+    if (!currentToken) {
+      return res.status(401).json({ success: false, message: 'No token to refresh' });
+    }
 
-    const token = jwt.sign(
+    // Verify current token
+    let decoded: any;
+    try {
+      decoded = jwt.verify(currentToken, JWT_SECRET);
+    } catch (error) {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+
+    // Get user from database to ensure they still exist and are active
+    const userId = decoded.user?.id || decoded.userId;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true,
+        status: true
+      }
+    });
+
+    if (!user || user.status !== 'ACTIVE') {
+      return res.status(401).json({ success: false, message: 'User not found or inactive' });
+    }
+
+    // Generate new token
+    const newToken = jwt.sign(
       { 
-        user: mockUser,
-        userId: mockUser.id,
-        id: mockUser.id,
-        username: mockUser.username,
-        role: mockUser.role
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role,
+          status: user.status
+        }
       },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    res.cookie('betx_session', token, {
+    // Set new cookie
+    res.cookie('betx_session', newToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000
     });
 
-    return res.status(200).json({ success: true, token });
+    return res.status(200).json({ success: true, token: newToken });
   } catch (error) {
     console.error('Refresh token error:', error);
     return res.status(500).json({ success: false, message: 'Internal server error' });
@@ -391,14 +360,88 @@ export const refreshToken = async (req: Request, res: Response) => {
 // GET /api/auth/role-access - Get role access
 export const getRoleAccess = async (req: Request, res: Response) => {
   try {
-    // Mock role access for SUB_OWNER
-    const roleAccess = {
-      canAccessAll: true,
-      accessibleRoles: ['OWNER', 'SUB_OWNER', 'SUPER_ADMIN', 'ADMIN', 'SUB', 'MASTER', 'SUPER_AGENT', 'AGENT', 'USER'],
-      permissions: ['user_management', 'limit_management', 'commission_management', 'reporting', 'admin_panel']
+    // Get token from cookie
+    const authToken = req.cookies.betx_session;
+    
+    if (!authToken) {
+      return res.status(401).json({ success: false, message: 'No authentication token' });
+    }
+
+    // Verify JWT token
+    let decoded: any;
+    try {
+      decoded = jwt.verify(authToken, JWT_SECRET);
+    } catch (error) {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+
+    const userRole = decoded.user?.role || decoded.role;
+    
+    // Define role hierarchy and permissions
+    const roleHierarchy: Record<string, {
+      level: number;
+      accessibleRoles: string[];
+      permissions: string[];
+    }> = {
+      'OWNER': {
+        level: 8,
+        accessibleRoles: ['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
+        permissions: ['all']
+      },
+      'SUB_OWN': {
+        level: 7,
+        accessibleRoles: ['SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
+        permissions: ['user_management', 'limit_management', 'commission_management', 'reporting', 'admin_panel']
+      },
+      'SUP_ADM': {
+        level: 6,
+        accessibleRoles: ['SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
+        permissions: ['user_management', 'limit_management', 'commission_management', 'reporting']
+      },
+      'ADMIN': {
+        level: 5,
+        accessibleRoles: ['ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
+        permissions: ['user_management', 'limit_management', 'reporting']
+      },
+      'SUB_ADM': {
+        level: 4,
+        accessibleRoles: ['SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
+        permissions: ['user_management', 'reporting']
+      },
+      'MAS_AGENT': {
+        level: 3,
+        accessibleRoles: ['MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
+        permissions: ['user_management']
+      },
+      'SUP_AGENT': {
+        level: 2,
+        accessibleRoles: ['SUP_AGENT', 'AGENT', 'USER'],
+        permissions: ['user_management']
+      },
+      'AGENT': {
+        level: 1,
+        accessibleRoles: ['AGENT', 'USER'],
+        permissions: ['user_management']
+      },
+      'USER': {
+        level: 0,
+        accessibleRoles: ['USER'],
+        permissions: []
+      }
     };
 
-    return res.status(200).json({ success: true, roleAccess });
+    const roleAccess = roleHierarchy[userRole as keyof typeof roleHierarchy] || roleHierarchy['USER'];
+
+    return res.status(200).json({ 
+      success: true, 
+      roleAccess: {
+        canAccessAll: roleAccess.permissions.includes('all'),
+        accessibleRoles: roleAccess.accessibleRoles,
+        permissions: roleAccess.permissions,
+        userRole: userRole,
+        level: roleAccess.level
+      }
+    });
   } catch (error) {
     console.error('Role access error:', error);
     return res.status(500).json({ success: false, message: 'Internal server error' });

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../../components/Layout';
 import { useRoleAccess } from '../../lib/hooks/useRoleAccess';
+import { Role } from '../../lib/types';
 
 interface User {
   id: string;
@@ -36,7 +37,7 @@ export default function ClientLimitUpdate() {
 
   useEffect(() => {
     // Check if user can access client management
-    if (!roleLoading && user && !canAccess('client_management')) {
+    if (!roleLoading && user && !canAccess(['ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT'] as Role[])) {
       alert('Access denied: You do not have permission to manage clients.');
       router.push('/');
       return;
@@ -171,7 +172,7 @@ export default function ClientLimitUpdate() {
   }
 
   // Show access denied if user cannot manage clients
-  if (!user || !canAccess('client_management')) {
+  if (!user || !canAccess(['ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT'] as Role[])) {
     return (
       <Layout>
         <div className="container-fluid">

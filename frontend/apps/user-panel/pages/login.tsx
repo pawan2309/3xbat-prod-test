@@ -1,191 +1,159 @@
-import React, { useEffect, useState } from 'react';
-import Head from 'next/head';
+'use client';
+
+import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { authService } from '../lib/auth';
 
-const SESSION_COOKIE = 'betx_session';
-
-const LoginPage = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [siteName, setSiteName] = useState('SITE');
-  const [error, setError] = useState('');
+export default function LoginPage() {
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    rememberMe: false
+  });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
-
-  // Set site name on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      const site = hostname.split('.')[1]?.toUpperCase() || 'SITE';
-      setSiteName(site);
-      document.title = site;
-      const titleBox = document.getElementById('titleBox');
-      if (titleBox) {
-        titleBox.innerHTML = `<a href=\"#\"> </b>BetX Boss Admin</a>`;
-      }
-    }
-  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🚀 Login form submitted with username:', username);
-    console.log('🔍 Form event:', e);
-    console.log('📝 Username:', username);
-    console.log('🔒 Password length:', password.length);
-    
-    setError('');
     setLoading(true);
-    
+    setError('');
+
     try {
-      console.log('📡 About to send fetch to /api/auth/login');
-      const requestBody = JSON.stringify({ username, password });
-      console.log('📦 Request body:', requestBody);
-      
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: requestBody
-      });
-      
-      console.log('📥 Response received, status:', res.status);
-      console.log('📥 Response headers:', res.headers);
-      
-      const data = await res.json();
-      console.log('📄 Response data:', data);
-      
-      if (!data.success && data.message === 'Contact admin') {
-        console.log('❌ Login failed: Contact admin');
-        setError('Contact admin');
-      } else if (!data.success && data.message === 'Password wrong') {
-        console.log('❌ Login failed: Password wrong');
-        setError('Password wrong');
-      } else if (data.success) {
-        console.log('✅ Login successful');
-        setError('');
+      console.log('Attempting login with:', formData.username);
+      const data = await authService.login(formData.username, formData.password);
+      console.log('Login response:', data);
+
+      if (data.success) {
+        console.log('Login successful, user:', data.user);
         
-        // Check if user is OWNER and redirect to operating panel
-        if (data.user && data.user.role === 'OWNER') {
-          console.log('👑 OWNER detected, redirecting to operating panel');
-          // Redirect to operating panel (adjust port as needed)
-          window.location.href = 'http://localhost:3001'; // Change this port if needed
-        } else {
-          console.log('👤 Regular user, redirecting to main dashboard');
-          // Use router.push for client-side navigation
-          router.push('/');
+        // Check if user should be redirected to a different domain (production only)
+        if (data.redirectInfo?.shouldRedirect && process.env.NODE_ENV === 'production') {
+          window.location.href = `https://${data.redirectInfo.targetDomain}`;
+          return;
         }
+
+        // Use window.location.href for a full page reload to ensure cookies are set
+        console.log('Redirecting to dashboard...');
+        window.location.href = '/';
       } else {
-        console.log('❌ Login failed: Unknown error');
-        setError('Unknown error.');
+        console.log('Login failed:', data.message);
+        setError(data.message || 'Login failed');
       }
     } catch (err) {
-      console.error('💥 Login error:', err);
-      setError('Something went wrong. Please try again.');
+      console.error('Login error:', err);
+      setError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <>
-      <Head>
-        <title>{siteName}</title>
-        <meta charSet="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="_csrf" content="4c1e546e-781f-4a8f-9f6a-1f695a383a1e" />
-        <meta name="_csrf_header" content="X-CSRF-TOKEN" />
-        <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests" />
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback" />
-        <link rel="stylesheet" type="text/css" href="https://adminlite.s3.ap-south-1.amazonaws.com/adminlite/plugins/fontawesome-free/css/all.min.css" />
-        <link rel="stylesheet" type="text/css" href="https://adminlite.s3.ap-south-1.amazonaws.com/adminlite/plugins/icheck-bootstrap/icheck-bootstrap.min.css" />
-        <link rel="stylesheet" type="text/css" href="https://adminlite.s3.ap-south-1.amazonaws.com/adminlite/dist/css/adminlte.min.css" />
-      </Head>
-      <div className="hold-transition login-page" style={{ minHeight: '100vh' }}>
-        <div className="login-box">
-          <div className="login-logo" id="titleBox">
-            {/* Site name will be set by useEffect */}
-          </div>
-          <div className="card">
-            <div className="card-body login-card-body">
-              <p className="login-box-msg">Sign in to start your session</p>
-              {error && (
-                <div className="alert alert-danger" role="alert">
-                  {error}
-                </div>
-              )}
-              <form autoComplete="off" onSubmit={handleSubmit}>
-                <input type="hidden" name="_csrf" value="4c1e546e-781f-4a8f-9f6a-1f695a383a1e" />
-                <div className="input-group mb-3 margin-top">
-                  <input
-                    type="text"
-                    className="form-control"
-                    autoComplete="username"
-                    placeholder="username"
-                    autoFocus
-                    required
-                    id="username"
-                    name="username"
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                  />
-                  <div className="input-group-append">
-                    <div className="input-group-text">
-                      <span className="fas fa-envelope"></span>
-                    </div>
-                  </div>
-                </div>
-                <div className="input-group mb-3">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    className="form-control"
-                    placeholder="password"
-                    required
-                    id="password"
-                    name="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                  />
-                  <div className="input-group-append" style={{ cursor: 'pointer' }} onClick={() => setShowPassword(!showPassword)}>
-                    <div className="input-group-text">
-                      <span className={showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'} title={showPassword ? 'Hide password' : 'Show password'}></span>
-                    </div>
-                  </div>
-                </div>
-                <div className="row">
-                  <div className="col-8">
-                    <div className="icheck-primary">
-                      <input
-                        type="checkbox"
-                        id="remember_me"
-                        name="remember_me"
-                        checked={rememberMe}
-                        onChange={() => setRememberMe(!rememberMe)}
-                      />
-                      <label htmlFor="remember_me">
-                        Remember Me
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                <div className="social-auth-links text-center mb-3">
-                  <button
-                    type="submit"
-                    name="submit"
-                    className="form-control btn btn-info btn-block"
-                    disabled={loading}
-                  >
-                    {loading ? 'Logging in...' : 'Login'}
-                  </button>
-                </div>
-              </form>
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
 
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full">
+        {/* Logo and Branding */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-blue-900 rounded-full flex items-center justify-center overflow-hidden">
+              <img
+                src="/images/3x.PNG"
+                alt="3XBAT Logo"
+                className="w-full h-full object-cover"
+                style={{borderRadius: '50%'}}
+              />
             </div>
           </div>
+          <h1 className="text-2xl font-bold text-gray-800">
+            <span className="text-3xl">3xBAT Gaming</span>
+          </h1>
+        </div>
+
+        {/* Login Form Card */}
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <h4 className="text-l font-semibold text-gray-800 text-center mb-6">
+            Sign In To Start Your Session
+          </h4>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Username Field */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                </svg>
+              </div>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                required
+                className="w-full py-3 pl-12 pr-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                placeholder="Username"
+                value={formData.username}
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Password Field */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="w-full py-3 pl-12 pr-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Remember Me Checkbox */}
+            <div className="flex items-center">
+              <input
+                id="rememberMe"
+                name="rememberMe"
+                type="checkbox"
+                checked={formData.rememberMe}
+                onChange={handleChange}
+                className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+              />
+              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
+                Remember Me
+              </label>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            {/* Login Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            >
+              {loading ? 'Signing in...' : 'Login'}
+            </button>
+          </form>
         </div>
       </div>
-    </>
+    </div>
   );
-};
-
-export default LoginPage; 
+}

@@ -19,121 +19,132 @@ interface Game {
 const CasinoListContent: React.FC = () => {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedGames, setSelectedGames] = useState<number[]>([]);
 
-  // Sample data for demonstration
+  // Load casino games from API
   useEffect(() => {
+    loadCasinoGames();
+  }, []);
+
+  const loadCasinoGames = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/api/casino/games');
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const apiGames = result.data.map((game: any) => ({
+          id: game.id,
+          gameName: game.name,
+          gameType: game.shortName,
+          status: game.casinoStatus ? 'Active' : 'Disabled',
+          minBet: game.minStake,
+          maxBet: game.maxStake,
+          houseEdge: 2.7, // Mock data
+          playersOnline: Math.floor(Math.random() * 100), // Mock data
+          totalBets: Math.floor(Math.random() * 500000), // Mock data
+          lastResult: 'Result', // Mock data
+          nextDraw: new Date().toLocaleString() // Mock data
+        }));
+        setGames(apiGames);
+      } else {
+        // Fallback to sample data
+        loadSampleData();
+      }
+    } catch (error) {
+      console.error('Error loading casino games:', error);
+      // Fallback to sample data
+      loadSampleData();
+    }
+  };
+
+  const loadSampleData = () => {
     const sampleGames = [
       {
         id: 1,
-        gameName: 'Diamond Roulette',
-        gameType: 'Roulette',
+        gameName: 'Amar Akbar Anthony',
+        gameType: 'AAA',
         status: 'Active',
         minBet: 10,
         maxBet: 5000,
         houseEdge: 2.7,
         playersOnline: 45,
         totalBets: 125000,
-        lastResult: 'Red 23',
+        lastResult: 'Amar',
         nextDraw: '2024-01-15 15:30:00'
       },
       {
         id: 2,
-        gameName: 'Lucky Slots',
-        gameType: 'Slots',
+        gameName: 'Andar Bahar 20',
+        gameType: 'AB20',
         status: 'Active',
         minBet: 5,
         maxBet: 1000,
         houseEdge: 3.2,
         playersOnline: 78,
         totalBets: 89000,
-        lastResult: '777',
+        lastResult: 'A',
         nextDraw: '2024-01-15 15:32:00'
       },
       {
         id: 3,
-        gameName: 'Blackjack Pro',
-        gameType: 'Blackjack',
-        status: 'Maintenance',
+        gameName: 'Card 32 EU',
+        gameType: 'Card32EU',
+        status: 'Disabled',
         minBet: 25,
         maxBet: 10000,
         houseEdge: 0.5,
         playersOnline: 0,
         totalBets: 0,
-        lastResult: '21',
+        lastResult: '32',
         nextDraw: '2024-01-15 16:00:00'
       },
       {
         id: 4,
-        gameName: 'Baccarat Elite',
-        gameType: 'Baccarat',
+        gameName: 'Dragon Tiger 20',
+        gameType: 'DT20',
         status: 'Active',
         minBet: 50,
         maxBet: 25000,
         houseEdge: 1.06,
         playersOnline: 23,
         totalBets: 340000,
-        lastResult: 'Banker',
+        lastResult: 'D',
         nextDraw: '2024-01-15 15:35:00'
       },
       {
         id: 5,
-        gameName: 'Poker Room',
-        gameType: 'Poker',
+        gameName: 'Lucky 7 EU',
+        gameType: 'Lucky7EU',
         status: 'Active',
         minBet: 100,
         maxBet: 50000,
         houseEdge: 5.0,
         playersOnline: 12,
         totalBets: 180000,
-        lastResult: 'Royal Flush',
+        lastResult: '7',
         nextDraw: '2024-01-15 15:40:00'
+      },
+      {
+        id: 6,
+        gameName: '20-20 Teenpatti',
+        gameType: 'Teen20',
+        status: 'Active',
+        minBet: 20,
+        maxBet: 20000,
+        houseEdge: 1.4,
+        playersOnline: 34,
+        totalBets: 95000,
+        lastResult: 'Player A',
+        nextDraw: '2024-01-15 15:45:00'
       }
     ];
-    
     setGames(sampleGames);
-  }, []);
-
-  const handleSelectGame = (gameId: number) => {
-    setSelectedGames(prev => 
-      prev.includes(gameId) 
-        ? prev.filter(id => id !== gameId)
-        : [...prev, gameId]
-    );
   };
 
-  const handleSelectAll = () => {
-    if (selectedGames.length === games.length) {
-      setSelectedGames([]);
-    } else {
-      setSelectedGames(games.map(game => game.id));
-    }
+
+  const handleEditGame = (gameId: number) => {
+    window.open(`/casino/${gameId}`, '_blank');
   };
 
-  const handleStartGame = (gameId: number) => {
-    console.log('Starting game:', gameId);
-    alert(`Starting game ${gameId}`);
-  };
-
-  const handleStopGame = (gameId: number) => {
-    console.log('Stopping game:', gameId);
-    alert(`Stopping game ${gameId}`);
-  };
-
-  const handleDeclareResult = (gameId: number) => {
-    console.log('Declaring result for game:', gameId);
-    alert(`Declaring result for game ${gameId}`);
-  };
-
-  const handleBulkAction = (action: string) => {
-    if (selectedGames.length === 0) {
-      alert('Please select at least one game');
-      return;
-    }
-    
-    console.log(`${action} selected games:`, selectedGames);
-    alert(`${action} ${selectedGames.length} selected games`);
-  };
 
   const handleRefresh = () => {
     setLoading(true);
@@ -144,36 +155,21 @@ const CasinoListContent: React.FC = () => {
   };
 
   const columns = [
-    { key: 'select', label: '' },
-    { key: 'gameName', label: 'Game Name' },
-    { key: 'gameType', label: 'Type' },
-    { key: 'status', label: 'Status' },
-    { key: 'minBet', label: 'Min Bet' },
-    { key: 'maxBet', label: 'Max Bet' },
-    { key: 'houseEdge', label: 'House Edge' },
-    { key: 'playersOnline', label: 'Players' },
-    { key: 'totalBets', label: 'Total Bets' },
-    { key: 'lastResult', label: 'Last Result' },
-    { key: 'nextDraw', label: 'Next Draw' },
-    { key: 'actions', label: 'Actions' }
+    { key: 'eventId', label: 'Event Id' },
+    { key: 'name', label: 'Name' },
+    { key: 'shortName', label: 'Short Name' },
+    { key: 'betStatus', label: 'Bet Status' },
+    { key: 'minStake', label: 'MinStake' },
+    { key: 'maxStake', label: 'MaxStake' },
+    { key: 'actions', label: 'Action' }
   ];
 
   const rows = games.map(game => ({
-    ...game,
-    select: (
-      <input
-        type="checkbox"
-        checked={selectedGames.includes(game.id)}
-        onChange={() => handleSelectGame(game.id)}
-        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-      />
-    ),
-    minBet: `$${game.minBet}`,
-    maxBet: `$${game.maxBet.toLocaleString()}`,
-    houseEdge: `${game.houseEdge}%`,
-    totalBets: `$${game.totalBets.toLocaleString()}`,
-    status: (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+    eventId: game.id,
+    name: game.gameName,
+    shortName: game.gameType,
+    betStatus: (
+      <span className={`px-2 py-1 rounded text-xs font-medium ${
         game.status === 'Active' ? 'bg-green-100 text-green-800' :
         game.status === 'Maintenance' ? 'bg-yellow-100 text-yellow-800' :
         'bg-red-100 text-red-800'
@@ -181,194 +177,44 @@ const CasinoListContent: React.FC = () => {
         {game.status}
       </span>
     ),
+    minStake: `$${game.minBet}`,
+    maxStake: `$${game.maxBet.toLocaleString()}`,
     actions: (
-      <div className="flex space-x-2">
-        {game.status === 'Active' ? (
-          <Button
-            size="small"
-            variant="secondary"
-            onClick={() => handleStopGame(game.id)}
-          >
-            Stop
-          </Button>
-        ) : (
-          <Button
-            size="small"
-            variant="primary"
-            onClick={() => handleStartGame(game.id)}
-          >
-            Start
-          </Button>
-        )}
-        <Button
-          size="small"
-          variant="primary"
-          onClick={() => handleDeclareResult(game.id)}
-        >
-          Declare
-        </Button>
-      </div>
+      <button
+        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1 px-2 rounded transition-colors"
+        onClick={() => handleEditGame(game.id)}
+      >
+        Edit
+      </button>
     )
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">🎰 Casino Operations</h1>
-          <p className="text-gray-600 mt-1">Manage casino games and operations</p>
+          <h1 className="text-2xl font-bold text-gray-900">Casino Operations</h1>
+          <p className="text-sm text-gray-600">Manage casino games and operations</p>
         </div>
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-          <Button
-            size="medium"
-            variant="secondary"
+        <div className="flex space-x-2">
+          <button
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 text-sm rounded transition-colors"
             onClick={handleRefresh}
             disabled={loading}
           >
-            {loading ? '🔄 Refreshing...' : '🔄 Refresh'}
-          </Button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-bold">🎮</span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Total Games</h3>
-              <p className="text-2xl font-bold text-gray-900">{games.length}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-bold">🟢</span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Active Games</h3>
-              <p className="text-2xl font-bold text-gray-900">
-                {games.filter(g => g.status === 'Active').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                <span className="text-yellow-600 font-bold">👥</span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Total Players</h3>
-              <p className="text-2xl font-bold text-gray-900">
-                {games.reduce((sum, game) => sum + game.playersOnline, 0)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-purple-600 font-bold">💰</span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Total Bets</h3>
-              <p className="text-2xl font-bold text-gray-900">
-                ${games.reduce((sum, game) => sum + game.totalBets, 0).toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <div className="text-center">
-              <div className="text-2xl mb-2">🎲</div>
-              <div className="text-sm font-medium text-gray-900">Add New Game</div>
-            </div>
-          </button>
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <div className="text-center">
-              <div className="text-2xl mb-2">📊</div>
-              <div className="text-sm font-medium text-gray-900">View Reports</div>
-            </div>
-          </button>
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <div className="text-center">
-              <div className="text-2xl mb-2">⚙️</div>
-              <div className="text-sm font-medium text-gray-900">Game Settings</div>
-            </div>
-          </button>
-          <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <div className="text-center">
-              <div className="text-2xl mb-2">🔔</div>
-              <div className="text-sm font-medium text-gray-900">Notifications</div>
-            </div>
+            {loading ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
       </div>
 
-      {/* Bulk Actions */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
-          <div className="text-sm text-gray-600">
-            {selectedGames.length} of {games.length} selected
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              size="small"
-              variant="primary"
-              onClick={() => handleBulkAction('Start')}
-              disabled={selectedGames.length === 0}
-            >
-              Start Selected
-            </Button>
-            <Button
-              size="small"
-              variant="secondary"
-              onClick={() => handleBulkAction('Stop')}
-              disabled={selectedGames.length === 0}
-            >
-              Stop Selected
-            </Button>
-            <Button
-              size="small"
-              variant="secondary"
-              onClick={() => handleBulkAction('Declare Results')}
-              disabled={selectedGames.length === 0}
-            >
-              Declare Results
-            </Button>
-          </div>
-        </div>
-      </div>
 
       {/* Casino Games Table */}
       <div className="bg-white rounded-lg shadow-md">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Casino Games</h2>
-          <p className="text-sm text-gray-600 mt-1">Manage casino games, declare results, and monitor operations</p>
+        <div className="px-4 py-3 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Casino Games</h2>
         </div>
-        <div className="p-6">
+        <div className="p-4">
           <Table columns={columns} rows={rows} />
         </div>
       </div>

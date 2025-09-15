@@ -49,6 +49,23 @@ export class AdaptiveRateLimiter {
       skip: (req: Request) => {
         // Skip rate limiting for health checks and selected endpoints
         if (req.path.includes('/health')) return true;
+        
+        // Skip rate limiting for authentication endpoints
+        if (req.path.startsWith('/api/auth/')) return true;
+        
+        // Skip rate limiting for internal API routes (user management, dashboard, etc.)
+        const internalApiRoutes = [
+          '/api/users',
+          '/api/dashboard',
+          '/api/transactions',
+          '/api/commissions',
+          '/api/games',
+          '/api/matches',
+          '/api/bets',
+          '/api/reports'
+        ];
+        if (internalApiRoutes.some((route) => req.path.startsWith(route))) return true;
+        
         // Allow fixtures and TV endpoints (these are server-polled and cached)
         const allowlist = [
           '/api/cricket/fixtures',
@@ -230,11 +247,22 @@ export const createRateLimiters = () => {
     scaleFactor: 0.5
   });
 
+  // Authentication rate limiter (lenient but protects against brute force)
+  const authLimiter = new AdaptiveRateLimiter({
+    baseWindowMs: 15 * 60 * 1000, // 15 minutes
+    baseMaxRequests: 20, // 20 login attempts per 15 minutes
+    maxWindowMs: 30 * 60 * 1000, // 30 minutes
+    maxMaxRequests: 40,
+    loadThreshold: 0.8,
+    scaleFactor: 0.8
+  });
+
   return {
     general: generalLimiter.createMiddleware(),
     aggregated: aggregatedLimiter.createMiddleware(),
     matchData: matchDataLimiter.createMiddleware(),
-    tv: tvLimiter.createMiddleware()
+    tv: tvLimiter.createMiddleware(),
+    auth: authLimiter.createMiddleware()
   };
 };
 

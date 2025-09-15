@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { CricketFixtureService } from '../../../lib/services/cricketFixtureService';
-import { MatchStatus } from '@prisma/client';
+import { MatchStatus } from '../../../lib/types';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

@@ -71,10 +71,10 @@ class CronScheduler {
 
     try {
       // Check if nextDate method exists
-      if (typeof this.syncJob.nextDate === 'function') {
+      if (this.syncJob && typeof (this.syncJob as any).nextDate === 'function') {
         return {
           isRunning: this.isRunning,
-          nextRun: this.syncJob.nextDate().toDate()
+          nextRun: (this.syncJob as any).nextDate().toDate()
         };
       } else {
         // Fallback if nextDate is not available

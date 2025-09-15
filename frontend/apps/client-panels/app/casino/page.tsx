@@ -3,70 +3,175 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ProtectedLayout from '@/components/ProtectedLayout'
+
+interface CasinoGame {
+  streamingId: string;
+  name: string;
+  fullName: string;
+  category: string;
+  path: string;
+  description: string;
+}
 
 export default function CasinoPage() {
   const router = useRouter()
   
-  const [casinoGames, setCasinoGames] = useState([
-    {
-      streamingId: '3030',
-      name: 'Teen20',
-      fullName: 'Teen Patti 20-20',
-      category: 'Indian Poker',
-      path: '/casino/teen20',
-      description: 'Classic Indian poker game with 20-20 format'
-    },
-    {
-      streamingId: '3043',
-      name: 'AB20',
-      fullName: 'Andar Bahar 20-20',
-      category: 'Card Game',
-      path: '/casino/ab20',
-      description: 'Traditional Andar Bahar with 20 cards'
-    },
-    {
-      streamingId: '3035',
-      name: 'DT20',
-      fullName: 'Dragon Tiger 20-20',
-      category: 'Asian Card',
-      path: '/casino/dt20',
-      description: 'Dragon vs Tiger card battle game'
-    },
-    {
-      streamingId: '3056',
-      name: 'AAA',
-      fullName: 'Three Aces',
-      category: 'Live Casino',
-      path: '/casino/aaa',
-      description: 'Special three aces card game'
-    },
-    {
-      streamingId: '3034',
-      name: 'Card32EU',
-      fullName: '32 Cards European',
-      category: 'Card Game',
-      path: '/casino/card32eu',
-      description: 'European style 32-card game'
-    },
-    {
-      streamingId: '3032',
-      name: 'Lucky7EU',
-      fullName: 'Lucky Seven',
-      category: 'Luck Game',
-      path: '/casino/lucky7eu',
-      description: 'Lucky number 7 card game'
-    }
-  ])
+  const [casinoGames, setCasinoGames] = useState<CasinoGame[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  // Load active casino games on component mount
+  useEffect(() => {
+    loadActiveCasinoGames();
+  }, []);
+
+  const loadActiveCasinoGames = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:4000/api/casino/games/active', {
+        credentials: 'include',
+        mode: 'cors'
+      });
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        // Map API data to client format
+        const activeGames = result.data.map((game: any) => {
+          // Map game types to client paths and names
+          const gameMapping: { [key: string]: any } = {
+            'AAA': {
+              streamingId: game.eventId,
+              name: 'AAA',
+              fullName: 'Amar Akbar Anthony',
+              category: 'Live Casino',
+              path: '/casino/aaa',
+              description: 'Special three aces card game'
+            },
+            'AB20': {
+              streamingId: game.eventId,
+              name: 'AB20',
+              fullName: 'Andar Bahar 20-20',
+              category: 'Card Game',
+              path: '/casino/ab20',
+              description: 'Traditional Andar Bahar with 20 cards'
+            },
+            'Card32EU': {
+              streamingId: game.eventId,
+              name: 'Card32EU',
+              fullName: '32 Cards European',
+              category: 'Card Game',
+              path: '/casino/card32eu',
+              description: 'European style 32-card game'
+            },
+            'DT20': {
+              streamingId: game.eventId,
+              name: 'DT20',
+              fullName: 'Dragon Tiger 20-20',
+              category: 'Asian Card',
+              path: '/casino/dt20',
+              description: 'Dragon vs Tiger card battle game'
+            },
+            'Lucky7EU': {
+              streamingId: game.eventId,
+              name: 'Lucky7EU',
+              fullName: 'Lucky Seven',
+              category: 'Luck Game',
+              path: '/casino/lucky7eu',
+              description: 'Lucky number 7 card game'
+            },
+            'Teen20': {
+              streamingId: game.eventId,
+              name: 'Teen20',
+              fullName: 'Teen Patti 20-20',
+              category: 'Indian Poker',
+              path: '/casino/teen20',
+              description: 'Classic Indian poker game with 20-20 format'
+            }
+          };
+
+          return gameMapping[game.shortName] || {
+            streamingId: game.eventId,
+            name: game.shortName,
+            fullName: game.name,
+            category: 'Casino Game',
+            path: `/casino/${game.shortName.toLowerCase()}`,
+            description: 'Live casino game'
+          };
+        });
+
+        setCasinoGames(activeGames);
+        setError(null);
+      } else {
+        // Fallback to static data if API fails
+        loadFallbackGames();
+      }
+    } catch (error) {
+      console.error('Error loading active casino games:', error);
+      setError('Failed to load casino games');
+      // Fallback to static data
+      loadFallbackGames();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadFallbackGames = () => {
+    const fallbackGames = [
+      {
+        streamingId: '3030',
+        name: 'Teen20',
+        fullName: 'Teen Patti 20-20',
+        category: 'Indian Poker',
+        path: '/casino/teen20',
+        description: 'Classic Indian poker game with 20-20 format'
+      },
+      {
+        streamingId: '3043',
+        name: 'AB20',
+        fullName: 'Andar Bahar 20-20',
+        category: 'Card Game',
+        path: '/casino/ab20',
+        description: 'Traditional Andar Bahar with 20 cards'
+      },
+      {
+        streamingId: '3035',
+        name: 'DT20',
+        fullName: 'Dragon Tiger 20-20',
+        category: 'Asian Card',
+        path: '/casino/dt20',
+        description: 'Dragon vs Tiger card battle game'
+      },
+      {
+        streamingId: '3056',
+        name: 'AAA',
+        fullName: 'Three Aces',
+        category: 'Live Casino',
+        path: '/casino/aaa',
+        description: 'Special three aces card game'
+      },
+      {
+        streamingId: '3034',
+        name: 'Card32EU',
+        fullName: '32 Cards European',
+        category: 'Card Game',
+        path: '/casino/card32eu',
+        description: 'European style 32-card game'
+      },
+      {
+        streamingId: '3032',
+        name: 'Lucky7EU',
+        fullName: 'Lucky Seven',
+        category: 'Luck Game',
+        path: '/casino/lucky7eu',
+        description: 'Lucky number 7 card game'
+      }
+    ];
+    setCasinoGames(fallbackGames);
+  };
 
   const handleRefresh = async () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    await loadActiveCasinoGames();
   };
 
   if (loading) {
@@ -98,7 +203,8 @@ export default function CasinoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <ProtectedLayout>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="w-full">
         {/* Back to Menu Button */}
         <div>
@@ -183,6 +289,6 @@ export default function CasinoPage() {
           )}
         </div>
       </div>
-    </div>
+    </ProtectedLayout>
   )
 }

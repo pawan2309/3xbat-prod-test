@@ -275,6 +275,21 @@ export class SmartCache {
     };
     if (this.redis) {
       await this.redis.setEx(key, config.ttl, JSON.stringify(entry));
+      
+      // Publish notification for cricket fixtures updates
+      if (key === 'cricket:fixtures') {
+        try {
+          await this.redis.publish('cricket:fixtures:updated', JSON.stringify({
+            key,
+            timestamp: Date.now(),
+            dataLength: Array.isArray(data) ? data.length : 'unknown',
+            source: 'smartcache'
+          }));
+          logger.info('📡 Published cricket:fixtures:updated notification');
+        } catch (error) {
+          logger.error('❌ Failed to publish fixtures update notification:', error);
+        }
+      }
     } else {
       // In-memory fallback with naive TTL handling stored in entry
       this.memoryCache.set(key, JSON.stringify(entry));

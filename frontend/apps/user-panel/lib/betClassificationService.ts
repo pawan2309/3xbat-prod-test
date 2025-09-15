@@ -1,4 +1,4 @@
-import { MarketType, MarketScope } from '@prisma/client';
+import { MarketType, MarketScope } from './types';
 
 export interface MarketData {
   mname?: string;        // Market name from API

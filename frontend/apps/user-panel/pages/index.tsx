@@ -8,6 +8,7 @@ import { parse } from 'cookie';
 import { requireAuth } from '../lib/requireAuth';
 import { useRouter } from 'next/router';
 import { getRoleBasedNavigation } from '../lib/hierarchyUtils';
+import { authService } from '../lib/auth';
 
 // Removed server-side auth check to prevent redirect loops
 export const getServerSideProps = async () => {
@@ -73,28 +74,30 @@ const ClientIndexPage = () => {
     const getUserData = async () => {
       console.log('Index page: Fetching user data...');
       try {
-        const res = await fetch('/api/auth/session');
-        console.log('Session API response status:', res.status);
-        const data = await res.json();
-        console.log('Session API response data:', data);
-        if (data.valid && data.user) {
+        const sessionData = await authService.getSessionData();
+        console.log('Session API response:', sessionData);
+        if (sessionData.success && sessionData.user) {
           console.log('Session valid, setting user data');
-          setUser(data.user);
+          setUser(sessionData.user);
           
           // Get role-based navigation
-          const navigation = getRoleBasedNavigation(data.user.role);
+          const navigation = getRoleBasedNavigation(sessionData.user.role);
           setSidebarLinks(navigation);
         } else {
-          console.log('Session invalid, but middleware should have handled this');
+          console.log('Session invalid, redirecting to login');
+          router.push('/login');
+          return;
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
+        router.push('/login');
+        return;
       } finally {
         setIsLoading(false);
       }
     };
     getUserData();
-  }, []);
+  }, [router]);
 
   // -------- Logout Handler --------
   const handleLogout = async () => {
@@ -139,12 +142,14 @@ const ClientIndexPage = () => {
   };
 
   // -------- Show Loading While Fetching User Data --------
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <Layout>
         <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
           <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
+            <span className="visually-hidden">
+              {isLoading ? 'Loading...' : 'Redirecting to login...'}
+            </span>
           </div>
         </div>
       </Layout>

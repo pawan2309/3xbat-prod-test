@@ -1,4 +1,5 @@
-import { PrismaClient, MarketType, MarketScope, BetStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { MarketType, MarketScope, BetStatus } from './types';
 import { BetClassificationService, MarketData } from './betClassificationService';
 
 const prisma = new PrismaClient();

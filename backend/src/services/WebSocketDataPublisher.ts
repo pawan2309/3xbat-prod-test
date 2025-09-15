@@ -15,6 +15,39 @@ export class WebSocketDataPublisher {
 
   constructor() {
     this.startDataPublishing();
+    this.setupRedisSubscriptions();
+  }
+
+  /**
+   * Setup Redis subscriptions for instant updates
+   */
+  private setupRedisSubscriptions() {
+    try {
+      const { getRedisPubSubClient } = require('../infrastructure/redis/redis');
+      const redis = getRedisPubSubClient();
+      
+      if (redis) {
+        // Subscribe to cricket fixtures updates
+        redis.subscribe('cricket:fixtures:updated', (err: any) => {
+          if (err) {
+            logger.error('❌ Failed to subscribe to cricket:fixtures:updated:', err);
+          } else {
+            logger.info('📡 Subscribed to cricket:fixtures:updated for instant updates');
+          }
+        });
+
+        // Handle incoming Redis messages
+        redis.on('message', (channel: string, message: string) => {
+          if (channel === 'cricket:fixtures:updated') {
+            logger.info('📡 Received instant fixtures update from Redis');
+            // Publish immediately to WebSocket
+            this.publishMatchesData();
+          }
+        });
+      }
+    } catch (error) {
+      logger.error('❌ Error setting up Redis subscriptions:', error);
+    }
   }
 
   /**
@@ -26,8 +59,21 @@ export class WebSocketDataPublisher {
     this.isRunning = true;
     logger.info('🚀 Starting WebSocket data publishing service');
 
-    // Publish matches data every 2 minutes
-    this.scheduleUpdate('matches', 120000, () => this.publishMatchesData());
+    // Publish matches data every 30 seconds (reduced from 2 minutes for better responsiveness)
+    this.scheduleUpdate('matches', 30000, () => this.publishMatchesData());
+    
+    // Publish dashboard stats every 30 seconds
+    this.scheduleUpdate('dashboard-stats', 30000, () => this.publishDashboardStats());
+    
+    // Publish matches data immediately on startup
+    setTimeout(() => {
+      this.publishMatchesData();
+    }, 1000); // Wait 1 second for server to fully start
+
+    // Publish dashboard stats immediately on startup
+    setTimeout(() => {
+      this.publishDashboardStats();
+    }, 1500); // Wait 1.5 seconds for server to fully start
 
     // FAST MODE: odds every 1000ms per active room, but guarded by token bucket
     this.scheduleUpdate('odds-fast-loop', 1000, () => this.publishOddsData());
@@ -74,13 +120,25 @@ export class WebSocketDataPublisher {
    */
   private async publishMatchesData() {
     try {
-      if (!webSocketManager) return;
+      if (!webSocketManager) {
+        logger.warn('⚠️ WebSocket manager not available for matches data');
+        return;
+      }
 
+      logger.info('🔄 Fetching cricket fixtures data...');
+      
       // Get fresh matches data
       const matchesData = await smartCache.get(
         'cricket:fixtures',
         () => this.apiService.getCricketFixtures()
       );
+
+      logger.info('📊 Matches data received:', {
+        hasData: !!matchesData,
+        dataType: typeof matchesData,
+        isArray: Array.isArray(matchesData),
+        dataLength: Array.isArray(matchesData) ? matchesData.length : 'N/A'
+      });
 
       // Broadcast to all users
       await webSocketManager.broadcastToRoom('global:matches', 'matches_updated', {
@@ -88,7 +146,7 @@ export class WebSocketDataPublisher {
         timestamp: Date.now()
       });
 
-      logger.info('📊 Published matches data update');
+      logger.info('📊 Published matches data update to global:matches room');
     } catch (error) {
       logger.error('❌ Error publishing matches data:', error);
     }
@@ -488,6 +546,99 @@ export class WebSocketDataPublisher {
       data,
       timestamp: Date.now()
     });
+  }
+
+  /**
+   * Publish dashboard statistics
+   */
+  private async publishDashboardStats() {
+    try {
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+
+      // Get various statistics
+      const [
+        totalUsers,
+        activeUsers,
+        totalMatches,
+        liveMatches,
+        pendingBets,
+        totalBets,
+        totalBalance,
+        todayBets
+      ] = await Promise.all([
+        // User statistics
+        prisma.user.count(),
+        prisma.user.count({ where: { status: 'ACTIVE' } }),
+        
+        // Match statistics
+        prisma.match.count(),
+        prisma.match.count({ where: { status: 'INPLAY' as any } }),
+        
+        // Bet statistics
+        prisma.bet.count({ where: { status: 'PENDING' } }),
+        prisma.bet.count(),
+        
+        // Balance statistics
+        prisma.user.aggregate({
+          _sum: { limit: true }
+        }),
+        
+        // Today's bets
+        prisma.bet.count({
+          where: {
+            createdAt: {
+              gte: new Date(new Date().setHours(0, 0, 0, 0))
+            }
+          }
+        })
+      ]);
+
+      const dashboardStats = {
+        users: {
+          total: totalUsers,
+          active: activeUsers,
+          inactive: totalUsers - activeUsers
+        },
+        matches: {
+          total: totalMatches,
+          live: liveMatches,
+          upcoming: await prisma.match.count({ where: { status: 'UPCOMING' } }),
+          closed: await prisma.match.count({ where: { status: 'COMPLETED' as any } })
+        },
+        bets: {
+          total: totalBets,
+          pending: pendingBets,
+          today: todayBets,
+          won: await prisma.bet.count({ where: { status: 'WON' } }),
+          lost: await prisma.bet.count({ where: { status: 'LOST' } })
+        },
+        financial: {
+          totalBalance: (totalBalance._sum as any).limit || 0,
+          totalStake: await prisma.bet.aggregate({
+            _sum: { stake: true }
+          }).then(result => result._sum.stake || 0),
+          totalWinnings: await prisma.bet.aggregate({
+            where: { status: 'WON' },
+            _sum: { profitLoss: true }
+          }).then(result => (result._sum as any).profitLoss || 0)
+        }
+      };
+
+      if (webSocketManager) {
+        await webSocketManager.broadcastToRoom('global:dashboard', 'dashboard_stats_updated', {
+          success: true,
+          data: dashboardStats,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      logger.info(`📊 Published dashboard stats: ${totalUsers} users, ${totalMatches} matches, ${totalBets} bets`);
+      
+      await prisma.$disconnect();
+    } catch (error) {
+      logger.error('❌ Error publishing dashboard stats:', error);
+    }
   }
 
   /**

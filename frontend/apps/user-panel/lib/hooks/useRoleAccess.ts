@@ -1,196 +1,103 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { canAccessFeature, canAccessRole, getAccessibleRoles } from '../hierarchyUtils';
+import { authService } from '../auth';
+import { Role } from '../types';
 
-interface RoleAccessData {
-  user: {
-    id: string;
-    username: string;
-    name: string;
-    role: string;
-  } | null;
-  access: {
-    accessibleRoles: string[];
-    navigation: Record<string, any[]>;
-    featureAccess: Record<string, boolean>;
-    accessibleUsersByRole: Record<string, any[]>;
-  } | null;
-  loading: boolean;
-  error: string | null;
+export interface RoleAccess {
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canView: boolean;
+  accessibleRoles: Role[];
+  userRole: Role;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  name: string | null;
+  role: string;
+  status: string;
+  limit: number;
+  contactno: string | null;
+  userCommissionShare: any;
 }
 
 export function useRoleAccess() {
-  const [data, setData] = useState<RoleAccessData>({
-    user: null,
-    access: null,
-    loading: true,
-    error: null
-  });
-  const router = useRouter();
+  const [roleAccess, setRoleAccess] = useState<RoleAccess | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchRoleAccess = async () => {
+    const checkAccess = async () => {
       try {
-        setData(prev => ({ ...prev, loading: true, error: null }));
+        const isAuthenticated = await authService.checkSession();
         
-        const response = await fetch('/api/auth/role-access');
-        const result = await response.json();
-        
-        if (result.success) {
-          setData({
-            user: result.user,
-            access: result.access,
-            loading: false,
-            error: null
-          });
-        } else {
-          setData({
-            user: null,
-            access: null,
-            loading: false,
-            error: result.message || 'Failed to fetch role access data'
-          });
-          
-          // Redirect to login if session is invalid
-          if (response.status === 401) {
-            router.push('/login');
+        if (isAuthenticated) {
+          const currentUser = authService.getUser();
+          if (currentUser) {
+            setUser(currentUser);
+            const userRole = currentUser.role as Role;
+            
+            // Define role-based permissions
+            const permissions = getRolePermissions(userRole);
+            
+            setRoleAccess({
+              ...permissions,
+              userRole,
+            });
           }
         }
       } catch (error) {
-        console.error('Error fetching role access:', error);
-        setData({
-          user: null,
-          access: null,
-          loading: false,
-          error: 'Failed to fetch role access data'
-        });
+        console.error('Role access check error:', error);
+        setError('Failed to check role access');
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchRoleAccess();
-  }, [router]);
+    checkAccess();
+  }, []);
 
-  // Helper functions
-  const canAccess = (feature: string): boolean => {
-    if (!data.user) return false;
-    return canAccessFeature(data.user.role, feature);
+  const canAccess = (requiredRoles: Role[]): boolean => {
+    if (!roleAccess) return false;
+    return requiredRoles.includes(roleAccess.userRole);
   };
 
-  const canManageRole = (targetRole: string): boolean => {
-    if (!data.user) return false;
-    return canAccessRole(data.user.role, targetRole);
-  };
-
-  const getAccessibleRolesForUser = (): string[] => {
-    if (!data.user) return [];
-    return getAccessibleRoles(data.user.role);
-  };
-
-  const hasRoleAccess = (requiredRole: string): boolean => {
-    if (!data.user) return false;
-    return data.user.role === requiredRole || canManageRole(requiredRole);
-  };
-
-  const canAccessRoute = (route: string): boolean => {
-    if (!data.user) return false;
-    
-    // Check if the route is in the user's navigation
-    if (data.access?.navigation) {
-      for (const section of Object.values(data.access.navigation)) {
-        const hasRoute = (section as any[]).some((link: any) => link.href === route);
-        if (hasRoute) return true;
-      }
-    }
-    
-    return false;
-  };
-
-  const refreshAccess = async () => {
-    setData(prev => ({ ...prev, loading: true }));
-    try {
-      const response = await fetch('/api/auth/role-access');
-      const result = await response.json();
-      
-      if (result.success) {
-        setData({
-          user: result.user,
-          access: result.access,
-          loading: false,
-          error: null
-        });
-      } else {
-        setData(prev => ({
-          ...prev,
-          loading: false,
-          error: result.message || 'Failed to refresh role access data'
-        }));
-      }
-    } catch (error) {
-      setData(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Failed to refresh role access data'
-      }));
-    }
-  };
-
-  return {
-    ...data,
-    canAccess,
-    canManageRole,
-    getAccessibleRolesForUser,
-    hasRoleAccess,
-    canAccessRoute,
-    refreshAccess
+  return { 
+    roleAccess, 
+    user, 
+    canAccess, 
+    loading, 
+    error 
   };
 }
 
-// Hook for checking if user can access a specific feature
-export function useFeatureAccess(feature: string) {
-  const { user, canAccess } = useRoleAccess();
+function getRolePermissions(role: Role): Omit<RoleAccess, 'userRole'> {
+  const roleHierarchy: Record<Role, number> = {
+    'OWNER': 9,
+    'SUB_OWN': 8,
+    'SUP_ADM': 7,
+    'ADMIN': 6,
+    'SUB_ADM': 5,
+    'MAS_AGENT': 4,
+    'SUP_AGENT': 3,
+    'AGENT': 2,
+    'USER': 1,
+  };
+
+  const userLevel = roleHierarchy[role] || 0;
+
+  // Define accessible roles based on hierarchy
+  const accessibleRoles: Role[] = Object.entries(roleHierarchy)
+    .filter(([_, level]) => level < userLevel)
+    .map(([roleName, _]) => roleName as Role);
+
   return {
-    hasAccess: canAccess(feature),
-    user,
-    loading: !user
+    canCreate: userLevel >= 2, // AGENT and above can create
+    canEdit: userLevel >= 2,   // AGENT and above can edit
+    canDelete: userLevel >= 4, // MAS_AGENT and above can delete
+    canView: true,             // All roles can view
+    accessibleRoles,
   };
 }
-
-// Hook for checking if user can manage a specific role
-export function useRoleManagement(targetRole: string) {
-  const { user, canManageRole } = useRoleAccess();
-  return {
-    canManage: canManageRole(targetRole),
-    user,
-    loading: !user
-  };
-}
-
-// Hook for route protection
-export function useRouteProtection(requiredFeature?: string, requiredRole?: string) {
-  const { user, canAccess, hasRoleAccess, loading } = useRoleAccess();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && user) {
-      // Check feature access
-      if (requiredFeature && !canAccess(requiredFeature)) {
-        router.push('/unauthorized');
-        return;
-      }
-
-      // Check role access
-      if (requiredRole && !hasRoleAccess(requiredRole)) {
-        router.push('/unauthorized');
-        return;
-      }
-    }
-  }, [user, loading, requiredFeature, requiredRole, canAccess, hasRoleAccess, router]);
-
-  return {
-    user,
-    loading,
-    hasAccess: !loading && user && 
-      (!requiredFeature || canAccess(requiredFeature)) && 
-      (!requiredRole || hasRoleAccess(requiredRole))
-  };
-} 

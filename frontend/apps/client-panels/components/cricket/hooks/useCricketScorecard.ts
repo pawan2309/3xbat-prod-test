@@ -111,7 +111,10 @@ export const useCricketScorecard = (matches: Match[], expandedMatch: string | nu
         console.log('📊 Fetching scorecard for eventId:', eventId)
       }
       
-      const response = await fetch(`http://localhost:4000/api/cricket/scorecard/${eventId}`)
+      const response = await fetch(`http://localhost:4000/api/cricket/scorecard/${eventId}`, {
+        credentials: 'include',
+        mode: 'cors'
+      })
       
       // Check if component is still mounted after async operation
       if (!isMountedRef.current) {

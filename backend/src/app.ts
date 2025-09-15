@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 
 // Import routes
 import authRoutes from './api/routes/authRoutes';
+import unifiedAuthRoutes from './api/routes/unifiedAuth';
 import userManagementRoutes from './api/routes/userManagement';
 import cricketRoutes from './api/routes/cricket';
 import optimizedCricketRoutes from './api/routes/optimizedCricket';
@@ -15,6 +16,8 @@ import casinoRoutes from './api/routes/casino';
 import bettingRoutes from './api/routes/betting';
 import betsRoutes from './api/routes/bets';
 import diagnosticsRoutes from './api/routes/diagnostics';
+import dashboardRoutes from './api/routes/dashboard';
+import enhancedMonitoringRoutes from './api/routes/enhancedMonitoringRoutes';
 import { rateLimiters } from './middleware/AdaptiveRateLimiter';
 // Note: WebSocket server and publishers are initialized in src/index.ts
 
@@ -37,8 +40,10 @@ app.use(helmet({
 app.use(cors({
   origin: [
     'http://localhost:3000',
+    'http://localhost:3001',
     'http://localhost:3002', 
     'http://192.168.29.248:3000',
+    'http://192.168.29.248:3001',
     'http://192.168.29.248:3002'
   ],
   credentials: true,
@@ -86,8 +91,7 @@ const apiLimiter = rateLimit({
   legacyHeaders: false
 });
 
-// Apply adaptive rate limiting
-app.use(rateLimiters.general);
+// Apply adaptive rate limiting (moved after auth routes to allow auth routes to skip)
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -117,6 +121,11 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', unifiedAuthRoutes);
+
+// Apply adaptive rate limiting after auth routes
+app.use(rateLimiters.general);
+
 app.use('/api', userManagementRoutes);
 app.use('/api/cricket', apiLimiter, cricketRoutes);
 app.use('/api/cricket-optimized', rateLimiters.aggregated, optimizedCricketRoutes);
@@ -124,6 +133,8 @@ app.use('/api/casino', apiLimiter, casinoRoutes);
 app.use('/api/betting', apiLimiter, bettingRoutes);
 app.use('/api/bets', apiLimiter, betsRoutes);
 app.use('/api/diagnostics', diagnosticsRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/monitoring', enhancedMonitoringRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

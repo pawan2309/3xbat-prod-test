@@ -148,7 +148,17 @@ const UndeclareMatchBetListContent: React.FC = () => {
   });
 
   const columns = [
-    { key: 'select', label: '' },
+    { 
+      key: 'select', 
+      label: (
+        <input
+          type="checkbox"
+          checked={selectedBets.length === filteredBets.length && filteredBets.length > 0}
+          onChange={handleSelectAll}
+          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        />
+      )
+    },
     { key: 'id', label: 'ID' },
     { key: 'username', label: 'Username' },
     { key: 'matchName', label: 'Match' },
@@ -174,7 +184,7 @@ const UndeclareMatchBetListContent: React.FC = () => {
     betAmount: `$${bet.betAmount.toLocaleString()}`,
     potentialWin: `$${bet.potentialWin.toLocaleString()}`,
     status: (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+      <span className={`px-2 py-1 rounded text-xs font-medium ${
         bet.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
         bet.status === 'Won' ? 'bg-green-100 text-green-800' :
         'bg-red-100 text-red-800'
@@ -183,122 +193,53 @@ const UndeclareMatchBetListContent: React.FC = () => {
       </span>
     ),
     actions: (
-      <div className="flex space-x-2">
-        <Button
-          size="small"
-          variant="primary"
+      <div className="flex space-x-1">
+        <button
+          className="bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-1 px-2 rounded transition-colors"
           onClick={() => handleDeclareResult(bet.id)}
         >
           Declare
-        </Button>
-        <Button
-          size="small"
-          variant="secondary"
+        </button>
+        <button
+          className="bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-1 px-2 rounded transition-colors"
           onClick={() => handleUndeclareBet(bet.id)}
         >
           Undeclare
-        </Button>
+        </button>
       </div>
     )
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">💰 Bet Management</h1>
-          <p className="text-gray-600 mt-1">Manage and declare betting results</p>
+          <h1 className="text-2xl font-bold text-gray-900">Bet Management</h1>
+          <p className="text-sm text-gray-600">Manage and declare betting results</p>
         </div>
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+        <div className="flex space-x-2">
           <Button
-            size="medium"
+            size="small"
             variant="secondary"
             onClick={handleRefresh}
             disabled={loading}
           >
-            {loading ? '🔄 Refreshing...' : '🔄 Refresh'}
+            {loading ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-bold">📊</span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Total Bets</h3>
-              <p className="text-2xl font-bold text-gray-900">{bets.length}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                <span className="text-yellow-600 font-bold">⏳</span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Pending</h3>
-              <p className="text-2xl font-bold text-gray-900">
-                {bets.filter(b => b.status === 'Pending').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 font-bold">✅</span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Won</h3>
-              <p className="text-2xl font-bold text-gray-900">
-                {bets.filter(b => b.status === 'Won').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                <span className="text-red-600 font-bold">❌</span>
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Lost</h3>
-              <p className="text-2xl font-bold text-gray-900">
-                {bets.filter(b => b.status === 'Lost').length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters and Bulk Actions */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Filter by Status
-              </label>
+      {/* Filter and Actions Section */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">Filter:</label>
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-sm border border-gray-300 rounded px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Bets</option>
                 <option value="pending">Pending</option>
@@ -306,42 +247,43 @@ const UndeclareMatchBetListContent: React.FC = () => {
                 <option value="lost">Lost</option>
               </select>
             </div>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-            <div className="text-sm text-gray-600">
-              {selectedBets.length} of {filteredBets.length} selected
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">
+                {filteredBets.length} bet{filteredBets.length !== 1 ? 's' : ''} found
+              </span>
+              {selectedBets.length > 0 && (
+                <span className="text-sm text-blue-600 font-medium">
+                  ({selectedBets.length} selected)
+                </span>
+              )}
             </div>
+          </div>
+          {selectedBets.length > 0 && (
             <div className="flex space-x-2">
-              <Button
-                size="small"
-                variant="primary"
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors"
                 onClick={() => handleBulkAction('Declare')}
-                disabled={selectedBets.length === 0}
               >
                 Declare Selected
-              </Button>
-              <Button
-                size="small"
-                variant="secondary"
+              </button>
+              <button
+                className="bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-1 px-3 rounded transition-colors"
                 onClick={() => handleBulkAction('Undeclare')}
-                disabled={selectedBets.length === 0}
               >
                 Undeclare Selected
-              </Button>
+              </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Bet Management Table */}
       <div className="bg-white rounded-lg shadow-md">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Bet List</h2>
-          <p className="text-sm text-gray-600 mt-1">Manage individual bets and declare results</p>
+        <div className="px-4 py-3 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Bet List</h2>
         </div>
-        <div className="p-6">
-          <Table columns={columns} rows={rows} />
+        <div className="p-4">
+          <Table columns={columns} rows={rows} selectable={true} />
         </div>
       </div>
     </div>

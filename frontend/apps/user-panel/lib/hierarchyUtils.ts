@@ -1,12 +1,12 @@
 // Updated hierarchy order (highest to lowest)
 const ROLE_HIERARCHY = {
   OWNER: 9,
-  SUB_OWNER: 8,
-  SUPER_ADMIN: 7,
+  SUB_OWN: 8,
+  SUP_ADM: 7,
   ADMIN: 6,
-  SUB: 5,
-  MASTER: 4,
-  SUPER_AGENT: 3,
+  SUB_ADM: 5,
+  MAS_AGENT: 4,
+  SUP_AGENT: 3,
   AGENT: 2,
   USER: 1
 };
@@ -73,12 +73,12 @@ export function checkHierarchyRelationship(creatorRole: string, newUserRole: str
 export function getRoleDisplayName(role: string): string {
   switch (role) {
     case 'OWNER': return 'Owner';
-    case 'SUB_OWNER': return 'Sub Owner';
-    case 'SUPER_ADMIN': return 'Super Admin';
+    case 'SUB_OWN': return 'Sub Owner';
+    case 'SUP_ADM': return 'Super Admin';
     case 'ADMIN': return 'Admin';
-    case 'SUB': return 'Sub Admin';
-    case 'MASTER': return 'Master';
-    case 'SUPER_AGENT': return 'Super Agent';
+    case 'SUB_ADM': return 'Sub Admin';
+    case 'MAS_AGENT': return 'Master Agent';
+    case 'SUP_AGENT': return 'Super Agent';
     case 'AGENT': return 'Agent';
     case 'USER': return 'Client';
     default: return role;
@@ -92,8 +92,8 @@ export function getHierarchyModalTitle(upperRole: string): string {
 
 // Function to check if a user can access a specific role's data
 export function canAccessRole(userRole: string, targetRole: string): boolean {
-  // Special handling for SUB_OWNER - give full access to everything
-  if (userRole === 'SUB_OWNER') {
+  // Special handling for SUB_OWN - give full access to everything
+  if (userRole === 'SUB_OWN') {
     return true;
   }
   
@@ -111,8 +111,8 @@ export function canAccessRole(userRole: string, targetRole: string): boolean {
 
 // Function to get accessible roles for a user
 export function getAccessibleRoles(userRole: string): string[] {
-  // Special handling for SUB_OWNER - give access to all roles
-  if (userRole === 'SUB_OWNER') {
+  // Special handling for SUB_OWN - give access to all roles
+  if (userRole === 'SUB_OWN') {
     return Object.keys(ROLE_HIERARCHY);
   }
   
@@ -129,8 +129,8 @@ export function getAccessibleRoles(userRole: string): string[] {
 
 // Function to check if user can access specific features
 export function canAccessFeature(userRole: string, feature: string): boolean {
-  // Special handling for SUB_OWNER - give access to all features
-  if (userRole === 'SUB_OWNER') {
+  // Special handling for SUB_OWN - give access to all features
+  if (userRole === 'SUB_OWN') {
     return true;
   }
   
@@ -156,15 +156,15 @@ export function canAccessFeature(userRole: string, feature: string): boolean {
 
 // Function to check if user can access restricted sections (COMMISSIONS, OLD DATA, LOGIN REPORTS)
 export function canAccessRestrictedSections(userRole: string): boolean {
-  // Only SUB_OWNER and above can access these sections
-  const restrictedRoles = ['SUB_OWNER'];
+  // Only SUB_OWN and above can access these sections
+  const restrictedRoles = ['SUB_OWN'];
   return restrictedRoles.includes(userRole);
 }
 
 // Function to check if a user can access another user's data based on hierarchy
 export function canAccessUserData(requestingUserRole: string, targetUserRole: string): boolean {
-  // Special handling for SUB_OWNER - can access all user data
-  if (requestingUserRole === 'SUB_OWNER') {
+  // Special handling for SUB_OWN - can access all user data
+  if (requestingUserRole === 'SUB_OWN') {
     return true;
   }
   
@@ -202,11 +202,11 @@ export function getRoleBasedNavigation(userRole: string) {
 
   const allNavigation = {
     'USER DETAILS': [
-      { label: 'Super Admin ', href: '/user_details/super_admin', icon: 'fas fa-user-shield', role: 'SUPER_ADMIN' },
+      { label: 'Super Admin ', href: '/user_details/super_admin', icon: 'fas fa-user-shield', role: 'SUP_ADM' },
       { label: 'Admin ', href: '/user_details/admin', icon: 'fas fa-user-shield', role: 'ADMIN' },
-      { label: 'Sub Agent ', href: '/user_details/sub', icon: 'fas fa-chess-rook', role: 'SUB' },
-      { label: 'Master Agent ', href: '/user_details/master', icon: 'fas fa-crown', role: 'MASTER' },
-      { label: 'Super Agent ', href: '/user_details/super', icon: 'fas fa-user-tie', role: 'SUPER_AGENT' },
+      { label: 'Sub Admin ', href: '/user_details/sub', icon: 'fas fa-chess-rook', role: 'SUB_ADM' },
+      { label: 'Master Agent ', href: '/user_details/master', icon: 'fas fa-crown', role: 'MAS_AGENT' },
+      { label: 'Super Agent ', href: '/user_details/super', icon: 'fas fa-user-tie', role: 'SUP_AGENT' },
       { label: 'Agent ', href: '/user_details/agent', icon: 'fas fa-user-shield', role: 'AGENT' },
       { label: 'Client ', href: '/user_details/client', icon: 'fas fa-user', role: 'USER' },
       { label: 'Dead Users', href: '/user_details/dead', icon: 'fa fa-user-slash', role: 'USER' },
@@ -221,21 +221,21 @@ export function getRoleBasedNavigation(userRole: string) {
       { label: 'Int. Casino Details', href: '#', icon: 'fas fa-chart-line', role: 'USER' },
     ],
     'CASH TRANSACTION': [
-      { label: 'Debit/Credit Entry (Super Admin)', href: '/ct/super_admin', icon: 'fas fa-angle-right', role: 'SUPER_ADMIN' },
+      { label: 'Debit/Credit Entry (Super Admin)', href: '/ct/super_admin', icon: 'fas fa-angle-right', role: 'SUP_ADM' },
       { label: 'Debit/Credit Entry (Admin)', href: '/ct/admin', icon: 'fas fa-angle-right', role: 'ADMIN' },
-      { label: 'Debit/Credit Entry (Sub)', href: '/ct/sub', icon: 'fas fa-angle-right', role: 'SUB' },
-      { label: 'Debit/Credit Entry (M)', href: '/ct/master', icon: 'fas fa-angle-right', role: 'MASTER' },
-      { label: 'Debit/Credit Entry (S)', href: '/ct/super', icon: 'fas fa-angle-right', role: 'SUPER_AGENT' },
+      { label: 'Debit/Credit Entry (Sub)', href: '/ct/sub', icon: 'fas fa-angle-right', role: 'SUB_ADM' },
+      { label: 'Debit/Credit Entry (M)', href: '/ct/master', icon: 'fas fa-angle-right', role: 'MAS_AGENT' },
+      { label: 'Debit/Credit Entry (S)', href: '/ct/super', icon: 'fas fa-angle-right', role: 'SUP_AGENT' },
       { label: 'Debit/Credit Entry (A)', href: '/ct/agent', icon: 'fas fa-angle-right', role: 'AGENT' },
       { label: 'Debit/Credit Entry (C)', href: '/ct/client', icon: 'fas fa-angle-right', role: 'USER' },
     ],
     'LEDGER': [
       { label: 'My Ledger', href: '/ledger', icon: 'fas fa-angle-right', role: 'USER' },
-      { label: 'All Super Admin Ledger', href: '/ledger/super_admin', icon: 'fas fa-angle-right', role: 'SUPER_ADMIN' },
+      { label: 'All Super Admin Ledger', href: '/ledger/super_admin', icon: 'fas fa-angle-right', role: 'SUP_ADM' },
       { label: 'All Admin Ledger', href: '/ledger/admin', icon: 'fas fa-angle-right', role: 'ADMIN' },
-      { label: 'All Sub Ledger', href: '/ledger/sub', icon: 'fas fa-angle-right', role: 'SUB' },
-      { label: 'All Master Ledger', href: '/ledger/master', icon: 'fas fa-angle-right', role: 'MASTER' },
-      { label: 'All Super Ledger', href: '/ledger/super', icon: 'fas fa-angle-right', role: 'SUPER_AGENT' },
+      { label: 'All Sub Ledger', href: '/ledger/sub', icon: 'fas fa-angle-right', role: 'SUB_ADM' },
+      { label: 'All Master Ledger', href: '/ledger/master', icon: 'fas fa-angle-right', role: 'MAS_AGENT' },
+      { label: 'All Super Ledger', href: '/ledger/super', icon: 'fas fa-angle-right', role: 'SUP_AGENT' },
       { label: 'All Agent Ledger', href: '/ledger/agent', icon: 'fas fa-angle-right', role: 'AGENT' },
       { label: 'All Client Ledger', href: '/ledger/client', icon: 'fas fa-angle-right', role: 'USER' },
       { label: 'Client Plus/Minus', href: '/ledger/client/pm', icon: 'fas fa-angle-right', role: 'USER' },
@@ -249,17 +249,17 @@ export function getRoleBasedNavigation(userRole: string) {
     ],
     'Login Reports': [
       { label: 'All Login Reports', href: '/reports/login-reports', icon: 'fas fa-clipboard-list', role: 'ADMIN' },
-      { label: 'Super Admin Login Reports', href: '/reports/login-reports?role=SUPER_ADMIN', icon: 'fas fa-clipboard-list', role: 'SUPER_ADMIN' },
+      { label: 'Super Admin Login Reports', href: '/reports/login-reports?role=SUP_ADM', icon: 'fas fa-clipboard-list', role: 'SUP_ADM' },
       { label: 'Admin Login Reports', href: '/reports/login-reports?role=ADMIN', icon: 'fas fa-clipboard-list', role: 'ADMIN' },
-      { label: 'Sub Login Reports', href: '/reports/login-reports?role=SUB', icon: 'fas fa-clipboard-list', role: 'SUB' },
-      { label: 'Master Login Reports', href: '/reports/login-reports?role=MASTER', icon: 'fas fa-clipboard-list', role: 'MASTER' },
-      { label: 'Super Login Reports', href: '/reports/login-reports?role=SUPER_AGENT', icon: 'fas fa-clipboard-list', role: 'SUPER_AGENT' },
+      { label: 'Sub Login Reports', href: '/reports/login-reports?role=SUB_ADM', icon: 'fas fa-clipboard-list', role: 'SUB_ADM' },
+      { label: 'Master Login Reports', href: '/reports/login-reports?role=MAS_AGENT', icon: 'fas fa-clipboard-list', role: 'MAS_AGENT' },
+      { label: 'Super Login Reports', href: '/reports/login-reports?role=SUP_AGENT', icon: 'fas fa-clipboard-list', role: 'SUP_AGENT' },
       { label: 'Agent Login Reports', href: '/reports/login-reports?role=AGENT', icon: 'fas fa-clipboard-list', role: 'AGENT' },
     ],
   };
 
-  // Special handling for SUB_OWNER - give full access to everything
-  if (userRole === 'SUB_OWNER') {
+  // Special handling for SUB_OWN - give full access to everything
+  if (userRole === 'SUB_OWN') {
     return allNavigation;
   }
   

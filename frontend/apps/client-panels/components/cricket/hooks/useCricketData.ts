@@ -79,7 +79,10 @@ export const useCricketData = (
           if (process.env.NODE_ENV === 'development') {
             console.log('🌐 Attempting API call to:', 'http://localhost:4000/api/cricket/fixtures')
           }
-          const response = await fetch('http://localhost:4000/api/cricket/fixtures')
+          const response = await fetch('http://localhost:4000/api/cricket/fixtures', {
+            credentials: 'include',
+            mode: 'cors'
+          })
           
           if (process.env.NODE_ENV === 'development') {
             console.log('📡 API Response status:', response.status, response.ok)
@@ -177,7 +180,10 @@ export const useCricketData = (
       if (matches.length === 0 && loading) {
         console.log('⏰ WebSocket timeout, trying direct API call...')
         try {
-          const response = await fetch('http://localhost:4000/api/cricket/fixtures')
+          const response = await fetch('http://localhost:4000/api/cricket/fixtures', {
+            credentials: 'include',
+            mode: 'cors'
+          })
           if (response.ok) {
             const data = await response.json()
             const allFixtures = extractFixturesFromData(data)

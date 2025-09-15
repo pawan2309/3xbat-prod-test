@@ -1,249 +1,302 @@
 import express from 'express';
+import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
+const prisma = new PrismaClient();
 
-// Simple logger function
-const logger = {
-    error: (message: string, error?: any) => {
-        console.error(message, error);
-    },
-    info: (message: string) => {
-        console.log(message);
-    }
-};
+// Type definition for casino game data
+interface CasinoGameData {
+  id: number;
+  name: string;
+  shortName: string;
+  eventId: string;
+  cacheUrl: string;
+  socketUrl: string;
+  videoUrl1: string;
+  videoUrl2: string;
+  videoUrl3: string | null;
+  minStake: number;
+  maxStake: number;
+  fetchDataType: string;
+  videoUrlType: string;
+  betStatus: boolean;
+  casinoStatus: boolean;
+  errorMessage: string;
+  oddsDifference: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-/**
- * @route GET /api/casino/health
- * @desc Check Casino API health status
- * @access Public
- */
-router.get('/health', async (req, res) => {
-    try {
-        res.json({
-            success: true,
-            data: {
-                status: 'HEALTHY',
-                provider: 'Casino API via External Service',
-                baseUrl: 'Multiple via proxy',
-                lastCheck: new Date().toISOString(),
-                endpoints: [
-                    '/casino/tv',
-                    '/casino/data/:gameType',
-                    '/casino/results/:gameType',
-                    '/casino/data',
-                    '/casino/results'
-                ]
-            },
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        logger.error('❌ Casino API health check failed:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Casino API health check failed',
-            timestamp: new Date().toISOString()
-        });
-    }
+// Get all casino games with their status
+router.get('/games', async (req, res) => {
+  try {
+    const games = await prisma.$queryRaw<CasinoGameData[]>`
+      SELECT 
+        id,
+        name,
+        short_name as "shortName",
+        event_id as "eventId",
+        cache_url as "cacheUrl",
+        socket_url as "socketUrl",
+        video_url1 as "videoUrl1",
+        video_url2 as "videoUrl2",
+        video_url3 as "videoUrl3",
+        min_stake as "minStake",
+        max_stake as "maxStake",
+        fetch_data_type as "fetchDataType",
+        video_url_type as "videoUrlType",
+        bet_status as "betStatus",
+        casino_status as "casinoStatus",
+        error_message as "errorMessage",
+        odds_difference as "oddsDifference",
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM casino_games
+    `;
+
+    res.json({
+      success: true,
+      data: games
+    });
+  } catch (error) {
+    console.error('Error fetching casino games:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch casino games'
+    });
+  }
 });
 
-/**
- * @route GET /api/casino/tv
- * @desc Get casino TV streaming data
- * @access Public
- */
-router.get('/tv', async (req, res) => {
-    try {
-        const { streamid } = req.query;
-        
-        if (!streamid) {
-            return res.status(400).json({
-                success: false,
-                error: 'streamid query parameter is required',
-                timestamp: new Date().toISOString()
-            });
-        }
+// Get casino game by ID
+router.get('/games/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const games = await prisma.$queryRaw<CasinoGameData[]>`
+      SELECT 
+        id,
+        name,
+        short_name as "shortName",
+        event_id as "eventId",
+        cache_url as "cacheUrl",
+        socket_url as "socketUrl",
+        video_url1 as "videoUrl1",
+        video_url2 as "videoUrl2",
+        video_url3 as "videoUrl3",
+        min_stake as "minStake",
+        max_stake as "maxStake",
+        fetch_data_type as "fetchDataType",
+        video_url_type as "videoUrlType",
+        bet_status as "betStatus",
+        casino_status as "casinoStatus",
+        error_message as "errorMessage",
+        odds_difference as "oddsDifference",
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM casino_games
+      WHERE id = ${parseInt(id)}
+    `;
 
-        // Call external API via localhost:8000 proxy (jmdapi.com)
-        const response = await fetch(`http://localhost:8000/casino/tv?streamid=${streamid}`, {
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Betting-ExternalAPI/1.0'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const tvData = await response.json();
-
-        res.json({
-            success: true,
-            data: tvData,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        logger.error('❌ Failed to fetch casino TV:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch casino TV',
-            timestamp: new Date().toISOString()
-        });
+    if (!games || games.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Casino game not found'
+      });
     }
+
+    res.json({
+      success: true,
+      data: games[0]
+    });
+  } catch (error) {
+    console.error('Error fetching casino game:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch casino game'
+    });
+  }
 });
 
-/**
- * @route GET /api/casino/data/:gameType
- * @desc Get casino game data for specific game type
- * @access Public
- */
-router.get('/data/:gameType', async (req, res) => {
-    try {
-        const { gameType } = req.params;
-        const { streamingId = '3030' } = req.query;
+// Update casino game status
+router.put('/games/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { betStatus, casinoStatus } = req.body;
 
-        // Call external API via localhost:8000 proxy
-        const response = await fetch(`http://localhost:8000/casino/data/${gameType}?streamingId=${streamingId}`, {
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Betting-ExternalAPI/1.0'
-            }
-        });
+    await prisma.$executeRaw`
+      UPDATE casino_games 
+      SET 
+        bet_status = ${betStatus},
+        casino_status = ${casinoStatus},
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${parseInt(id)}
+    `;
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+    // Get updated game
+    const games = await prisma.$queryRaw<CasinoGameData[]>`
+      SELECT 
+        id,
+        name,
+        short_name as "shortName",
+        event_id as "eventId",
+        cache_url as "cacheUrl",
+        socket_url as "socketUrl",
+        video_url1 as "videoUrl1",
+        video_url2 as "videoUrl2",
+        video_url3 as "videoUrl3",
+        min_stake as "minStake",
+        max_stake as "maxStake",
+        fetch_data_type as "fetchDataType",
+        video_url_type as "videoUrlType",
+        bet_status as "betStatus",
+        casino_status as "casinoStatus",
+        error_message as "errorMessage",
+        odds_difference as "oddsDifference",
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM casino_games
+      WHERE id = ${parseInt(id)}
+    `;
 
-        const gameData = await response.json();
-
-        res.json({
-            success: true,
-            data: gameData,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        logger.error('❌ Failed to fetch casino game data:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch casino game data',
-            timestamp: new Date().toISOString()
-        });
-    }
+    res.json({
+      success: true,
+      data: games[0],
+      message: 'Casino game status updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating casino game status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update casino game status'
+    });
+  }
 });
 
-/**
- * @route GET /api/casino/results/:gameType
- * @desc Get casino game results for specific game type
- * @access Public
- */
-router.get('/results/:gameType', async (req, res) => {
-    try {
-        const { gameType } = req.params;
-        const { streamingId = '3030' } = req.query;
+// Update casino game details
+router.put('/games/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
 
-        // Call external API via localhost:8000 proxy
-        const response = await fetch(`http://localhost:8000/casino/results/${gameType}?streamingId=${streamingId}`, {
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Betting-ExternalAPI/1.0'
-            }
-        });
+    // Map camelCase to snake_case for database
+    const dbData = {
+      name: updateData.name,
+      short_name: updateData.shortName,
+      event_id: updateData.eventId,
+      cache_url: updateData.cacheUrl,
+      socket_url: updateData.socketUrl,
+      video_url1: updateData.videoUrl1,
+      video_url2: updateData.videoUrl2,
+      video_url3: updateData.videoUrl3,
+      min_stake: updateData.minStake,
+      max_stake: updateData.maxStake,
+      fetch_data_type: updateData.fetchDataType,
+      video_url_type: updateData.videoUrlType,
+      bet_status: updateData.betStatus,
+      casino_status: updateData.casinoStatus,
+      error_message: updateData.errorMessage,
+      odds_difference: updateData.oddsDifference
+    };
 
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+    await prisma.$executeRaw`
+      UPDATE casino_games 
+      SET 
+        name = ${dbData.name},
+        short_name = ${dbData.short_name},
+        event_id = ${dbData.event_id},
+        cache_url = ${dbData.cache_url},
+        socket_url = ${dbData.socket_url},
+        video_url1 = ${dbData.video_url1},
+        video_url2 = ${dbData.video_url2},
+        video_url3 = ${dbData.video_url3},
+        min_stake = ${dbData.min_stake},
+        max_stake = ${dbData.max_stake},
+        fetch_data_type = ${dbData.fetch_data_type},
+        video_url_type = ${dbData.video_url_type},
+        bet_status = ${dbData.bet_status},
+        casino_status = ${dbData.casino_status},
+        error_message = ${dbData.error_message},
+        odds_difference = ${dbData.odds_difference},
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${parseInt(id)}
+    `;
 
-        const resultsData = await response.json();
+    // Get updated game
+    const games = await prisma.$queryRaw<CasinoGameData[]>`
+      SELECT 
+        id,
+        name,
+        short_name as "shortName",
+        event_id as "eventId",
+        cache_url as "cacheUrl",
+        socket_url as "socketUrl",
+        video_url1 as "videoUrl1",
+        video_url2 as "videoUrl2",
+        video_url3 as "videoUrl3",
+        min_stake as "minStake",
+        max_stake as "maxStake",
+        fetch_data_type as "fetchDataType",
+        video_url_type as "videoUrlType",
+        bet_status as "betStatus",
+        casino_status as "casinoStatus",
+        error_message as "errorMessage",
+        odds_difference as "oddsDifference",
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+      FROM casino_games
+      WHERE id = ${parseInt(id)}
+    `;
 
-        res.json({
-            success: true,
-            data: resultsData,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        logger.error('❌ Failed to fetch casino results:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch casino results',
-            timestamp: new Date().toISOString()
-        });
-    }
+    res.json({
+      success: true,
+      data: games[0],
+      message: 'Casino game updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating casino game:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update casino game'
+    });
+  }
 });
 
-/**
- * @route GET /api/casino/data
- * @desc Get all casino game data
- * @access Public
- */
-router.get('/data', async (req, res) => {
-    try {
-        const { streamingId = '3030' } = req.query;
+// Get active casino games (for client panel)
+router.get('/games/active', async (req, res) => {
+  try {
+    const games = await prisma.$queryRaw<CasinoGameData[]>`
+      SELECT 
+        id,
+        name,
+        short_name as "shortName",
+        event_id as "eventId",
+        cache_url as "cacheUrl",
+        socket_url as "socketUrl",
+        video_url1 as "videoUrl1",
+        video_url2 as "videoUrl2",
+        video_url3 as "videoUrl3",
+        min_stake as "minStake",
+        max_stake as "maxStake",
+        fetch_data_type as "fetchDataType",
+        video_url_type as "videoUrlType",
+        bet_status as "betStatus",
+        casino_status as "casinoStatus",
+        error_message as "errorMessage",
+        odds_difference as "oddsDifference"
+      FROM casino_games
+      WHERE casino_status = true
+    `;
 
-        // Call external API via localhost:8000 proxy
-        const response = await fetch(`http://localhost:8000/casino/data?streamingId=${streamingId}`, {
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Betting-ExternalAPI/1.0'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const allGameData = await response.json();
-
-        res.json({
-            success: true,
-            data: allGameData,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        logger.error('❌ Failed to fetch all casino game data:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch all casino game data',
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
-/**
- * @route GET /api/casino/results
- * @desc Get all casino game results
- * @access Public
- */
-router.get('/results', async (req, res) => {
-    try {
-        const { streamingId = '3030' } = req.query;
-
-        // Call external API via localhost:8000 proxy
-        const response = await fetch(`http://localhost:8000/casino/results?streamingId=${streamingId}`, {
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Betting-ExternalAPI/1.0'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const allResultsData = await response.json();
-
-        res.json({
-            success: true,
-            data: allResultsData,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        logger.error('❌ Failed to fetch all casino results:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch all casino results',
-            timestamp: new Date().toISOString()
-        });
-    }
+    res.json({
+      success: true,
+      data: games
+    });
+  } catch (error) {
+    console.error('Error fetching active casino games:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch active casino games'
+    });
+  }
 });
 
 export default router;

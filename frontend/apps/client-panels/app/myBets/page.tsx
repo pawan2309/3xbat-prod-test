@@ -1,22 +1,14 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
-import ProtectedRoute from '@/components/ProtectedRoute'
-
-// Dynamically import Header to prevent SSR
-const Header = dynamic(() => import('@/components/Header'), {
-  ssr: false,
-  loading: () => <div className="h-[90px] bg-white border-b border-gray-200" />
-})
+import ProtectedLayout from '@/components/ProtectedLayout'
 
 export default function MyBetsPage() {
   const router = useRouter()
   
   return (
-    <ProtectedRoute>
+    <ProtectedLayout>
       <div className="min-h-dvh bg-white">
-        <Header />
         <div className="pt-[70px]">
           <div className="w-full">
             {/* Back to Menu Button */}
@@ -191,6 +183,6 @@ export default function MyBetsPage() {
           </div>
         </div>
       </div>
-    </ProtectedRoute>
+    </ProtectedLayout>
   )
 }

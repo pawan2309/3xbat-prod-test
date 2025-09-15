@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { Role } from '@prisma/client';
+import { Role } from '../types';
 import { 
   validateUserCreation, 
   getCreatableRoles, 
@@ -407,12 +407,12 @@ function generateUniqueCode(role: Role, existingCodes: string[]): string {
  */
 function getRolePrefix(role: Role): string {
   const prefixes: Record<Role, string> = {
-    SUB_OWNER: 'SOW',
-    SUPER_ADMIN: 'SUD',
+    SUB_OWN: 'SOW',
+    SUP_ADM: 'SUD',
     ADMIN: 'ADM',
-    SUB: 'SUB',
-    MASTER: 'MAS',
-    SUPER_AGENT: 'SUP',
+    SUB_ADM: 'SUB',
+    MAS_AGENT: 'MAS',
+    SUP_AGENT: 'SUP',
     AGENT: 'AGE',
     USER: 'USE',
     OWNER: 'OWN'

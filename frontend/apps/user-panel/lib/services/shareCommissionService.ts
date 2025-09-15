@@ -1,5 +1,8 @@
 import { prisma } from '../prisma';
-import { Role } from '@prisma/client';
+import { UserRole } from '../types';
+
+// Use UserRole as the Role type
+type Role = UserRole;
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -48,31 +51,31 @@ export interface CommissionShareData {
 
 // Complete role hierarchy from highest to lowest
 export const HIERARCHY_ROLES: Role[] = [
-  'SUB_OWNER',    // Top level - 100% share locked
-  'SUPER_ADMIN',  // Can create ADMIN, SUB, MASTER, SUPER_AGENT, AGENT, USER
-  'ADMIN',        // Can create SUB, MASTER, SUPER_AGENT, AGENT, USER
-  'SUB',          // Can create MASTER, SUPER_AGENT, AGENT, USER
-  'MASTER',       // Can create SUPER_AGENT, AGENT, USER
-  'SUPER_AGENT',  // Can create AGENT, USER
-  'AGENT',        // Can create USER only
-  'USER',         // Bottom level - no children
-  'OWNER'         // Special role - treated as top level
+  UserRole.SUB_OWN,      // Top level - 100% share locked
+  UserRole.SUP_ADM,      // Can create ADMIN, SUB_ADM, MAS_AGENT, SUP_AGENT, AGENT, USER
+  UserRole.ADMIN,        // Can create SUB_ADM, MAS_AGENT, SUP_AGENT, AGENT, USER
+  UserRole.SUB_ADM,      // Can create MAS_AGENT, SUP_AGENT, AGENT, USER
+  UserRole.MAS_AGENT,    // Can create SUP_AGENT, AGENT, USER
+  UserRole.SUP_AGENT,    // Can create AGENT, USER
+  UserRole.AGENT,        // Can create USER only
+  UserRole.USER,         // Bottom level - no children
+  UserRole.OWNER         // Special role - treated as top level
 ];
 
 // Roles that cannot have their share edited (must stay at 100%)
-export const TOP_LEVEL_ROLES: Role[] = ['SUB_OWNER', 'OWNER'];
+export const TOP_LEVEL_ROLES: Role[] = [UserRole.SUB_OWN, UserRole.OWNER];
 
 // Roles that can create other roles (with their allowed children)
 export const ROLE_CREATION_PERMISSIONS: Record<Role, Role[]> = {
-  SUB_OWNER: ['SUPER_ADMIN', 'ADMIN', 'SUB', 'MASTER', 'SUPER_AGENT', 'AGENT', 'USER'],
-  SUPER_ADMIN: ['ADMIN', 'SUB', 'MASTER', 'SUPER_AGENT', 'AGENT', 'USER'],
-  ADMIN: ['SUB', 'MASTER', 'SUPER_AGENT', 'AGENT', 'USER'],
-  SUB: ['MASTER', 'SUPER_AGENT', 'AGENT', 'USER'],
-  MASTER: ['SUPER_AGENT', 'AGENT', 'USER'],
-  SUPER_AGENT: ['AGENT', 'USER'],
-  AGENT: ['USER'],
-  USER: [], // Cannot create any users
-  OWNER: ['SUB_OWNER', 'SUPER_ADMIN', 'ADMIN', 'SUB', 'MASTER', 'SUPER_AGENT', 'AGENT', 'USER']
+  [UserRole.SUB_OWN]: [UserRole.SUP_ADM, UserRole.ADMIN, UserRole.SUB_ADM, UserRole.MAS_AGENT, UserRole.SUP_AGENT, UserRole.AGENT, UserRole.USER],
+  [UserRole.SUP_ADM]: [UserRole.ADMIN, UserRole.SUB_ADM, UserRole.MAS_AGENT, UserRole.SUP_AGENT, UserRole.AGENT, UserRole.USER],
+  [UserRole.ADMIN]: [UserRole.SUB_ADM, UserRole.MAS_AGENT, UserRole.SUP_AGENT, UserRole.AGENT, UserRole.USER],
+  [UserRole.SUB_ADM]: [UserRole.MAS_AGENT, UserRole.SUP_AGENT, UserRole.AGENT, UserRole.USER],
+  [UserRole.MAS_AGENT]: [UserRole.SUP_AGENT, UserRole.AGENT, UserRole.USER],
+  [UserRole.SUP_AGENT]: [UserRole.AGENT, UserRole.USER],
+  [UserRole.AGENT]: [UserRole.USER],
+  [UserRole.USER]: [], // Cannot create any users
+  [UserRole.OWNER]: [UserRole.SUB_OWN, UserRole.SUP_ADM, UserRole.ADMIN, UserRole.SUB_ADM, UserRole.MAS_AGENT, UserRole.SUP_AGENT, UserRole.AGENT, UserRole.USER]
 };
 
 export const SHARE_CONSTRAINTS = {
@@ -644,7 +647,7 @@ export async function updateUserCommissions(
     ].filter(Boolean);
 
     if (validations.length > 0) {
-      return { success: false, error: validations[0]! };
+      return { success: false, error: validations[0] as string };
     }
 
     const user = await prisma.user.findUnique({

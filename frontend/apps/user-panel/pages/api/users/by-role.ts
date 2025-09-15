@@ -1,5 +1,4 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -13,36 +12,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ success: false, message: 'Role parameter is required' });
     }
 
-    const users = await prisma.user.findMany({
-      where: {
-        role: role as any,
-        isActive: true
+    // Forward request to backend API
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+    const backendResponse = await fetch(`${backendUrl}/api/users/by-role?role=${encodeURIComponent(role)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': req.headers.cookie || '', // Forward cookies for authentication
       },
-      select: {
-        id: true,
-        username: true,
-        name: true,
-        code: true
-      },
-      orderBy: {
-        name: 'asc'
-      }
     });
-
-    return res.status(200).json({ 
-      success: true, 
-      users: users.map(user => ({
-        id: user.id,
-        label: `${user.code} ${user.name}`,
-        value: user.id,
-        username: user.username,
-        name: user.name,
-        code: user.code
-      }))
-    });
+    
+    if (!backendResponse.ok) {
+      const errorData = await backendResponse.json();
+      return res.status(backendResponse.status).json(errorData);
+    }
+    
+    const data = await backendResponse.json();
+    return res.status(200).json(data);
 
   } catch (error) {
-    console.error('Error fetching users by role:', error);
+    console.error('Error fetching users by role from backend:', error);
     return res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch users', 

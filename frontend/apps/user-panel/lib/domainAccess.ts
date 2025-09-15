@@ -1,28 +1,28 @@
-import { Role } from './hierarchyUtils';
+import { Role } from './types';
 
 // Domain configuration
 export const DOMAIN_CONFIG = {
-  OPERATING_PANEL: 'admin.batxgames.site',
-  OWNER: 'owner.batxgames.site',
-  SUB_OWNER: 'subowner.batxgames.site',
-  SUPER_ADMIN: 'superadmin.batxgames.site',
-  ADMIN: 'admin.batxgames.site',
-  SUB: 'sub.batxgames.site',
-  MASTER: 'master.batxgames.site',
-  SUPER_AGENT: 'superagent.batxgames.site',
-  AGENT: 'agent.batxgames.site',
-  USER: 'user.batxgames.site' // Separate package
+  OPERATING_PANEL: 'operate.3xbat.com',
+  OWNER: 'owner.3xbat.com',
+  SUB_OWN: 'subowner.3xbat.com',
+  SUP_ADM: 'superadmin.3xbat.com',
+  ADMIN: 'admin.3xbat.com',
+  SUB_ADM: 'sub.3xbat.com',
+  MAS_AGENT: 'master.3xbat.com',
+  SUP_AGENT: 'superagent.3xbat.com',
+  AGENT: 'agent.3xbat.com',
+  USER: '3xbat.com' // Separate package
 } as const;
 
 // Access control rules - each role has their own domain
 export const DOMAIN_ACCESS_RULES: Record<Role, readonly string[]> = {
   OWNER: [DOMAIN_CONFIG.OPERATING_PANEL], // OWNER can only access operating panel
-  SUB_OWNER: [DOMAIN_CONFIG.SUB_OWNER],
-  SUPER_ADMIN: [DOMAIN_CONFIG.SUPER_ADMIN],
+  SUB_OWN: [DOMAIN_CONFIG.SUB_OWN],
+  SUP_ADM: [DOMAIN_CONFIG.SUP_ADM],
   ADMIN: [DOMAIN_CONFIG.ADMIN],
-  SUB: [DOMAIN_CONFIG.SUB],
-  MASTER: [DOMAIN_CONFIG.MASTER],
-  SUPER_AGENT: [DOMAIN_CONFIG.SUPER_AGENT],
+  SUB_ADM: [DOMAIN_CONFIG.SUB_ADM],
+  MAS_AGENT: [DOMAIN_CONFIG.MAS_AGENT],
+  SUP_AGENT: [DOMAIN_CONFIG.SUP_AGENT],
   AGENT: [DOMAIN_CONFIG.AGENT],
   USER: [DOMAIN_CONFIG.USER] // Separate package domain
 } as const;

@@ -32,7 +32,7 @@ const nextConfig = {
                     style-src 'self' 'unsafe-inline';
                     img-src 'self' data: blob:;
                     media-src 'self' https://mis3.sqmr.xyz:3334 blob:;
-                    connect-src 'self' https://mis3.sqmr.xyz:3334 ws: wss: http://localhost:4000;
+                    connect-src 'self' https://mis3.sqmr.xyz:3334 ws: wss: http://localhost:4000 http://localhost:5000;
                     frame-src 'self' http://localhost:4000;
                   `.replace(/\s{2,}/g, ' ').trim(),
                 },

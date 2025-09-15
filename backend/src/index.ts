@@ -1,7 +1,7 @@
 import http from 'http';
 import app from './app';
 import { Server as SocketIOServer } from 'socket.io';
-import { connectRedis, getRedisClient } from './infrastructure/redis/redis';
+import { connectRedis, connectRedisPubSub, getRedisClient } from './infrastructure/redis/redis';
 import { initializeWebSocketManager } from './infrastructure/websockets/WebSocketManager';
 import { webSocketDataPublisher } from './services/WebSocketDataPublisher';
 
@@ -12,7 +12,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3002"],
+    origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -26,6 +26,10 @@ async function initializeServices() {
     const redisClient = getRedisClient();
     if (!redisClient) throw new Error('Redis client not available after connect');
     console.log('✅ Redis initialized successfully');
+    
+    console.log('🔌 Initializing Redis PubSub...');
+    await connectRedisPubSub();
+    console.log('✅ Redis PubSub initialized successfully');
 
     console.log('🔌 Initializing WebSocket server...');
     initializeWebSocketManager(io);

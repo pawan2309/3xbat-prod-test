@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { getRoleBasedNavigation } from '../lib/hierarchyUtils';
+import { authService } from '../lib/auth';
 import ErrorBoundary from './ErrorBoundary';
 import EnhancedLoadingWrapper from './EnhancedLoadingWrapper';
 
@@ -81,6 +82,7 @@ const navbarStyles = `
 // ===================== Layout Component =====================
 // This component provides the sidebar, navbar, footer, and main content wrapper
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [isLayoutLoading, setIsLayoutLoading] = useState(true);
 
@@ -88,6 +90,11 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setIsClient(true);
     setIsLayoutLoading(false);
   }, []);
+
+  // If it's the login page, render children without layout
+  if (router.pathname === '/login') {
+    return <>{children}</>;
+  }
 
   // Show loading state during SSR and initial client render
   if (!isClient || isLayoutLoading) {
@@ -210,19 +217,16 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     const getUserData = async () => {
       try {
         console.log('🔵 Fetching user session data...');
-                  const res = await fetch('http://localhost:3001/api/auth/session', {
-          credentials: 'include'
-        });
-        const data = await res.json();
-        console.log('🔵 Session response:', data);
+        const sessionData = await authService.getSessionData();
+        console.log('🔵 Session response:', sessionData);
         
-        if (data.valid && data.user) {
-          console.log('🔵 User data received:', data.user);
-          setUser(data.user);
+        if (sessionData.success && sessionData.user) {
+          console.log('🔵 User data received:', sessionData.user);
+          setUser(sessionData.user);
           
           // Get role-based navigation
-          console.log('🔵 Getting navigation for role:', data.user.role);
-          const navigation = getRoleBasedNavigation(data.user.role);
+          console.log('🔵 Getting navigation for role:', sessionData.user.role);
+          const navigation = getRoleBasedNavigation(sessionData.user.role);
           console.log('🔵 Navigation result:', navigation);
             console.log('🔵 Navigation keys:', Object.keys(navigation));
             console.log('🔵 Navigation length:', Object.keys(navigation).length);

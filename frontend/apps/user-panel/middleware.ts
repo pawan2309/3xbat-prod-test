@@ -1,32 +1,32 @@
+// Authentication middleware for user panel
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+  const { pathname } = request.nextUrl;
   
-  console.log('🔍 Middleware processing:', pathname);
-  
-  // TEMPORARY: BYPASS ALL AUTHENTICATION - Remove this in production!
-  console.log('🚀 BYPASS MODE: Allowing all requests without authentication');
-  
-  // Allow API routes and static files
-  if (pathname.startsWith('/api/')) {
-    console.log('✅ Allowing API route:', pathname);
+  // Skip auth check for login page, public assets, and static files
+  if (
+    pathname === '/login' || 
+    pathname.startsWith('/_next') || 
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/images/') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|css|js)$/) ||
+    pathname.startsWith('/_next/data/')
+  ) {
     return NextResponse.next();
   }
+
+  // Check for authentication cookie
+  const sessionCookie = request.cookies.get('betx_session');
   
-  if (pathname.startsWith('/_next/') || pathname.startsWith('/favicon.ico')) {
-    console.log('✅ Allowing static file:', pathname);
-    return NextResponse.next();
+  if (!sessionCookie) {
+    // No session cookie, redirect to login
+    return NextResponse.redirect(new URL('/login', request.url));
   }
-  
-  // Allow root path to show dashboard (no redirect needed)
-  if (pathname === '/') {
-    console.log('🏠 Allowing access to dashboard');
-    return NextResponse.next();
-  }
-  
-  // Allow all other pages without authentication
-  console.log('✅ BYPASS: Allowing access to:', pathname);
+
+  // If we have a session cookie, let the page handle authentication
+  // This prevents middleware redirect loops
   return NextResponse.next();
 }
 
@@ -37,9 +37,14 @@ export const config = {
      * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
+     * - _next/data (Next.js data requests)
      * - favicon.ico (favicon file)
-     * - public folder
+     * - login (login page)
+     * - unauthorized (unauthorized page)
+     * - images (image files)
+     * - static files (css, js, png, jpg, etc.)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!api|_next/static|_next/image|_next/data|favicon.ico|login|unauthorized|images).*)',
+    '/', // Explicitly include root path
   ],
-}; 
+};
