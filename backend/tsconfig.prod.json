@@ -24,8 +24,7 @@
     "noUncheckedIndexedAccess": false,
     "noImplicitOverride": false,
     "allowUnusedLabels": true,
-    "allowUnreachableCode": true,
-    "suppressImplicitAnyIndexErrors": true
+    "allowUnreachableCode": true
   },
   "include": [
     "src/**/*"
