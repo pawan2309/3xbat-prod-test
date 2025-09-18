@@ -48,7 +48,7 @@ const IndexPage = () => {
 
 // Separate client-side component that uses hooks
 const ClientIndexPage = () => {
-  console.log('🔵 IndexPage component rendering - Client side');
+  // IndexPage component rendering
   const router = useRouter();
   
   // -------- State Definitions --------
@@ -72,26 +72,20 @@ const ClientIndexPage = () => {
   // -------- Get User Data from Session --------
   useEffect(() => {
     const getUserData = async () => {
-      console.log('Index page: Fetching user data...');
       try {
         const sessionData = await authService.getSessionData();
-        console.log('Session API response:', sessionData);
         if (sessionData.success && sessionData.user) {
-          console.log('Session valid, setting user data');
           setUser(sessionData.user);
           
           // Use navigation from backend session response
           if (sessionData.navigation) {
-            console.log('Using navigation from backend:', Object.keys(sessionData.navigation));
             setSidebarLinks(sessionData.navigation);
           } else {
-            console.log('No navigation from backend, using fallback');
             // Fallback to local navigation if backend doesn't provide it
             const navigation = getRoleBasedNavigation(sessionData.user.role);
             setSidebarLinks(navigation);
           }
         } else {
-          console.log('Session invalid, redirecting to login');
           router.push('/login');
           return;
         }
@@ -109,15 +103,12 @@ const ClientIndexPage = () => {
   // -------- Logout Handler --------
   const handleLogout = async () => {
     try {
-      console.log('🚪 Index page: Starting logout process');
       const response = await fetch('/api/auth/unified-logout', { 
         method: 'POST',
         credentials: 'include'
       });
       
-      if (response.ok) {
-        console.log('✅ Index page: Logout successful');
-      } else {
+      if (!response.ok) {
         console.warn('⚠️ Index page: Logout response not OK:', response.status);
       }
       

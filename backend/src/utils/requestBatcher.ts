@@ -241,7 +241,7 @@ export class CricketOddsBatcher extends RequestBatcher<string, any> {
       processBatch: async (requests) => {
         // Process multiple odds requests in parallel
         const promises = requests.map(request => 
-          fetch(`http://localhost:8000/cricket/odds?eventId=${request.data}`, {
+          fetch(`https://marketsarket.qnsports.live/cricket/odds?eventId=${request.data}`, {
             method: 'GET',
             headers: { 'User-Agent': 'Betting-ExternalAPI/1.0' }
           }).then(res => res.json())

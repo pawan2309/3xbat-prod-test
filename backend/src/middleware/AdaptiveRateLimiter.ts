@@ -18,6 +18,7 @@ export class AdaptiveRateLimiter {
   private lastAdaptation: number = 0;
   private adaptationCooldown: number = 60000; // 1 minute
   private rateLimiter: any; // Store the rate limiter instance
+  private internalRateLimiter: any; // Store the internal rate limiter instance
 
   constructor(config: AdaptiveConfig) {
     this.config = config;
@@ -26,8 +27,9 @@ export class AdaptiveRateLimiter {
       max: config.baseMaxRequests
     };
     
-    // Create the rate limiter instance at initialization
+    // Create the rate limiter instances at initialization
     this.createRateLimiter();
+    this.createInternalRateLimiter();
   }
 
   /**
@@ -46,6 +48,24 @@ export class AdaptiveRateLimiter {
       },
       standardHeaders: true,
       legacyHeaders: false,
+      // CRITICAL: Use user-based rate limiting for proper isolation
+      keyGenerator: (req: Request) => {
+        // Try to get user ID from JWT token first
+        const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.betx_session;
+        if (token) {
+          try {
+            const jwt = require('jsonwebtoken');
+            const decoded = jwt.decode(token);
+            if (decoded && decoded.userId) {
+              return `user-${decoded.userId}`;
+            }
+          } catch (error) {
+            // If token decode fails, fall back to IP
+          }
+        }
+        // Fallback to IP-based limiting if no valid user token
+        return `ip-${req.ip}`;
+      },
       skip: (req: Request) => {
         // Skip rate limiting for health checks and selected endpoints
         if (req.path.includes('/health')) return true;
@@ -53,7 +73,7 @@ export class AdaptiveRateLimiter {
         // Skip rate limiting for authentication endpoints
         if (req.path.startsWith('/api/auth/')) return true;
         
-        // Skip rate limiting for internal API routes (user management, dashboard, etc.)
+        // Skip internal API routes (handled by internal rate limiter)
         const internalApiRoutes = [
           '/api/users',
           '/api/dashboard',
@@ -81,6 +101,68 @@ export class AdaptiveRateLimiter {
   }
 
   /**
+   * Create the internal rate limiter instance (lighter limits)
+   */
+  private createInternalRateLimiter() {
+    this.internalRateLimiter = rateLimit({
+      windowMs: this.currentConfig.windowMs,
+      max: Math.floor(this.currentConfig.max * 2), // 2x higher limit for internal routes
+      message: {
+        success: false,
+        error: 'Rate limit exceeded. Please try again later.',
+        retryAfter: Math.ceil(this.currentConfig.windowMs / 1000),
+        currentLimit: Math.floor(this.currentConfig.max * 2),
+        windowMs: this.currentConfig.windowMs
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      // CRITICAL: Use user-based rate limiting for proper isolation
+      keyGenerator: (req: Request) => {
+        // Try to get user ID from JWT token first
+        const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.betx_session;
+        if (token) {
+          try {
+            const jwt = require('jsonwebtoken');
+            const decoded = jwt.decode(token);
+            if (decoded && decoded.userId) {
+              return `user-${decoded.userId}`;
+            }
+          } catch (error) {
+            // If token decode fails, fall back to IP
+          }
+        }
+        // Fallback to IP-based limiting if no valid user token
+        return `ip-${req.ip}`;
+      },
+      skip: (req: Request) => {
+        // Only apply to internal API routes
+        const internalApiRoutes = [
+          '/api/users',
+          '/api/dashboard',
+          '/api/transactions',
+          '/api/commissions',
+          '/api/games',
+          '/api/matches',
+          '/api/bets',
+          '/api/reports'
+        ];
+        
+        if (!internalApiRoutes.some((route) => req.path.startsWith(route))) return true;
+        
+        // Skip health checks
+        if (req.path.includes('/health')) return true;
+        
+        // Skip authentication endpoints
+        if (req.path.startsWith('/api/auth/')) return true;
+        
+        // Ignore HEAD probes entirely
+        if (req.method === 'HEAD') return true;
+        return false;
+      }
+    });
+  }
+
+  /**
    * Create adaptive rate limiter middleware
    */
   createMiddleware() {
@@ -88,8 +170,27 @@ export class AdaptiveRateLimiter {
       // Check if we need to adapt
       this.adaptIfNeeded();
 
-      // Apply the existing rate limiter
-      this.rateLimiter(req, res, next);
+      // Determine which rate limiter to use
+      const internalApiRoutes = [
+        '/api/users',
+        '/api/dashboard',
+        '/api/transactions',
+        '/api/commissions',
+        '/api/games',
+        '/api/matches',
+        '/api/bets',
+        '/api/reports'
+      ];
+      
+      const isInternalRoute = internalApiRoutes.some((route) => req.path.startsWith(route));
+      
+      if (isInternalRoute) {
+        // Use internal rate limiter (lighter limits)
+        this.internalRateLimiter(req, res, next);
+      } else {
+        // Use external rate limiter (standard limits)
+        this.rateLimiter(req, res, next);
+      }
     };
   }
 
@@ -155,8 +256,9 @@ export class AdaptiveRateLimiter {
 
     if (newMax !== this.currentConfig.max || newWindowMs !== this.currentConfig.windowMs) {
       this.currentConfig = { max: newMax, windowMs: newWindowMs };
-      // Recreate the rate limiter with new configuration
+      // Recreate both rate limiters with new configuration
       this.createRateLimiter();
+      this.createInternalRateLimiter();
       logger.warn(`📉 Scaled down rate limiting: ${newMax} requests per ${newWindowMs}ms`);
     }
   }
@@ -177,8 +279,9 @@ export class AdaptiveRateLimiter {
 
     if (newMax !== this.currentConfig.max || newWindowMs !== this.currentConfig.windowMs) {
       this.currentConfig = { max: newMax, windowMs: newWindowMs };
-      // Recreate the rate limiter with new configuration
+      // Recreate both rate limiters with new configuration
       this.createRateLimiter();
+      this.createInternalRateLimiter();
       logger.info(`📈 Scaled up rate limiting: ${newMax} requests per ${newWindowMs}ms`);
     }
   }
@@ -199,8 +302,9 @@ export class AdaptiveRateLimiter {
       max: this.config.baseMaxRequests
     };
     this.loadHistory = [];
-    // Recreate the rate limiter with base configuration
+    // Recreate both rate limiters with base configuration
     this.createRateLimiter();
+    this.createInternalRateLimiter();
     logger.info('🔄 Reset rate limiting to base configuration');
   }
 }

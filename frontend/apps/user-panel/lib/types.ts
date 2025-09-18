@@ -109,6 +109,43 @@ export enum ConfigType {
   JSON = 'JSON'
 }
 
+// User Commission Share interface (matches schema)
+export interface userCommissionShare {
+  id: string;
+  userId: string;
+  share: number;
+  cshare: number;
+  casinocommission: number;
+  matchcommission: number;
+  sessioncommission: number;
+  session_commission_type: string;
+  commissionType?: string;
+  available_share_percent: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// User interface (matches schema)
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+  name: string | null;
+  contactno: string | null;
+  reference: string | null;
+  limit: number;
+  exposure: number;
+  casinoStatus: boolean | null;
+  role: UserRole;
+  status: UserStatus;
+  parentId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  userCommissionShare?: userCommissionShare | null;
+  parent?: User | null;
+  children?: User[];
+}
+
 // Alias for backward compatibility
 export type Role = UserRole;
 

@@ -1,7 +1,25 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import shareService from '../../lib/services/shareCommissionService';
+import { verifyToken } from '../../lib/auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // CRITICAL: Add authentication for all methods
+  const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
+  
+  if (!token) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+
+  // OWNER is restricted to control panel only
+  if (decoded.role === 'OWNER') {
+    return res.status(403).json({ message: 'Access denied - OWNER restricted to control panel' });
+  }
+
   if (req.method === 'POST') {
     // Handle share assignment (stub)
     try {

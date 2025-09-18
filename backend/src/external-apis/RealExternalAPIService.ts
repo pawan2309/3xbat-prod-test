@@ -3,25 +3,27 @@ import logger from '../monitoring/logging/logger';
 import RetryUtils from '../utils/retryUtils';
 
 export default class RealExternalAPIService {
-  private proxyBaseUrl: string;
+  private cricketBaseUrl: string;
+  private casinoBaseUrl: string;
   private timeout: number;
   private retryAttempts: number;
   private userAgent: string;
 
   constructor() {
-    this.proxyBaseUrl = externalAPIConfig.proxyServer.baseUrl;
-    this.timeout = externalAPIConfig.proxyServer.timeout;
-    this.retryAttempts = externalAPIConfig.proxyServer.retryAttempts;
-    this.userAgent = externalAPIConfig.proxyServer.userAgent;
+    this.cricketBaseUrl = externalAPIConfig.cricket.baseUrl;
+    this.casinoBaseUrl = externalAPIConfig.casino.baseUrl;
+    this.timeout = externalAPIConfig.cricket.timeout;
+    this.retryAttempts = externalAPIConfig.cricket.retryAttempts;
+    this.userAgent = '3xbat-backend/1.0.0';
   }
 
   /**
-   * Test proxy connection health
+   * Test external API connection health
    */
-  async testProxyConnection(): Promise<boolean> {
+  async testExternalAPIConnection(): Promise<boolean> {
     try {
       const response = await RetryUtils.fetchWithRetry(
-        `${this.proxyBaseUrl}/health`,
+        `${this.cricketBaseUrl}/cricketmatches`,
         {
           method: 'GET',
           headers: {
@@ -37,7 +39,7 @@ export default class RealExternalAPIService {
       );
       return response.ok;
     } catch (error) {
-      logger.error('❌ Proxy connection test failed:', error);
+      logger.error('❌ External API connection test failed:', error);
       return false;
     }
   }
@@ -47,15 +49,15 @@ export default class RealExternalAPIService {
    */
   async getHealthStatus() {
     try {
-      const proxyStatus = await this.testProxyConnection();
+      const externalAPIStatus = await this.testExternalAPIConnection();
       return {
-        proxy: proxyStatus ? 'healthy' : 'down',
+        externalAPI: externalAPIStatus ? 'healthy' : 'down',
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
       logger.error('❌ Health check failed:', error);
       return {
-        proxy: 'error',
+        externalAPI: 'error',
         timestamp: new Date().toISOString(),
       };
     }
@@ -65,7 +67,7 @@ export default class RealExternalAPIService {
   async getCricketScorecard(marketId: string) {
     try {
       const response = await RetryUtils.fetchWithRetry(
-        `${this.proxyBaseUrl}/cricket/scorecard?marketId=${marketId}`,
+        `${this.cricketBaseUrl}/cricket/scorecard?marketId=${marketId}`,
         {
           method: 'GET',
           headers: {
@@ -165,7 +167,7 @@ export default class RealExternalAPIService {
   async getCricketOdds(eventId: string) {
     try {
       const response = await RetryUtils.fetchWithRetry(
-        `${this.proxyBaseUrl}/cricket/odds?eventId=${eventId}`,
+        `${this.cricketBaseUrl}/cricket/odds?eventId=${eventId}`,
         {
           method: 'GET',
           headers: {
@@ -193,7 +195,7 @@ export default class RealExternalAPIService {
   async getCasinoTV(streamId: string) {
     try {
       const response = await RetryUtils.fetchWithRetry(
-        `${this.proxyBaseUrl}/casino/tv?id=${streamId}`,
+        `${this.casinoBaseUrl}/casino/tv?id=${streamId}`,
         {
           method: 'GET',
           headers: {
@@ -220,7 +222,7 @@ export default class RealExternalAPIService {
   async getCasinoGameData(gameType: string) {
     try {
       const response = await RetryUtils.fetchWithRetry(
-        `${this.proxyBaseUrl}/casino/data/${gameType}`,
+        `${this.casinoBaseUrl}/casino/data/${gameType}`,
         {
           method: 'GET',
           headers: {
@@ -247,7 +249,7 @@ export default class RealExternalAPIService {
   async getCasinoGameResults(gameType: string) {
     try {
       const response = await RetryUtils.fetchWithRetry(
-        `${this.proxyBaseUrl}/casino/results/${gameType}`,
+        `${this.casinoBaseUrl}/casino/results/${gameType}`,
         {
           method: 'GET',
           headers: {
@@ -274,7 +276,7 @@ export default class RealExternalAPIService {
   async getAllCasinoGameData() {
     try {
       const response = await RetryUtils.fetchWithRetry(
-        `${this.proxyBaseUrl}/casino/data`,
+        `${this.casinoBaseUrl}/casino/data`,
         {
           method: 'GET',
           headers: {
@@ -301,7 +303,7 @@ export default class RealExternalAPIService {
   async getAllCasinoGameResults() {
     try {
       const response = await RetryUtils.fetchWithRetry(
-        `${this.proxyBaseUrl}/casino/results`,
+        `${this.casinoBaseUrl}/casino/results`,
         {
           method: 'GET',
           headers: {

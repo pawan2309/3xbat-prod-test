@@ -7,8 +7,26 @@ import {
   validateParentChildRole
 } from '../../lib/services/roleBasedUserService';
 import { UserRole } from '@prisma/client';
+import { verifyToken } from '../../lib/auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // CRITICAL: Add authentication for all methods
+  const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
+  
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ success: false, message: 'Invalid token' });
+  }
+
+  // OWNER is restricted to control panel only
+  if (decoded.role === 'OWNER') {
+    return res.status(403).json({ success: false, message: 'Access denied - OWNER restricted to control panel' });
+  }
+
   if (req.method === 'POST') {
     // Create user with role validation
     try {

@@ -111,7 +111,7 @@ export const useCricketScorecard = (matches: Match[], expandedMatch: string | nu
         console.log('📊 Fetching scorecard for eventId:', eventId)
       }
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/cricket/scorecard/${eventId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000'}/api/cricket/scorecard/${eventId}`, {
         credentials: 'include',
         mode: 'cors'
       })

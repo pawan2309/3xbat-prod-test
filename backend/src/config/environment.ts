@@ -146,12 +146,6 @@ export const bcryptConfig = {
 
 // External API configuration
 export const externalAPIConfig = {
-  proxyServer: {
-    baseUrl: process.env.PROXY_SERVER_URL || 'http://localhost:8000',
-    timeout: parseInt(process.env.PROXY_TIMEOUT || '30000', 10),
-    retryAttempts: parseInt(process.env.PROXY_RETRY_ATTEMPTS || '3', 10),
-    userAgent: process.env.PROXY_USER_AGENT || '3xbat-backend/1.0.0'
-  },
   cricket: {
     baseUrl: process.env.CRICKET_API_URL || 'https://marketsarket.qnsports.live',
     timeout: parseInt(process.env.CRICKET_API_TIMEOUT || '30000', 10),

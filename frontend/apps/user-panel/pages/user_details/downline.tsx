@@ -181,7 +181,7 @@ export default function DownlinePage() {
 
   // Filter and paginate data
   const filteredUsers = users.filter(user =>
-    user.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.contactno?.includes(searchTerm)
   );
@@ -260,7 +260,7 @@ export default function DownlinePage() {
       }
 
       // Update the UI
-      setUsers(prev => prev.map(user => usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user));
+      setUsers(prev => prev.map(user => usersToUpdate.includes(user.id) ? { ...user, status: isActive ? 'ACTIVE' : 'INACTIVE' } : user));
       if (!userIds) { setSelectedUsers([]); }
       
       // Auto-refresh the page after successful status update
@@ -286,8 +286,8 @@ export default function DownlinePage() {
         if (data.success && data.user) {
           setParentInfo({
             name: data.user.name || '',
-            code: data.user.code || '',
-            limit: data.user.creditLimit || 0,
+            code: data.user.username || '',
+            limit: data.user.limit || 0,
           });
         } else {
           setParentInfo({ name: 'Not found', code: '', limit: 0 });
@@ -360,7 +360,7 @@ export default function DownlinePage() {
               <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', margin: 0 }}>Downline Details</h2>
               {parentUser && (
                 <div style={{ fontSize: '1rem', marginTop: 8 }}>
-                  <b>Parent:</b> {parentUser.code} {parentUser.name} ({parentUser.role})
+                  <b>Parent:</b> {parentUser.username} {parentUser.name} ({parentUser.role})
                 </div>
               )}
             </div>
@@ -502,15 +502,15 @@ export default function DownlinePage() {
                                 </div>
                               </div>
                             </td>
-                            <td>{user.code || 'N/A'}</td>
+                            <td>{user.username || 'N/A'}</td>
                             <td>{user.name || 'N/A'}</td>
                             <td>{user.contactno || 'N/A'}</td>
-                                                            <td>{user.password || 'N/A'}</td>
-                            <td>{(user.creditLimit || 0).toLocaleString()}</td>
-                            <td>{user.UserCommissionShare?.matchcommission ?? '0'}</td>
-                            <td>{user.UserCommissionShare?.sessioncommission ?? '0'}</td>
-                            <td>{user.UserCommissionShare?.share || 0}%</td>
-                            <td><span className={`badge ${user.isActive ? 'badge-success' : 'badge-danger'}`}>{user.isActive ? 'Active' : 'Inactive'}</span></td>
+                            <td>{user.password || 'N/A'}</td>
+                            <td>{(user.limit || 0).toLocaleString()}</td>
+                            <td>{user.userCommissionShare?.matchcommission ?? '0'}</td>
+                            <td>{user.userCommissionShare?.sessioncommission ?? '0'}</td>
+                            <td>{user.userCommissionShare?.share || 0}%</td>
+                            <td><span className={`badge ${user.status === 'ACTIVE' ? 'badge-success' : 'badge-danger'}`}>{user.status === 'ACTIVE' ? 'Active' : 'Inactive'}</span></td>
                           </tr>
                         ))}
                       </tbody>
@@ -554,7 +554,7 @@ export default function DownlinePage() {
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">{limitModal.type === 'deposit' ? 'Deposit' : 'Withdraw'} Limit for {limitModal.user.code} {limitModal.user.name}</h5>
+                <h5 className="modal-title">{limitModal.type === 'deposit' ? 'Deposit' : 'Withdraw'} Limit for {limitModal.user.username} {limitModal.user.name}</h5>
                 <button type="button" className="close" onClick={handleCloseLimitModal}>&times;</button>
               </div>
               <div className="modal-body">
@@ -562,8 +562,8 @@ export default function DownlinePage() {
                   <b>Parent:</b> {parentInfo ? (parentInfo.name === 'No parent' ? 'No parent' : parentInfo.name === 'Not found' ? 'Parent not found' : parentInfo.name === 'Error loading parent' ? 'Error loading parent' : `${parentInfo.code} ${parentInfo.name}`) : 'Loading...'}<br/>
                   <b>Parent Limit:</b> <input type="text" className="form-control" value={parentInfo ? parentInfo.limit : ''} readOnly />
                 </div>
-                <div className="mb-2"><b>Client:</b> {limitModal.user.code} {limitModal.user.name}<br/>
-                  <b>Client Limit:</b> <input type="text" className="form-control" value={limitModal.user.creditLimit} readOnly />
+                <div className="mb-2"><b>Client:</b> {limitModal.user.username} {limitModal.user.name}<br/>
+                  <b>Client Limit:</b> <input type="text" className="form-control" value={limitModal.user.limit} readOnly />
                 </div>
                 <input
                   type="number"

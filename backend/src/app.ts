@@ -27,7 +27,7 @@ const app = express();
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      frameAncestors: ["'self'", "http://localhost:3000", "http://localhost:3002"],
+      frameAncestors: ["'self'", "http://localhost:3000", "http://localhost:3002", "http://13.60.145.70:3000", "http://13.60.145.70:3002", "https://3xbat.com", "https://control.3xbat.com", "https://adm.3xbat.com", "https://suo.3xbat.com", "https://sup.3xbat.com", "https://mas.3xbat.com", "https://sua.3xbat.com", "https://age.3xbat.com", "https://sub.3xbat.com"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://mis3.sqmr.xyz"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://mis3.sqmr.xyz"],
       connectSrc: ["'self'", "https://mis3.sqmr.xyz"],
@@ -44,7 +44,21 @@ app.use(cors({
     'http://localhost:3002', 
     'http://192.168.29.248:3000',
     'http://192.168.29.248:3001',
-    'http://192.168.29.248:3002'
+    'http://192.168.29.248:3002',
+    'http://13.60.145.70:3000',
+    'http://13.60.145.70:3001',
+    'http://13.60.145.70:3002',
+    'http://13.60.145.70:4000',
+    'https://3xbat.com',
+    'https://api.3xbat.com',
+    'https://control.3xbat.com',
+    'https://adm.3xbat.com',
+    'https://suo.3xbat.com',
+    'https://sup.3xbat.com',
+    'https://mas.3xbat.com',
+    'https://sua.3xbat.com',
+    'https://age.3xbat.com',
+    'https://sub.3xbat.com'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

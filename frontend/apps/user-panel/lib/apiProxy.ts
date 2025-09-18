@@ -14,7 +14,7 @@ export async function proxyToBackend(
   options: ProxyOptions = {}
 ) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://13.60.145.70:4000';
     const method = options.method || req.method || 'GET';
     
     console.log('🔄 API Proxy: Backend URL:', backendUrl);
@@ -96,7 +96,9 @@ export async function proxyToBackend(
         timeout: 10000, // 10 second timeout
       });
       
-      if (!backendResponse.ok) {
+      // For session check endpoints, 401 is a normal response (no valid session)
+      // Don't treat it as an error, just forward the response
+      if (!backendResponse.ok && !(endpoint.includes('session-check') && backendResponse.status === 401)) {
         console.error(`❌ Backend responded with status: ${backendResponse.status} ${backendResponse.statusText}`);
         throw new Error(`Backend responded with status: ${backendResponse.status}`);
       }

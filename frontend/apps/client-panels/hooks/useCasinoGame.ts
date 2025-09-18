@@ -138,7 +138,7 @@ export function useCasinoGame({
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000';
     const newSocket = io(socketUrl, {
       timeout: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '10000'),
       reconnection: true,

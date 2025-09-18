@@ -7,7 +7,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Use default DATABASE_URL if not provided
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:8079@localhost:5432/betting_db';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:8079@13.60.145.70:5432/betting_db';
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   datasources: {

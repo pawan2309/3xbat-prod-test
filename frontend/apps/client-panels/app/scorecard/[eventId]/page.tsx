@@ -40,7 +40,7 @@ export default function ScorecardPage() {
     if (typeof window !== 'undefined') {
       return `http://${window.location.hostname}:4000`;
     }
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    return process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000';
   };
 
   const fetchScorecardData = async () => {

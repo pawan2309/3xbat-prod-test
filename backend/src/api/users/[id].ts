@@ -13,10 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Verify authentication
     const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
     console.log('🔍 Users API: Checking authentication');
-    console.log('🍪 Cookies:', req.cookies);
-    console.log('🔑 Token found:', !!token, 'Length:', token?.length || 0);
-    console.log('🔑 Token from header:', req.headers.authorization);
-    console.log('🔑 Token from cookie:', req.cookies.betx_session);
+    console.log('🔑 Token found:', !!token);
     
     if (!token) {
       console.log('❌ No token found');
@@ -30,9 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const decoded = verifyToken(token);
-    console.log('🔍 Token decoded:', decoded);
-    console.log('🔍 Token raw:', token);
-    console.log('🔍 Token length:', token.length);
+    console.log('🔍 Token decoded successfully');
     
     if (!decoded) {
       console.log('❌ Token verification failed');
@@ -74,6 +69,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Apply role-based access control
+      const requestingUserRole = decoded.role;
+      const requestingUserId = decoded.userId || decoded.user?.id;
+      
+      // OWNER is restricted to control panel only
+      if (requestingUserRole === 'OWNER') {
+        return res.status(403).json({ message: 'Access denied - OWNER restricted to control panel' });
+      }
+      
+      // USER can only access their own data
+      if (requestingUserRole === 'USER' && user.id !== requestingUserId) {
+        return res.status(403).json({ message: 'Access denied - can only access own data' });
+      }
+      
+      // OWNER data is not accessible from user panel
+      if (user.role === 'OWNER') {
+        return res.status(403).json({ message: 'Access denied - OWNER data not accessible from user panel' });
+      }
+      
+      // Check hierarchy access for other roles
+      if (requestingUserRole !== 'USER') {
+        const { canAccessUserData } = await import('../../shared/utils/roleHierarchy');
+        if (!canAccessUserData(requestingUserRole, user.role)) {
+          return res.status(403).json({ message: 'Access denied - insufficient permissions' });
+        }
       }
 
       return res.status(200).json({ success: true, user });
@@ -118,17 +140,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (existingShare) {
           await prisma.userCommissionShare.update({
             where: { userId: id },
-            data: {
-              ...commissionShareData,
-              updatedAt: new Date()
-            }
+            data: commissionShareData
           });
         } else {
           await prisma.userCommissionShare.create({
             data: {
               userId: id,
-              updatedAt: new Date(),
-              ...commissionShareData
+              cshare: commissionShareData.cshare,
+              casinocommission: commissionShareData.casinocommission,
+              ishare: commissionShareData.ishare,
+              mobileshare: commissionShareData.mobileshare
             }
           });
         }

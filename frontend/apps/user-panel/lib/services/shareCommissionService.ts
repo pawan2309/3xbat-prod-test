@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { UserRole } from '../types';
+import { PrismaClient } from '@prisma/client';
 
 // Use UserRole as the Role type
 type Role = UserRole;
@@ -221,10 +222,10 @@ export async function assignUserWithShare(request: ShareAssignmentRequest): Prom
     const parentUser = await prisma.user.findUnique({
       where: { id: parentId },
       include: {
-        UserCommissionShare: true,
+        userCommissionShare: true,
         children: {
           include: {
-            UserCommissionShare: true
+            userCommissionShare: true
           }
         }
       }
@@ -237,7 +238,7 @@ export async function assignUserWithShare(request: ShareAssignmentRequest): Prom
     // Get child user
     const childUser = await prisma.user.findUnique({
       where: { id: userId },
-      include: { UserCommissionShare: true }
+      include: { userCommissionShare: true }
     });
 
     if (!childUser) {
@@ -245,7 +246,7 @@ export async function assignUserWithShare(request: ShareAssignmentRequest): Prom
     }
 
     // Validate hierarchy
-    const hierarchyValidation = validateHierarchy(parentUser.role, childUser.role);
+    const hierarchyValidation = validateHierarchy(parentUser.role as Role, childUser.role as Role);
     if (hierarchyValidation) {
       return { success: false, error: hierarchyValidation };
     }
@@ -288,22 +289,28 @@ export async function assignUserWithShare(request: ShareAssignmentRequest): Prom
           data: commissionShareData
         });
       } else {
-        await tx.userCommissionShare.create({
+        await (tx.userCommissionShare as any).create({
           data: {
-            User: { connect: { id: userId } },
-            ...commissionShareData,
-            updatedAt: new Date()
+            userId: userId,
+            share: commissionShareData.share,
+            available_share_percent: commissionShareData.available_share_percent,
+            cshare: commissionShareData.cshare,
+            icshare: commissionShareData.icshare,
+            casinocommission: commissionShareData.casinocommission,
+            matchcommission: commissionShareData.matchcommission,
+            sessioncommission: commissionShareData.sessioncommission,
+            session_commission_type: commissionShareData.session_commission_type,
+            commissionType: commissionShareData.commissionType
           }
         });
       }
 
       // Update parent's available share by reducing it by the assigned share
-      if (parentUser.UserCommissionShare) {
+      if (parentUser.userCommissionShare) {
         await tx.userCommissionShare.update({
           where: { userId: parentId },
           data: {
-            // available_share_percent: Math.max(0, parentUser.UserCommissionShare.available_share_percent - assignedShare)
-            // TODO: Fix Prisma client generation issue
+            available_share_percent: Math.max(0, parentUser.userCommissionShare.available_share_percent - assignedShare)
           }
         });
       }
@@ -312,10 +319,10 @@ export async function assignUserWithShare(request: ShareAssignmentRequest): Prom
       return await tx.user.findUnique({
         where: { id: userId },
         include: {
-          UserCommissionShare: true,
+          userCommissionShare: true,
           parent: {
             include: {
-              UserCommissionShare: true
+              userCommissionShare: true
             }
           }
         }
@@ -364,19 +371,19 @@ export async function editUserShare(request: ShareUpdateRequest): Promise<{
     // Get user with parent and commission share data
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      include: {
+        userCommissionShare: true,
+        parent: {
+          include: {
+            userCommissionShare: true,
+            children: {
               include: {
-          UserCommissionShare: true,
-          parent: {
-            include: {
-              UserCommissionShare: true,
-              children: {
-                include: {
-                  UserCommissionShare: true
-                }
+                userCommissionShare: true
               }
             }
           }
         }
+      }
     });
 
     if (!user) {
@@ -384,7 +391,7 @@ export async function editUserShare(request: ShareUpdateRequest): Promise<{
     }
 
     // Check if user is top-level (cannot edit share)
-    if (TOP_LEVEL_ROLES.includes(user.role)) {
+    if (TOP_LEVEL_ROLES.includes(user.role as Role)) {
       return { success: false, error: `Cannot edit share for top-level role: ${user.role}` };
     }
 
@@ -393,7 +400,7 @@ export async function editUserShare(request: ShareUpdateRequest): Promise<{
     }
 
     // Get current share
-    const currentShare = user.UserCommissionShare?.share || 0;
+    const currentShare = user.userCommissionShare?.share || 0;
     const shareDifference = newShare - currentShare;
 
     // If no change, return success
@@ -415,26 +422,25 @@ export async function editUserShare(request: ShareUpdateRequest): Promise<{
     // Use transaction to ensure data consistency
     const result = await prisma.$transaction(async (tx) => {
       // Update commission share record
-      if (user.UserCommissionShare) {
+      if (user.userCommissionShare) {
         await tx.userCommissionShare.update({
           where: { userId },
           data: {
             share: newShare,
-            cshare: user.UserCommissionShare.cshare > 0 ? newShare : 0 // Update casino share if it was set
+            cshare: user.userCommissionShare.cshare > 0 ? newShare : 0 // Update casino share if it was set
           }
         });
       } else {
-        await tx.userCommissionShare.create({
+        await (tx.userCommissionShare as any).create({
           data: {
-            User: { connect: { id: userId } },
+            userId: userId,
             share: newShare,
             cshare: 0,
             icshare: 0,
             casinocommission: 0,
             matchcommission: 0,
             sessioncommission: 0,
-            session_commission_type: 'No Comm',
-            updatedAt: new Date()
+            session_commission_type: 'No Comm'
           }
         });
       }
@@ -443,10 +449,10 @@ export async function editUserShare(request: ShareUpdateRequest): Promise<{
       return await tx.user.findUnique({
         where: { id: userId },
         include: {
-          UserCommissionShare: true,
+          userCommissionShare: true,
           parent: {
             include: {
-              UserCommissionShare: true
+              userCommissionShare: true
             }
           }
         }
@@ -485,10 +491,10 @@ export async function calculateUserShareInfo(userId: string): Promise<UserShareI
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      UserCommissionShare: true,
+      userCommissionShare: true,
       children: {
         include: {
-          UserCommissionShare: true
+          userCommissionShare: true
         }
       }
     }
@@ -498,11 +504,10 @@ export async function calculateUserShareInfo(userId: string): Promise<UserShareI
     throw new Error('User not found');
   }
 
-  const currentShare = user.UserCommissionShare?.share || 0;
-  // const availableSharePercent = user.UserCommissionShare?.available_share_percent || 0;
-  const availableSharePercent = 0; // TODO: Fix Prisma client generation issue
+  const currentShare = user.userCommissionShare?.share || 0;
+  const availableSharePercent = user.userCommissionShare?.available_share_percent || 0;
   const totalAssignedToChildren = user.children.reduce((sum, child) => {
-    return sum + (child.UserCommissionShare?.share || 0);
+    return sum + (child.userCommissionShare?.share || 0);
   }, 0);
 
   return {
@@ -524,7 +529,7 @@ export async function getUserChildrenWithShares(userId: string): Promise<Array<{
   const children = await prisma.user.findMany({
     where: { parentId: userId },
     include: {
-      UserCommissionShare: true
+      userCommissionShare: true
     }
   });
 
@@ -590,10 +595,10 @@ export async function getUserHierarchyTree(userId: string): Promise<{
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      UserCommissionShare: true,
+      userCommissionShare: true,
       children: {
         include: {
-          UserCommissionShare: true
+          userCommissionShare: true
         }
       }
     }
@@ -645,7 +650,7 @@ export async function updateUserCommissions(
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { UserCommissionShare: true }
+      include: { userCommissionShare: true }
     });
 
     if (!user) {
@@ -659,15 +664,15 @@ export async function updateUserCommissions(
     if (commissionType !== undefined) updateData.commissionType = commissionType;
 
     const result = await prisma.$transaction(async (tx) => {
-      if (user.UserCommissionShare) {
+      if (user.userCommissionShare) {
         await tx.userCommissionShare.update({
           where: { userId },
           data: updateData
         });
       } else {
-        await tx.userCommissionShare.create({
+        await (tx.userCommissionShare as any).create({
           data: {
-            User: { connect: { id: userId } },
+            userId: userId,
             share: 0,
             cshare: 0,
             icshare: 0,
@@ -675,15 +680,14 @@ export async function updateUserCommissions(
             matchcommission: matchCommission || 0,
             sessioncommission: 0,
             session_commission_type: commissionType === 'BetByBet' ? 'BetByBet' : 'No Comm',
-            commissionType,
-            updatedAt: new Date()
+            commissionType
           }
         });
       }
 
       return await tx.user.findUnique({
         where: { id: userId },
-        include: { UserCommissionShare: true }
+        include: { userCommissionShare: true }
       });
     });
 

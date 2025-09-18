@@ -51,8 +51,6 @@ export default function App({ Component, pageProps }: AppProps) {
 // Separate client-side component that uses hooks
 const ClientApp = ({ Component, pageProps }: { Component: AppProps['Component']; pageProps: AppProps['pageProps'] }) => {
   useEffect(() => {
-    console.log('🔵 App useEffect running - Client side');
-    
     // Add AdminLTE scripts in correct order
     const loadScript = (src: string) => {
       return new Promise<void>((resolve, reject) => {
@@ -100,6 +98,26 @@ const ClientApp = ({ Component, pageProps }: { Component: AppProps['Component'];
         // 5. Load AdminLTE last
         await loadScript('https://adminlite.s3.ap-south-1.amazonaws.com/adminlite/dist/js/adminlte.min.js');
 
+        // Wait for DataTables to be fully loaded before initializing AdminLTE
+        await new Promise<void>(resolve => {
+          let attempts = 0;
+          const maxAttempts = 50; // 5 seconds max wait
+          
+          const checkDataTables = () => {
+            attempts++;
+            if ((window as any).jQuery && (window as any).jQuery.fn.DataTable) {
+              console.log('DataTables library loaded successfully');
+              resolve();
+            } else if (attempts >= maxAttempts) {
+              console.warn('DataTables library failed to load within timeout');
+              resolve(); // Continue anyway
+            } else {
+              setTimeout(checkDataTables, 100);
+            }
+          };
+          checkDataTables();
+        });
+
         // Initialize AdminLTE after scripts are loaded
         if ((window as any).AdminLTE) {
           try {
@@ -108,6 +126,14 @@ const ClientApp = ({ Component, pageProps }: { Component: AppProps['Component'];
             console.warn('AdminLTE initialization failed:', error);
           }
         }
+
+        // Add global error handler for DataTables
+        window.addEventListener('error', (event) => {
+          if (event.message && event.message.includes('defaults')) {
+            console.warn('DataTables initialization error caught:', event.message);
+            event.preventDefault(); // Prevent the error from showing in console
+          }
+        });
 
         // Add AdminLTE classes
         document.body.classList.add('text-sm');

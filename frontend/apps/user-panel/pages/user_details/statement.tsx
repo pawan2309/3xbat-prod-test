@@ -4,10 +4,8 @@ import Layout from '../../components/Layout';
 
 interface LedgerEntry {
   id: string;
-  remark: string;
-  debit: number;
-  credit: number;
-  balanceAfter: number;
+  type: string;
+  amount: number;
   createdAt: string;
 }
 
@@ -18,6 +16,7 @@ const StatementPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [user, setUser] = useState<any>(null);
+  const [currentBalance, setCurrentBalance] = useState(0);
 
   useEffect(() => {
     if (!userId) return;
@@ -29,18 +28,14 @@ const StatementPage = () => {
       .then(data => {
         if (data.success) {
           setLedger(data.ledger || []);
+          setCurrentBalance(data.currentBalance || 0);
+          setUser(data.user);
         } else {
           setError('Failed to fetch statement');
         }
       })
       .catch(() => setError('Failed to fetch statement'))
       .finally(() => setLoading(false));
-    // Fetch user info
-    fetch(`/api/users/${userId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) setUser(data.user);
-      });
   }, [userId]);
 
   return (
@@ -49,7 +44,7 @@ const StatementPage = () => {
         <div className="container-fluid">
           <div className="row mb-2">
             <div className="col-sm-6">
-              <h4>Account Statement {user ? `- ${user.code || ''} ${user.name || ''}` : ''}</h4>
+              <h4>Account Statement {user ? `- ${user.username || ''} ${user.name || ''}` : ''}</h4>
             </div>
             <div className="col-sm-6">
               <ol className="breadcrumb float-sm-right">
@@ -87,15 +82,16 @@ const StatementPage = () => {
                           {ledger.length === 0 ? (
                             <tr><td colSpan={6} className="text-center">No statement entries found.</td></tr>
                           ) : ledger.map((entry, idx) => {
-                            const isCredit = entry.credit > 0;
-                            const isDebit = entry.debit > 0;
+                            const isCredit = entry.amount > 0;
+                            const isDebit = entry.amount < 0;
+                            const runningBalance = ledger.slice(0, idx + 1).reduce((sum, e) => sum + e.amount, 0);
                             return (
                               <tr key={entry.id}>
                                 <td>{ledger.length - idx}</td>
-                                <td className="minWidthRemark">{entry.remark || (isCredit ? 'Deposit' : 'Withdraw')}</td>
-                                <td className={isCredit ? 'text-green p-2.5' : 'text-red p-2.5'}>{isCredit ? 'Deposit' : 'Withdraw'}</td>
-                                <td className={isCredit ? 'text-green p-2.5' : 'text-red p-2.5'}>{isCredit ? entry.credit.toFixed(2) : '-' + entry.debit.toFixed(2)}</td>
-                                <td className="text-green p-2.5">{entry.balanceAfter.toFixed(2)}</td>
+                                <td className="minWidthRemark">{entry.type || (isCredit ? 'Deposit' : 'Withdraw')}</td>
+                                <td className={isCredit ? 'text-green p-2.5' : 'text-red p-2.5'}>{isCredit ? 'Credit' : 'Debit'}</td>
+                                <td className={isCredit ? 'text-green p-2.5' : 'text-red p-2.5'}>{isCredit ? entry.amount.toFixed(2) : entry.amount.toFixed(2)}</td>
+                                <td className="text-green p-2.5">{runningBalance.toFixed(2)}</td>
                                 <td>{new Date(entry.createdAt).toLocaleString()}</td>
                               </tr>
                             );

@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
+import { verifyToken } from '../../lib/auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'PUT') {
@@ -7,6 +8,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // CRITICAL: Add authentication
+    const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
+    
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+
+    // OWNER is restricted to control panel only
+    if (decoded.role === 'OWNER') {
+      return res.status(403).json({ success: false, message: 'Access denied - OWNER restricted to control panel' });
+    }
+
     const { userId, limits } = req.body;
 
     if (!userId) {

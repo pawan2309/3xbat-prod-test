@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { verifyToken } from '../../lib/auth';
 type EnhancedBetData = any;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -7,6 +8,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // CRITICAL: Add authentication
+    const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
+    
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+
+    // OWNER is restricted to control panel only
+    if (decoded.role === 'OWNER') {
+      return res.status(403).json({ success: false, message: 'Access denied - OWNER restricted to control panel' });
+    }
+
     const {
       userId,
       matchId,

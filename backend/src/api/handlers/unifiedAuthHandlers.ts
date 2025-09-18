@@ -1,12 +1,13 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../lib/prisma';
 import { getRoleBasedNavigation, canAccessFeature, getAccessibleRoles } from '../../shared/utils/roleHierarchy';
 import { getPrimaryDomain, shouldRedirect } from '../../shared/utils/domainAccess';
-
-const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'L9vY7z!pQkR#eA1dT3u*Xj5@FbNmC2Ws';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 // Unified login handler for all panels
 export const unifiedLogin = async (req: Request, res: Response) => {
@@ -197,7 +198,6 @@ export const unifiedLogout = async (req: Request, res: Response) => {
 // Unified session check handler
 export const unifiedSessionCheck = async (req: Request, res: Response) => {
   try {
-    console.log('🔍 Session check: Request cookies:', req.cookies);
     const authToken = req.cookies.betx_session;
     console.log('🔍 Session check: Auth token present:', !!authToken);
 
@@ -250,7 +250,6 @@ export const unifiedSessionCheck = async (req: Request, res: Response) => {
     // Get role-based navigation and permissions
     console.log('🔍 Getting navigation for role:', user.role);
     const navigation = getRoleBasedNavigation(user.role);
-    console.log('🔍 Navigation result:', Object.keys(navigation));
     const accessibleRoles = getAccessibleRoles(user.role);
 
     return res.status(200).json({

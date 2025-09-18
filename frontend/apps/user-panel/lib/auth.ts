@@ -1,7 +1,7 @@
 // Authentication service for user-panel
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
   ? `${process.env.NEXT_PUBLIC_API_URL}/api/auth`
-  : 'http://localhost:4000/api/auth';
+  : 'http://13.60.145.70:4000/api/auth';
 
 export interface User {
   id: string;
@@ -177,6 +177,16 @@ export class AuthService {
 
       console.log('🔍 AuthService: Session check response status:', response.status);
       console.log('🔍 AuthService: Session check response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // Handle 401 as normal response (no valid session)
+      if (response.status === 401) {
+        console.log('🔍 AuthService: No valid session found (401) - this is normal for unauthenticated users');
+        this.user = null;
+        this.token = null;
+        this.clearStorage();
+        return false;
+      }
+      
       const data = await response.json();
       console.log('🔍 AuthService: Session check data:', data);
 
@@ -215,6 +225,16 @@ export class AuthService {
       console.log('🔍 AuthService: getSessionData response status:', response.status);
       console.log('🔍 AuthService: getSessionData response headers:', Object.fromEntries(response.headers.entries()));
       console.log('🔍 AuthService: Set-Cookie header in response:', response.headers.get('set-cookie'));
+      
+      // Handle 401 as normal response (no valid session)
+      if (response.status === 401) {
+        console.log('🔍 AuthService: No valid session found (401) - this is normal for unauthenticated users');
+        this.user = null;
+        this.token = null;
+        this.clearStorage();
+        return { success: false, message: 'No valid session' };
+      }
+      
       const data = await response.json();
 
       if (data.success && data.valid && data.user) {

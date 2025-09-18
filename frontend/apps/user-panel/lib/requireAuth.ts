@@ -35,7 +35,7 @@ export function requireAuth(handler: GetServerSideProps) {
 
     try {
       // Verify session with backend
-      const response = await fetch('http://localhost:5000/api/auth/unified-session-check', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000'}/api/auth/unified-session-check`, {
         method: 'GET',
         headers: {
           'Cookie': `betx_session=${sessionCookie}`,

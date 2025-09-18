@@ -2,7 +2,10 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'L9vY7z!pQkR#eA1dT3u*Xj5@FbNmC2Ws';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 // POST /api/auth/login - User login
 export const login = async (req: Request, res: Response) => {
@@ -282,13 +285,10 @@ export const getProfile = async (req: Request, res: Response) => {
         role: user.role,
         status: user.status,
         limit: user.limit,
-        creditLimit: user.limit, // Map limit to creditLimit for frontend compatibility
         casinoStatus: user.casinoStatus,
-        contactno: user.contactno, // Show actual database value
+        contactno: user.contactno,
         createdAt: user.createdAt,
-        code: user.username, // Use username as code since there's no code field
-        reference: user.reference, // Show actual database value
-        mobileshare: 100, // Default value since there's no mobileshare field
+        reference: user.reference,
         userCommissionShare: user.userCommissionShare
       }
     });
@@ -391,8 +391,8 @@ export const getRoleAccess = async (req: Request, res: Response) => {
     }> = {
       'OWNER': {
         level: 1,
-        accessibleRoles: ['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
-        permissions: ['all']
+        accessibleRoles: [], // OWNER restricted to control panel only
+        permissions: ['control_panel_only']
       },
       'SUB_OWN': {
         level: 2,
@@ -431,8 +431,8 @@ export const getRoleAccess = async (req: Request, res: Response) => {
       },
       'USER': {
         level: 9,
-        accessibleRoles: ['USER'],
-        permissions: []
+        accessibleRoles: ['USER'], // USER can only access their own data
+        permissions: ['own_data_only']
       }
     };
 

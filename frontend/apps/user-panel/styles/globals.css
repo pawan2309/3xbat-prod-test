@@ -57,11 +57,11 @@ a[href="#"] {
 
 /* Smooth sidebar transitions */
 .main-sidebar {
-  transition: transform 0.3s ease-in-out;
+  transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
 }
 
 .sidebar-collapse .main-sidebar {
-  transform: translateX(-250px);
+  transform: translateX(-100%);
 }
 
 /* Fixed navbar styles - Override AdminLTE */
@@ -166,6 +166,7 @@ body {
   /* Ensure sidebar is hidden on tablet */
   .main-sidebar {
     left: -250px !important;
+    transform: translateX(-100%) !important;
   }
 }
 
@@ -200,6 +201,41 @@ body {
 /* Exclude sidebar and its children from font-size reduction */
 .main-sidebar, .nav-sidebar, .sidebar, .nav-header, .brand-link, .main-sidebar *, .nav-sidebar *, .sidebar *, .nav-header *, .brand-link * {
   font-size: initial !important;
+}
+
+/* Critical: Override any fixed width/positioning that could cause overflow */
+.main-sidebar {
+  max-width: calc(100vw - 20px) !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* Override AdminLTE sidebar styles with higher specificity */
+aside.main-sidebar,
+aside.main-sidebar.sidebar-light-indigo,
+aside.main-sidebar.elevation-4,
+aside.main-sidebar.mobile-sidebar {
+  max-width: calc(100vw - 20px) !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* Ensure mobile sidebar respects viewport */
+@media (max-width: 767px) {
+  .main-sidebar,
+  aside.main-sidebar,
+  aside.main-sidebar.sidebar-light-indigo,
+  aside.main-sidebar.elevation-4,
+  aside.main-sidebar.mobile-sidebar {
+    max-width: calc(100vw - 20px) !important;
+    width: auto !important;
+  }
+  
+  .mobile-sidebar,
+  aside.mobile-sidebar {
+    max-width: calc(100vw - 20px) !important;
+    width: auto !important;
+  }
 }
 
 h1 {

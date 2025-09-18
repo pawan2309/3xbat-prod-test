@@ -12,7 +12,23 @@ const HOST = process.env.HOST || '0.0.0.0';
 const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
+    origin: [
+      "http://localhost:3000", 
+      "http://localhost:3001", 
+      "http://localhost:3002",
+      "http://13.60.145.70:3000",
+      "http://13.60.145.70:3001", 
+      "http://13.60.145.70:3002",
+      "https://3xbat.com",
+      "https://control.3xbat.com",
+      "https://adm.3xbat.com",
+      "https://suo.3xbat.com",
+      "https://sup.3xbat.com",
+      "https://mas.3xbat.com",
+      "https://sua.3xbat.com",
+      "https://age.3xbat.com",
+      "https://sub.3xbat.com"
+    ],
     methods: ["GET", "POST"],
     credentials: true
   }

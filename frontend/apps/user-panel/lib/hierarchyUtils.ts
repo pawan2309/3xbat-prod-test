@@ -17,12 +17,10 @@ export type Role = keyof typeof ROLE_HIERARCHY;
 export function getHierarchyIndex(role: string): number {
   // Server-side logging
   if (typeof window === 'undefined') {
-    console.log('🔵 [SSR] getHierarchyIndex called with role:', role);
+    // Getting hierarchy index for role
   }
   
-  console.log('🔵 getHierarchyIndex called with role:', role);
   const index = ROLE_HIERARCHY[role as Role];
-  console.log('🔵 Role hierarchy index:', index);
   if (index === undefined) {
     console.warn(`🔴 Invalid role: ${role}`);
     return 0; // Return lowest priority for invalid roles
@@ -101,9 +99,14 @@ export function getHierarchyModalTitle(upperRole: string): string {
 
 // Function to check if a user can access a specific role's data
 export function canAccessRole(userRole: string, targetRole: string): boolean {
-  // Special handling for SUB_OWN - give full access to everything
-  if (userRole === 'SUB_OWN') {
-    return true;
+  // OWNER is restricted to control panel only - not accessible from user panel
+  if (targetRole === 'OWNER') {
+    return false;
+  }
+  
+  // USER can only access their own data
+  if (userRole === 'USER') {
+    return userRole === targetRole;
   }
   
   const userIndex = getHierarchyIndex(userRole);
@@ -120,9 +123,14 @@ export function canAccessRole(userRole: string, targetRole: string): boolean {
 
 // Function to get accessible roles for a user
 export function getAccessibleRoles(userRole: string): string[] {
-  // Special handling for SUB_OWN - give access to all roles
-  if (userRole === 'SUB_OWN') {
-    return Object.keys(ROLE_HIERARCHY);
+  // USER can only access their own role
+  if (userRole === 'USER') {
+    return ['USER'];
+  }
+  
+  // OWNER is restricted to control panel only - not accessible from user panel
+  if (userRole === 'OWNER') {
+    return [];
   }
   
   const userIndex = getHierarchyIndex(userRole);
@@ -131,27 +139,34 @@ export function getAccessibleRoles(userRole: string): string[] {
     return [];
   }
   
-  // Return all roles that are lower in hierarchy (higher index)
+  // Return all roles that are lower in hierarchy (higher index) excluding OWNER
   // NOT same level or above
-  return Object.keys(ROLE_HIERARCHY).filter(role => ROLE_HIERARCHY[role as Role] > userIndex).map(role => role);
+  return Object.keys(ROLE_HIERARCHY)
+    .filter(role => role !== 'OWNER' && ROLE_HIERARCHY[role as Role] > userIndex)
+    .map(role => role);
 }
 
 // Function to check if user can access specific features
 export function canAccessFeature(userRole: string, feature: string): boolean {
-  // Special handling for SUB_OWN - give access to all features
-  if (userRole === 'SUB_OWN') {
-    return true;
+  // OWNER is restricted to control panel only
+  if (userRole === 'OWNER') {
+    return false;
+  }
+  
+  // USER can only access basic features
+  if (userRole === 'USER') {
+    return feature === 'client_management';
   }
   
   // Map features to the minimum role required to access them
   const featureMinRole: Record<string, string> = {
     'login_reports': 'ADMIN',
-    'super_admin_management': 'SUPER_ADMIN',
+    'super_admin_management': 'SUP_ADM',
     'admin_management': 'ADMIN',
-    'sub_owner_management': 'SUB_OWNER',
-    'sub_management': 'SUB',
-    'master_management': 'MASTER',
-    'super_agent_management': 'SUPER_AGENT',
+    'sub_owner_management': 'SUB_OWN',
+    'sub_management': 'SUB_ADM',
+    'master_management': 'MAS_AGENT',
+    'super_agent_management': 'SUP_AGENT',
     'agent_management': 'AGENT',
     'client_management': 'USER',
   };
@@ -172,9 +187,19 @@ export function canAccessRestrictedSections(userRole: string): boolean {
 
 // Function to check if a user can access another user's data based on hierarchy
 export function canAccessUserData(requestingUserRole: string, targetUserRole: string): boolean {
-  // Special handling for SUB_OWN - can access all user data
-  if (requestingUserRole === 'SUB_OWN') {
-    return true;
+  // OWNER is restricted to control panel only - cannot access user panel data
+  if (requestingUserRole === 'OWNER') {
+    return false;
+  }
+  
+  // USER can only access their own data
+  if (requestingUserRole === 'USER') {
+    return requestingUserRole === targetUserRole;
+  }
+  
+  // OWNER data is not accessible from user panel
+  if (targetUserRole === 'OWNER') {
+    return false;
   }
   
   const requestingIndex = getHierarchyIndex(requestingUserRole);
@@ -193,17 +218,15 @@ export function canAccessUserData(requestingUserRole: string, targetUserRole: st
 export function getRoleBasedNavigation(userRole: string) {
   // Server-side logging
   if (typeof window === 'undefined') {
-    console.log('🔵 [SSR] getRoleBasedNavigation called with role:', userRole);
+    // Getting role-based navigation for role
   }
   
-  console.log('🔵 getRoleBasedNavigation called with role:', userRole);
   if (!userRole || typeof userRole !== 'string') {
     console.warn('🔴 Invalid userRole provided to getRoleBasedNavigation:', userRole);
     return {};
   }
-  
+
   const userIndex = getHierarchyIndex(userRole);
-  console.log('🔵 User hierarchy index:', userIndex);
   if (userIndex === 0) {
     console.warn(`🔴 Invalid role "${userRole}" provided to getRoleBasedNavigation`);
     return {};
@@ -303,6 +326,6 @@ export function getRoleBasedNavigation(userRole: string) {
     }
   });
   
-  console.log('🔵 Final filtered navigation:', filteredNavigation);
+  // Final filtered navigation ready
   return filteredNavigation;
 } 

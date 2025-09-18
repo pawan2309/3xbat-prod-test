@@ -40,18 +40,42 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     // List users with optional role, parentId, and status filtering
     try {
+      // Verify authentication
+      const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
+      
+      if (!token) {
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+      }
+      
+      // Verify token and get user info
+      const { verifyToken } = await import('../../lib/auth');
+      const decoded = verifyToken(token);
+      
+      if (!decoded) {
+        return res.status(401).json({ success: false, message: 'Invalid token' });
+      }
+      
+      const requestingUserRole = decoded.role;
+      const requestingUserId = decoded.userId || decoded.user?.id;
+      
+      // OWNER is restricted to control panel only
+      if (requestingUserRole === 'OWNER') {
+        return res.status(403).json({ success: false, message: 'Access denied - OWNER restricted to control panel' });
+      }
+      
       const { role, parentId, status, isActive, excludeInactiveParents } = req.query;
+      
+      // Map old role names to new role names for backward compatibility
+      const roleMapping: { [key: string]: string } = {
+        'SUPER_ADMIN': 'SUP_ADM',
+        'SUB_OWNER': 'SUB_OWN',
+        'SUB_ADMIN': 'SUB_ADM',
+        'MASTER': 'MAS_AGENT',
+        'SUPER_AGENT': 'SUP_AGENT'
+      };
       
       let whereClause: any = {};
       if (role && typeof role === 'string') {
-        // Map old role names to new role names for backward compatibility
-        const roleMapping: { [key: string]: string } = {
-          'SUPER_ADMIN': 'SUP_ADM',
-          'SUB_OWNER': 'SUB_OWN',
-          'SUB_ADMIN': 'SUB_ADM',
-          'MASTER': 'MAS_AGENT',
-          'SUPER_AGENT': 'SUP_AGENT'
-        };
         
         const mappedRole = roleMapping[role] || role;
         whereClause.role = mappedRole as any;
@@ -93,6 +117,30 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           delete whereClause.status; // Remove the direct status filter
         } else {
           whereClause.OR = parentFilter.OR;
+        }
+      }
+      
+      // Apply role-based access control
+      if (requestingUserRole === 'USER') {
+        // USER can only see their own data
+        whereClause.id = requestingUserId;
+      } else {
+        // For other roles, exclude OWNER data and apply hierarchy restrictions
+        whereClause.role = {
+          not: 'OWNER' // Exclude OWNER data from user panel
+        };
+        
+        // If a specific role is requested, check if user can access it
+        if (role && typeof role === 'string') {
+          const { canAccessRole } = await import('../../shared/utils/roleHierarchy');
+          const mappedRole = roleMapping[role] || role;
+          
+          if (!canAccessRole(requestingUserRole, mappedRole)) {
+            return res.status(403).json({ 
+              success: false, 
+              message: `Access denied - cannot access ${mappedRole} data` 
+            });
+          }
         }
       }
       
@@ -371,7 +419,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       }
 
       console.log('Creating commission share with data:', commissionShareData);
-      await prisma.userCommissionShare.create({
+      await (prisma.userCommissionShare as any).create({
         data: {
           userId: user.id,
           share: commissionShareData.share,
@@ -381,8 +429,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           matchcommission: commissionShareData.matchcommission,
           sessioncommission: commissionShareData.sessioncommission,
           session_commission_type: commissionShareData.session_commission_type,
-          commissionType: commissionShareData.commissionType,
-          updatedAt: new Date()
+          commissionType: commissionShareData.commissionType
         }
       });
       console.log('Commission share created successfully for user:', user.id);

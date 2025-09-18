@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../lib/prisma';
 
 // Function to get role prefix (3 letters)
 function getRolePrefix(role: string): string {
@@ -110,18 +108,14 @@ export const getUsers = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Transform users to include frontend-expected fields
+    // Return users with schema field names (no transformation needed)
     const transformedUsers = users.map(user => ({
-      ...user,
-      code: user.username, // Map username to code
-      creditLimit: user.limit, // Map limit to creditLimit
-      isActive: user.status === 'ACTIVE', // Map status to isActive boolean
-      UserCommissionShare: user.userCommissionShare // Ensure proper casing
+      ...user
     }));
     
     console.log('Found users:', transformedUsers.length);
     console.log('Where clause:', whereClause);
-    console.log('Sample users:', transformedUsers.slice(0, 3).map(u => ({ id: u.id, username: u.username, role: u.role, status: u.status, isActive: u.isActive })));
+    console.log('Sample users:', transformedUsers.slice(0, 3).map(u => ({ id: u.id, username: u.username, role: u.role, status: u.status })));
     
     return res.status(200).json({ success: true, users: transformedUsers });
   } catch (error) {

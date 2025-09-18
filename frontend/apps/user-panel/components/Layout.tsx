@@ -6,7 +6,7 @@ import { authService } from '../lib/auth';
 import ErrorBoundary from './ErrorBoundary';
 import EnhancedLoadingWrapper from './EnhancedLoadingWrapper';
 
-// Custom styles to override Bootstrap navbar defaults
+// Custom styles to override Bootstrap navbar defaults and AdminLTE sidebar
 const navbarStyles = `
   #fixed-navbar {
     background-color: #023E8A !important;
@@ -77,6 +77,31 @@ const navbarStyles = `
     color: #CAF0F8 !important;
     border-bottom: 2px solid rgba(202,240,248,0.3) !important;
   }
+  
+  /* CRITICAL: Override AdminLTE sidebar width with highest specificity */
+  aside.main-sidebar,
+  aside.main-sidebar.sidebar-light-indigo,
+  aside.main-sidebar.elevation-4,
+  aside.main-sidebar.mobile-sidebar,
+  .main-sidebar,
+  .mobile-sidebar {
+    max-width: calc(100vw - 20px) !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Mobile-specific overrides */
+  @media (max-width: 767px) {
+    aside.main-sidebar,
+    aside.main-sidebar.sidebar-light-indigo,
+    aside.main-sidebar.elevation-4,
+    aside.main-sidebar.mobile-sidebar,
+    .main-sidebar,
+    .mobile-sidebar {
+      max-width: calc(100vw - 20px) !important;
+      width: auto !important;
+    }
+  }
 `;
 
 // ===================== Layout Component =====================
@@ -130,7 +155,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 // Separate client-side component that uses hooks
 const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   try {
-    console.log('🔵 Layout component rendering - Client side');
     const router = useRouter();
   
     // -------- All State Declarations (must come first) --------
@@ -149,8 +173,9 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       return true; // Default to closed
     });
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
-    const [isTablet, setIsTablet] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(0);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
 
@@ -230,7 +255,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
   // -------- Get User Data and Role-Based Navigation on Mount --------
   useEffect(() => {
-    console.log('🔵 Layout useEffect - getUserData started');
+    // Getting user data
       
       // Add timeout to prevent infinite loading
       const timeoutId = setTimeout(() => {
@@ -245,20 +270,13 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       
     const getUserData = async () => {
       try {
-        console.log('🔵 Fetching user session data...');
         const sessionData = await authService.getSessionData();
-        console.log('🔵 Session response:', sessionData);
         
         if (sessionData.success && sessionData.user) {
-          console.log('🔵 User data received:', sessionData.user);
           setUser(sessionData.user);
           
           // Get role-based navigation
-          console.log('🔵 Getting navigation for role:', sessionData.user.role);
           const navigation = getRoleBasedNavigation(sessionData.user.role);
-          console.log('🔵 Navigation result:', navigation);
-            console.log('🔵 Navigation keys:', Object.keys(navigation));
-            console.log('🔵 Navigation length:', Object.keys(navigation).length);
             
             if (Object.keys(navigation).length === 0) {
               console.warn('🔴 No navigation items found for role:', sessionData.user.role);
@@ -274,7 +292,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           
             // Expand all sections by default (only if no saved state exists)
           const sections = Object.keys(navigation);
-          console.log('🔵 Expanding sections:', sections);
+          // Expanding sections
             
             // Check if we have saved expanded sections, otherwise expand all
             const savedExpandedSections = localStorage.getItem('expandedSections');
@@ -294,7 +312,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
               setExpandedSections(new Set(sections));
             }
         } else {
-          console.log('🔵 Session invalid or no user data');
+          // Session invalid or no user data
           // Don't redirect here, let individual pages handle session validation
           // Session invalid in Layout, but not redirecting
         }
@@ -307,7 +325,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             ]
           });
       } finally {
-          console.log('🔵 Setting isLayoutLoading to false');
+          // Layout loading complete
           setIsLayoutLoading(false);
           clearTimeout(timeoutId); // Clear timeout on success
       }
@@ -406,6 +424,42 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
              setSidebarCollapsed(newCollapsedState);
            };
 
+  // -------- Calculate Sidebar Width --------
+  const getSidebarWidth = () => {
+    if (typeof window === 'undefined') return 280;
+    
+    const width = viewportWidth || window.innerWidth;
+    let calculatedWidth;
+    
+    // Very narrow screens (< 360px) - full overlay drawer
+    if (width < 360) {
+      calculatedWidth = width; // full overlay drawer
+    }
+    // Narrow screens (360px - 480px) - 80% of viewport
+    else if (width <= 480) {
+      calculatedWidth = Math.floor(width * 0.8); // 80% of screen
+    }
+    // Small screens (481px - 767px) - 40-60vw
+    else if (width < 768) {
+      calculatedWidth = Math.floor(width * 0.6); // 60% of screen
+    }
+    // Desktop (≥ 768px) - fixed width
+    else {
+      calculatedWidth = 300;
+    }
+    
+    const finalWidth = Math.min(calculatedWidth, width);
+    console.log('🔍 Sidebar Width Calculation:', { 
+      viewportWidth: width, 
+      calculatedWidth, 
+      finalWidth,
+      percentage: Math.round((finalWidth / width) * 100) + '%'
+    });
+    
+    // Safety check: never exceed viewport width
+    return finalWidth;
+  };
+
   // -------- Scroll to Top Function --------
   const scrollToTop = () => {
     if (typeof window === 'undefined') return;
@@ -420,23 +474,33 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   useEffect(() => {
     const checkMobile = () => {
       const width = window.innerWidth;
-      setIsMobile(width < 768);
-      setIsTablet(width >= 768 && width < 992);
+      setViewportWidth(width);
+      const mobile = width < 768;
+      const tablet = width >= 768 && width < 992;
+      
+      setIsMobile(mobile);
+      setIsTablet(tablet);
       
       // Add mobile class to body for CSS targeting
-      if (width < 768) {
+      if (mobile) {
         document.body.classList.add('mobile-device');
         document.body.classList.remove('tablet-device', 'desktop-device');
-      } else if (width >= 768 && width < 992) {
+      } else if (tablet) {
         document.body.classList.add('tablet-device');
         document.body.classList.remove('mobile-device', 'desktop-device');
       } else {
         document.body.classList.add('desktop-device');
         document.body.classList.remove('mobile-device', 'tablet-device');
       }
+      
+      // Debug logging
+      console.log('🔍 Mobile Detection:', { width, mobile, tablet });
     };
     
+    // Initial check
     checkMobile();
+    
+    // Add resize listener
     window.addEventListener('resize', checkMobile);
     
     return () => {
@@ -451,6 +515,20 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     if (isMobile) setMobileSidebarOpen(false);
     // eslint-disable-next-line
   }, [router.asPath]);
+
+  // -------- Handle Mobile Sidebar Body Class --------
+  useEffect(() => {
+    if (isMobile && mobileSidebarOpen) {
+      document.body.classList.add('mobile-sidebar-open');
+    } else {
+      document.body.classList.remove('mobile-sidebar-open');
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.classList.remove('mobile-sidebar-open');
+    };
+  }, [isMobile, mobileSidebarOpen]);
 
   // -------- Close Profile Dropdown on Click Outside --------
   useEffect(() => {
@@ -472,17 +550,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     };
   }, [profileDropdownOpen]);
 
-  console.log('🔵 Layout: Rendering main layout');
-  console.log('🔵 Current state:', {
-    user: user ? { id: user.id, name: user.name, role: user.role } : null,
-    sidebarLinks: sidebarLinks,
-       sidebarLinksKeys: Object.keys(sidebarLinks),
-       sidebarLinksLength: Object.keys(sidebarLinks).length,
-    expandedSections: Array.from(expandedSections),
-       isLayoutLoading,
-    sidebarCollapsed,
-    isMobile
-  });
+  // Layout rendering - debug logs removed for production
 
   // Don't render during SSR to prevent context errors (from client panel)
   if (!isMounted) {
@@ -523,8 +591,8 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
            style={{ 
              position: 'fixed', 
              top: 0,
-             left: (isMobile || isTablet) ? 0 : (sidebarCollapsed ? 0 : 250),
-             width: (isMobile || isTablet) ? '100%' : (sidebarCollapsed ? '100%' : 'calc(100% - 250px)'),
+             left: isMobile ? 0 : (sidebarCollapsed ? 0 : 250),
+             width: isMobile ? '100%' : (sidebarCollapsed ? '100%' : 'calc(100% - 250px)'),
              zIndex: 1030,
              minHeight: '64px',
              height: '64px',
@@ -553,7 +621,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                 style={{
                     position: 'fixed',
                   top: 0,
-                    left: (isMobile || isTablet) ? 0 : (sidebarCollapsed ? 0 : 255),
+                    left: isMobile ? 0 : (sidebarCollapsed ? 0 : 255),
                   height: '64px',
                   display: 'flex',
                   alignItems: 'center',
@@ -812,26 +880,38 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         </nav>
 
         {/* ===================== Sidebar ===================== */}
+        {(() => {
+          console.log('🔍 Sidebar Render Debug:', { isMobile, mobileSidebarOpen, isTablet, sidebarCollapsed });
+          return null;
+        })()}
         {isMobile ? (
-          (() => {
-            console.log('📱 Mobile sidebar render check:', { isMobile, mobileSidebarOpen });
-            return mobileSidebarOpen;
-          })() && (
+          mobileSidebarOpen && (
             <>
               {/* Backdrop - Enhanced from client panel */}
               <div 
-                className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                className="mobile-sidebar-backdrop"
                 onClick={() => setMobileSidebarOpen(false)}
+                style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  width: '100vw',
+                  height: '100vh',
+                  zIndex: 1030,
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  backdropFilter: 'blur(2px)',
+                }}
               />
-              {/* Sidebar - Enhanced from client panel */}
+              {/* Mobile Sidebar - Only render when mobileSidebarOpen is true */}
               <aside
                 className="main-sidebar sidebar-light-indigo elevation-4 mobile-sidebar"
                 style={{
                   position: 'fixed',
                   top: 0,
                   left: 0,
-                  width: '280px',
-                  maxWidth: '85vw',
+                  width: `${getSidebarWidth()}px`,
+                  maxWidth: '100vw',
+                  minWidth: 'unset',
                   height: '100vh',
                   backgroundColor: '#03045E',
                   boxShadow: '2px 0 8px rgba(0,0,0,0.15)',
@@ -840,7 +920,10 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                   flexDirection: 'column',
                   overflow: 'hidden',
                   transform: 'translateX(0)',
-                  transition: 'transform 0.3s ease-in-out',
+                  transition: 'transform 0.3s ease-in-out, width 0.3s ease-in-out',
+                  // Ensure sidebar stays within viewport bounds
+                  maxHeight: '100vh',
+                  boxSizing: 'border-box',
                 }}
               >
                 {/* Brand Logo with Close Button - Enhanced from client panel */}
@@ -921,16 +1004,22 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                   </button>
                 </div>
                 {/* Sidebar Navigation Menu */}
-                <div className="sidebar" style={{ marginTop: '0', flex: 1, overflowY: 'auto', marginLeft: 0, paddingLeft: 0 }}>
+                <div className="sidebar" style={{ 
+                  marginTop: '0', 
+                  flex: 1, 
+                  overflowY: 'auto', 
+                  overflowX: 'hidden',
+                  marginLeft: 0, 
+                  paddingLeft: 0,
+                  maxHeight: 'calc(100vh - 60px)',
+                  boxSizing: 'border-box'
+                }}>
                   <nav>
                     <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                                              {(() => {
-                         console.log('🔵 Mobile sidebar: Rendering navigation, sidebarLinks:', sidebarLinks);
-                         if (sidebarLinks && Object.keys(sidebarLinks).length > 0) {
-                           console.log('🔵 Mobile sidebar: Rendering sections:', Object.keys(sidebarLinks));
-                           return Object.entries(sidebarLinks).map(([section, links]) => {
-                             const isExpanded = expandedSections.has(section);
-                             console.log('🔵 Mobile sidebar: Rendering section:', section, 'expanded:', isExpanded, 'links:', links);
+                        if (sidebarLinks && Object.keys(sidebarLinks).length > 0) {
+                          return Object.entries(sidebarLinks).map(([section, links]) => {
+                            const isExpanded = expandedSections.has(section);
                              return (
                                <React.Fragment key={section}>
                                   <li className="nav-header" style={{ 
@@ -1012,7 +1101,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                              );
                            });
                          } else {
-                           console.log('🔵 Mobile sidebar: No sidebarLinks, showing loading');
+                           // No sidebarLinks, showing loading
                            return (
                              <li className="nav-item">
                                  <div style={{ 
@@ -1045,26 +1134,29 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             </>
           )
         ) : (
-          // Desktop/Tablet Sidebar
+          // Desktop/Tablet Sidebar - Only render when NOT mobile
           <aside
             className="main-sidebar sidebar-light-indigo elevation-4"
             style={{
               position: 'fixed',
               top: 0,
-              left: (isTablet || sidebarCollapsed) ? '-250px' : 0,
+              left: sidebarCollapsed ? '-250px' : 0,
               height: '100vh',
               zIndex: 1031,
-              display: 'flex',
+              display: isMobile ? 'none' : 'flex',
               flexDirection: 'column',
-              width: '250px',
+              width: `${getSidebarWidth()}px`,
               maxWidth: '100vw',
-              minWidth: '250px',
+              minWidth: 'unset',
               background: '#03045E',
-              boxShadow: undefined,
-              transition: 'left 0.4s cubic-bezier(.4,0,.2,1)',
+              boxShadow: '2px 0 8px rgba(0,0,0,0.15)',
+              transition: 'left 0.4s cubic-bezier(.4,0,.2,1), width 0.3s ease-in-out',
               boxSizing: 'border-box',
               marginLeft: 0,
               paddingLeft: 0,
+              overflow: 'hidden',
+              // Ensure sidebar doesn't render outside viewport
+              transform: sidebarCollapsed ? 'translateX(-100%)' : 'translateX(0)',
             }}
           >
             {/* Brand Logo */}
@@ -1108,16 +1200,22 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                   </span>
                 </Link>
                 {/* Sidebar Navigation Menu */}
-                <div className="sidebar" style={{ marginTop: '0', flex: 1, overflowY: 'auto', marginLeft: 0, paddingLeft: 0 }}>
+                <div className="sidebar" style={{ 
+                  marginTop: '0', 
+                  flex: 1, 
+                  overflowY: 'auto', 
+                  overflowX: 'hidden',
+                  marginLeft: 0, 
+                  paddingLeft: 0,
+                  maxHeight: 'calc(100vh - 60px)',
+                  boxSizing: 'border-box'
+                }}>
                   <nav>
                     <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                       {(() => {
-                        console.log('🔵 Desktop sidebar: Rendering navigation, sidebarLinks:', sidebarLinks);
                         if (sidebarLinks && Object.keys(sidebarLinks).length > 0) {
-                          console.log('🔵 Desktop sidebar: Rendering sections:', Object.keys(sidebarLinks));
                           return Object.entries(sidebarLinks).map(([section, links]) => {
                             const isExpanded = expandedSections.has(section);
-                            console.log('🔵 Desktop sidebar: Rendering section:', section, 'expanded:', isExpanded, 'links:', links);
                             return (
                               <React.Fragment key={section}>
                               <li className="nav-header" style={{ 
@@ -1191,7 +1289,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                             );
                           });
                         } else {
-                          console.log('🔵 Desktop sidebar: No sidebarLinks, showing loading');
+                          // No sidebarLinks, showing loading
                           return (
                             <li className="nav-item">
                                <div style={{ 
@@ -1221,13 +1319,13 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                   </nav>
                 </div>
               </aside>
-            )}
+        )}
 
                  {/* ===================== Main Content Wrapper ===================== */}
          <div className="content-wrapper" style={{
            marginTop: '64px',
-           width: (isMobile || isTablet) ? '100%' : (sidebarCollapsed ? '100%' : 'calc(100% - 250px)'),
-           marginLeft: (isMobile || isTablet) ? '0' : (sidebarCollapsed ? '0' : '250px'),
+           width: isMobile ? '100%' : (sidebarCollapsed ? '100%' : 'calc(100% - 250px)'),
+           marginLeft: isMobile ? '0' : (sidebarCollapsed ? '0' : '250px'),
            minHeight: 'calc(100vh - 64px)',
            transition: 'margin-left 0.3s ease-in-out, width 0.3s ease-in-out',
            padding: isMobile ? '8px' : isTablet ? '12px' : '2px',
