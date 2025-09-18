@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# AWS Deployment Script for 3xbat with SSL Certificate Setup
-# This script handles deployment to AWS with proper SSL certificate configuration
+# Simple AWS Deployment Script for 3xbat
+# This script handles deployment to AWS with basic SSL configuration
 
 set -e
 
-echo "🚀 Deploying 3xbat to AWS with SSL certificates..."
+echo "🚀 Deploying 3xbat to AWS..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -46,7 +46,7 @@ fi
 # Check if domain is provided
 if [ -z "$1" ]; then
     print_error "Please provide your domain name as an argument"
-    print_error "Usage: ./aws-deploy.sh yourdomain.com"
+    print_error "Usage: ./simple-deploy.sh yourdomain.com"
     exit 1
 fi
 
@@ -55,16 +55,11 @@ print_status "Deploying for domain: $DOMAIN"
 
 # Update nginx configuration with the provided domain
 print_status "Updating nginx configuration for domain: $DOMAIN"
-if [ -f "nginx-production.conf" ]; then
-    sed -i "s/3xbat.com/$DOMAIN/g" nginx-production.conf
-else
-    print_warning "nginx-production.conf not found, using nginx.conf instead"
-    sed -i "s/3xbat.com/$DOMAIN/g" nginx.conf
-fi
+sed -i "s/3xbat.com/$DOMAIN/g" nginx.conf
 
 # Generate SSL certificates if they don't exist
 if [[ ! -f "ssl/cert.pem" ]] || [[ ! -f "ssl/key.pem" ]]; then
-    print_status "Generating temporary SSL certificates..."
+    print_status "Generating SSL certificates..."
     chmod +x generate-ssl.sh
     ./generate-ssl.sh
 else
@@ -75,7 +70,6 @@ fi
 print_status "Creating necessary directories..."
 mkdir -p logs
 mkdir -p ssl
-mkdir -p /var/www/certbot
 
 # Set proper permissions
 print_status "Setting proper permissions..."
@@ -103,7 +97,7 @@ fi
 
 # Check Nginx status
 print_status "Checking Nginx status..."
-if curl -f http://13.60.145.70:8080/nginx_status > /dev/null 2>&1; then
+if curl -f http://localhost:8080/nginx_status > /dev/null 2>&1; then
     print_status "✅ Nginx is running and healthy!"
 else
     print_warning "⚠️  Nginx health check failed, but service may still be starting..."
@@ -113,9 +107,10 @@ print_status "🎉 Deployment completed successfully!"
 print_status ""
 print_warning "Next steps for SSL certificate setup:"
 print_warning "1. Ensure your domain $DOMAIN points to this server's IP address"
-print_warning "2. Run: sudo certbot --nginx -d $DOMAIN -d *.$DOMAIN"
-print_warning "3. Set up automatic renewal: sudo crontab -e"
-print_warning "4. Add: 0 12 * * * /usr/bin/certbot renew --quiet"
+print_warning "2. Install certbot: sudo apt-get install certbot python3-certbot-nginx"
+print_warning "3. Run: sudo certbot --nginx -d $DOMAIN -d *.$DOMAIN"
+print_warning "4. Set up automatic renewal: sudo crontab -e"
+print_warning "5. Add: 0 12 * * * /usr/bin/certbot renew --quiet"
 print_status ""
 print_status "Your application is now accessible at:"
 print_status "  - Main site: http://$DOMAIN (will redirect to HTTPS)"
@@ -123,4 +118,3 @@ print_status "  - API: https://api.$DOMAIN"
 print_status "  - Control Panel: https://control.$DOMAIN"
 print_status "  - Admin Panel: https://adm.$DOMAIN"
 print_status "  - And other role-based subdomains..."
-
