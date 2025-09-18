@@ -40,9 +40,9 @@ services:
       NODE_ENV: production
       PORT: 4000
       HOST: 0.0.0.0
-      REDIS_URL: redis://redis:6380
+      REDIS_URL: redis://redis:6379
       REDIS_HOST: redis
-      REDIS_PORT: 6380
+      REDIS_PORT: 6379
       DATABASE_URL: postgresql://postgres:8079@postgres:5432/betting_db
       JWT_SECRET: L9vY7z!pQkR#eA1dT3u*Xj5@FbNmC2Ws
       FRONTEND_URL: http://13.60.145.70:3000
