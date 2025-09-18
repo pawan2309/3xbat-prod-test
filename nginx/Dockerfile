@@ -8,8 +8,10 @@ RUN apk add --no-cache \
     bash \
     certbot \
     python3 \
-    py3-pip \
-    py3-certbot-nginx
+    py3-pip
+
+# Install certbot nginx plugin using pip with --break-system-packages flag
+RUN pip3 install --break-system-packages certbot-nginx
 
 # Create necessary directories
 RUN mkdir -p /etc/nginx/ssl \
