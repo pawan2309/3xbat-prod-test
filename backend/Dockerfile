@@ -24,13 +24,16 @@ RUN npx prisma generate
 RUN npm run build:prod
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:18-slim AS production
 
 # Set working directory
 WORKDIR /app
 
 # Install only production dependencies and OpenSSL for Prisma
-RUN apk add --no-cache dumb-init openssl1.1-compat
+RUN apt-get update && apt-get install -y \
+    dumb-init \
+    openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
