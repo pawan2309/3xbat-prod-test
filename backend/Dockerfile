@@ -29,8 +29,8 @@ FROM node:18-alpine AS production
 # Set working directory
 WORKDIR /app
 
-# Install only production dependencies
-RUN apk add --no-cache dumb-init
+# Install only production dependencies and OpenSSL for Prisma
+RUN apk add --no-cache dumb-init openssl1.1-compat
 
 # Copy package files
 COPY package*.json ./
