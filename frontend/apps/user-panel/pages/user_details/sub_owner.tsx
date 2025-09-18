@@ -163,9 +163,6 @@ export default function SubOwnerMasterPage() {
       setTimeout(() => {
         window.location.reload();
       }, 1000); // 1 second delay to show success state
-      } else {
-        console.error('Failed to update status:', data.message);
-      }
     } catch (err) {
       console.error('Failed to update status:', err);
     } finally {
