@@ -335,8 +335,76 @@ export const getRoleBasedUsers = async (req: Request, res: Response) => {
 };
 
 export const updateUserLimit = async (req: Request, res: Response) => {
-  // Implementation for updateUserLimit
-  res.status(200).json({ success: true, message: 'Update user limit - to be implemented' });
+  try {
+    const { userId, newLimit, reason } = req.body;
+    
+    if (!userId || newLimit === undefined) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User ID and new limit are required' 
+      });
+    }
+
+    const numericLimit = parseFloat(newLimit);
+    if (isNaN(numericLimit) || numericLimit < 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Limit must be a non-negative number' 
+      });
+    }
+
+    // Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, username: true, name: true, limit: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const oldLimit = user.limit;
+
+    // Update user limit
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { limit: numericLimit },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        limit: true,
+        role: true
+      }
+    });
+
+    // Create ledger entry for limit change
+    await prisma.ledger.create({
+      data: {
+        userId: userId,
+        type: 'LIMIT_CHANGE',
+        amount: 0,
+        matchId: null,
+        marketId: null,
+        betId: null
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'User limit updated successfully',
+      user: updatedUser,
+      oldLimit,
+      newLimit: numericLimit
+    });
+  } catch (error) {
+    console.error('Error updating user limit:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update user limit', 
+      error: (error as Error).message 
+    });
+  }
 };
 
 export const updateUserLimits = async (req: Request, res: Response) => {
@@ -345,8 +413,115 @@ export const updateUserLimits = async (req: Request, res: Response) => {
 };
 
 export const transferLimit = async (req: Request, res: Response) => {
-  // Implementation for transferLimit
-  res.status(200).json({ success: true, message: 'Transfer limit - to be implemented' });
+  try {
+    const { fromUserId, toUserId, amount, reason } = req.body;
+    
+    if (!fromUserId || !toUserId || amount === undefined) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'From user ID, to user ID, and amount are required' 
+      });
+    }
+
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Amount must be a positive number' 
+      });
+    }
+
+    if (fromUserId === toUserId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot transfer limit to the same user' 
+      });
+    }
+
+    // Verify both users exist
+    const [fromUser, toUser] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: fromUserId },
+        select: { id: true, username: true, name: true, limit: true }
+      }),
+      prisma.user.findUnique({
+        where: { id: toUserId },
+        select: { id: true, username: true, name: true, limit: true }
+      })
+    ]);
+
+    if (!fromUser) {
+      return res.status(404).json({ success: false, message: 'From user not found' });
+    }
+    if (!toUser) {
+      return res.status(404).json({ success: false, message: 'To user not found' });
+    }
+
+    // Check if from user has sufficient limit
+    if (fromUser.limit < numericAmount) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Insufficient limit. Available: ${fromUser.limit}, Requested: ${numericAmount}` 
+      });
+    }
+
+    // Use transaction to ensure atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // Update from user's limit
+      const updatedFromUser = await tx.user.update({
+        where: { id: fromUserId },
+        data: { limit: fromUser.limit - numericAmount },
+        select: { id: true, username: true, name: true, limit: true }
+      });
+
+      // Update to user's limit
+      const updatedToUser = await tx.user.update({
+        where: { id: toUserId },
+        data: { limit: toUser.limit + numericAmount },
+        select: { id: true, username: true, name: true, limit: true }
+      });
+
+      // Create ledger entries for both users
+      await tx.ledger.create({
+        data: {
+          userId: fromUserId,
+          type: 'LIMIT_TRANSFER_OUT',
+          amount: -numericAmount,
+          matchId: null,
+          marketId: null,
+          betId: null
+        }
+      });
+
+      await tx.ledger.create({
+        data: {
+          userId: toUserId,
+          type: 'LIMIT_TRANSFER_IN',
+          amount: numericAmount,
+          matchId: null,
+          marketId: null,
+          betId: null
+        }
+      });
+
+      return { updatedFromUser, updatedToUser };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Limit transferred successfully',
+      fromUser: result.updatedFromUser,
+      toUser: result.updatedToUser,
+      amount: numericAmount
+    });
+  } catch (error) {
+    console.error('Error transferring limit:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to transfer limit', 
+      error: (error as Error).message 
+    });
+  }
 };
 
 export const updateUserStatus = async (req: Request, res: Response) => {
@@ -392,8 +567,85 @@ export const updateUserStatus = async (req: Request, res: Response) => {
 };
 
 export const changePassword = async (req: Request, res: Response) => {
-  // Implementation for changePassword
-  res.status(200).json({ success: true, message: 'Change password - to be implemented' });
+  try {
+    const { userId, currentPassword, newPassword, confirmPassword } = req.body;
+    
+    if (!userId || !currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User ID, current password, new password, and confirm password are required' 
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'New password and confirm password do not match' 
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'New password must be at least 6 characters long' 
+      });
+    }
+
+    // Verify user exists and get current password
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, username: true, name: true, password: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Verify current password (assuming passwords are stored in plain text for this system)
+    if (user.password !== currentPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Current password is incorrect' 
+      });
+    }
+
+    // Update password
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { password: newPassword },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true
+      }
+    });
+
+    // Create ledger entry for password change
+    await prisma.ledger.create({
+      data: {
+        userId: userId,
+        type: 'PASSWORD_CHANGE',
+        amount: 0,
+        matchId: null,
+        marketId: null,
+        betId: null
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password changed successfully',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to change password', 
+      error: (error as Error).message 
+    });
+  }
 };
 
 export const shareCommission = async (req: Request, res: Response) => {
@@ -402,11 +654,123 @@ export const shareCommission = async (req: Request, res: Response) => {
 };
 
 export const getUserLedger = async (req: Request, res: Response) => {
-  // Implementation for getUserLedger
-  res.status(200).json({ success: true, message: 'Get user ledger - to be implemented' });
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+
+    // Get user's ledger entries
+    const ledgerEntries = await prisma.ledger.findMany({
+      where: { userId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 100 // Limit to last 100 entries
+    });
+
+    // Get user details
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true,
+        limit: true,
+        status: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Calculate current balance
+    const currentBalance = ledgerEntries.reduce((sum, entry) => {
+      return sum + entry.amount;
+    }, 0);
+
+    return res.status(200).json({
+      success: true,
+      user,
+      ledger: ledgerEntries,
+      currentBalance,
+      totalEntries: ledgerEntries.length
+    });
+  } catch (error) {
+    console.error('Error fetching user ledger:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch user ledger', 
+      error: (error as Error).message 
+    });
+  }
 };
 
 export const createManualLedger = async (req: Request, res: Response) => {
-  // Implementation for createManualLedger
-  res.status(200).json({ success: true, message: 'Create manual ledger - to be implemented' });
+  try {
+    const { id } = req.params;
+    const { type, amount, description, reference } = req.body;
+    
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+
+    if (!type || !amount || !description) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Type, amount, and description are required' 
+      });
+    }
+
+    if (!['credit', 'debit'].includes(type)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Type must be either "credit" or "debit"' 
+      });
+    }
+
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Amount must be a positive number' 
+      });
+    }
+
+    // Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, username: true, name: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Create ledger entry
+    const ledgerEntry = await prisma.ledger.create({
+      data: {
+        userId: id,
+        type: type.toUpperCase(),
+        amount: type === 'credit' ? numericAmount : -numericAmount,
+        matchId: null,
+        marketId: null,
+        betId: null
+      }
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Manual ledger entry created successfully',
+      ledgerEntry
+    });
+  } catch (error) {
+    console.error('Error creating manual ledger entry:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to create manual ledger entry', 
+      error: (error as Error).message 
+    });
+  }
 };
