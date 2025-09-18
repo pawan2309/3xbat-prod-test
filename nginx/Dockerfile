@@ -28,9 +28,8 @@ RUN openssl req -x509 -nodes -days 1 -newkey rsa:2048 \
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY nginx-production.conf /etc/nginx/nginx-production.conf
 
-# Create nginx user with proper permissions
-RUN adduser -D -s /bin/bash nginx && \
-    chown -R nginx:nginx /var/cache/nginx && \
+# Set up nginx user permissions (user already exists in nginx:alpine)
+RUN chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx && \
     chown -R nginx:nginx /etc/nginx/conf.d && \
     chown -R nginx:nginx /var/www/certbot && \
