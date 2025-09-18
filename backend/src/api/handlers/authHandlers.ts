@@ -158,7 +158,7 @@ export const logout = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/auth/session - Get current session
+// GET /api/auth/unified-session-check - Get current session
 export const getSession = async (req: Request, res: Response) => {
   try {
     // Get token from cookie
@@ -282,7 +282,13 @@ export const getProfile = async (req: Request, res: Response) => {
         role: user.role,
         status: user.status,
         limit: user.limit,
+        creditLimit: user.limit, // Map limit to creditLimit for frontend compatibility
         casinoStatus: user.casinoStatus,
+        contactno: user.contactno, // Show actual database value
+        createdAt: user.createdAt,
+        code: user.username, // Use username as code since there's no code field
+        reference: user.reference, // Show actual database value
+        mobileshare: 100, // Default value since there's no mobileshare field
         userCommissionShare: user.userCommissionShare
       }
     });
@@ -377,54 +383,54 @@ export const getRoleAccess = async (req: Request, res: Response) => {
 
     const userRole = decoded.user?.role || decoded.role;
     
-    // Define role hierarchy and permissions
+    // Define role hierarchy and permissions (1 = highest authority)
     const roleHierarchy: Record<string, {
       level: number;
       accessibleRoles: string[];
       permissions: string[];
     }> = {
       'OWNER': {
-        level: 8,
+        level: 1,
         accessibleRoles: ['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
         permissions: ['all']
       },
       'SUB_OWN': {
-        level: 7,
+        level: 2,
         accessibleRoles: ['SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
         permissions: ['user_management', 'limit_management', 'commission_management', 'reporting', 'admin_panel']
       },
       'SUP_ADM': {
-        level: 6,
+        level: 3,
         accessibleRoles: ['SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
         permissions: ['user_management', 'limit_management', 'commission_management', 'reporting']
       },
       'ADMIN': {
-        level: 5,
+        level: 4,
         accessibleRoles: ['ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
         permissions: ['user_management', 'limit_management', 'reporting']
       },
       'SUB_ADM': {
-        level: 4,
+        level: 5,
         accessibleRoles: ['SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
         permissions: ['user_management', 'reporting']
       },
       'MAS_AGENT': {
-        level: 3,
+        level: 6,
         accessibleRoles: ['MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
         permissions: ['user_management']
       },
       'SUP_AGENT': {
-        level: 2,
+        level: 7,
         accessibleRoles: ['SUP_AGENT', 'AGENT', 'USER'],
         permissions: ['user_management']
       },
       'AGENT': {
-        level: 1,
+        level: 8,
         accessibleRoles: ['AGENT', 'USER'],
         permissions: ['user_management']
       },
       'USER': {
-        level: 0,
+        level: 9,
         accessibleRoles: ['USER'],
         permissions: []
       }

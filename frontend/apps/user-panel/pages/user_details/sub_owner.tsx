@@ -21,7 +21,7 @@ export default function SubOwnerMasterPage() {
       setLoading(true);
       setError('');
       try {
-        const res = await fetch('/api/users?role=SUB_OWNER');
+        const res = await fetch('/api/users?role=SUB_OWN');
         const data = await res.json();
         if (data.success) {
           setSubOwners(data.users || []);
@@ -42,7 +42,7 @@ export default function SubOwnerMasterPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/users?role=SUB_OWNER');
+      const res = await fetch('/api/users?role=SUB_OWN');
       const data = await res.json();
       if (data.success) {
         setSubOwners(data.users || []);
@@ -135,20 +135,34 @@ export default function SubOwnerMasterPage() {
     }
     if (isActive) { setActivating(true); } else { setDeactivating(true); }
     try {
-      const res = await fetch('/api/users/update-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: usersToUpdate, isActive: isActive, role: 'SUB_OWNER' }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSubOwners(prev => prev.map(user => usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user));
-        if (!userIds) { setSelectedUsers([]); }
-        
-        // Auto-refresh the page after successful status update
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000); // 1 second delay to show success state
+      // Send individual requests for each user
+      const promises = usersToUpdate.map(userId => 
+        fetch('/api/users/update-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            isActive: isActive,
+          }),
+        })
+      );
+
+      const responses = await Promise.all(promises);
+      
+      // Check if all requests were successful
+      const failedRequests = responses.filter(res => !res.ok);
+      if (failedRequests.length > 0) {
+        throw new Error(`Failed to ${isActive ? 'activate' : 'deactivate'} ${failedRequests.length} users`);
+      }
+
+      // Update the UI
+      setSubOwners(prev => prev.map(user => usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user));
+      if (!userIds) { setSelectedUsers([]); }
+      
+      // Auto-refresh the page after successful status update
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // 1 second delay to show success state
       } else {
         console.error('Failed to update status:', data.message);
       }
@@ -189,7 +203,7 @@ export default function SubOwnerMasterPage() {
                   <div className="card-header">
                     <div className="form-group">
                       <div className="user-action-grid">
-                        <NewUserButton role="SUB_OWNER" className="btn btn-primary">
+                        <NewUserButton role="SUB_OWN" className="btn btn-primary">
                           New <i className="fa fa-plus-circle"></i>
                         </NewUserButton>
                         <button className="btn btn-danger" type="button" onClick={() => handleStatusUpdate(false)} disabled={activating || deactivating || selectedUsers.length === 0}>

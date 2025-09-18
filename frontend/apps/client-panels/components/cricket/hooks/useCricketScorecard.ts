@@ -90,7 +90,7 @@ export const useCricketScorecard = (matches: Match[], expandedMatch: string | nu
           setScorecardError('Scorecard data not available for this match')
           setScorecardLoading(false)
         }
-      }, 10000) // 10 seconds timeout
+      }, parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '10000')) // API timeout
       
       return () => clearTimeout(timeout)
     }
@@ -111,7 +111,7 @@ export const useCricketScorecard = (matches: Match[], expandedMatch: string | nu
         console.log('📊 Fetching scorecard for eventId:', eventId)
       }
       
-      const response = await fetch(`http://localhost:4000/api/cricket/scorecard/${eventId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/cricket/scorecard/${eventId}`, {
         credentials: 'include',
         mode: 'cors'
       })

@@ -75,19 +75,32 @@ export default function DeadUsersPage() {
   const fetchDeadUsers = async () => {
     try {
       setLoading(true);
+      
+      // Fetch only directly deactivated users (status: 'INACTIVE')
       const res = await fetch('/api/users?isActive=false', {
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
-        }
+        },
+        credentials: 'include'
       });
 
       if (!res.ok) {
-        throw new Error('Failed to fetch dead users');
+        const errorText = await res.text();
+        console.error('Failed to fetch deactivated users:', res.status, errorText);
+        throw new Error(`Failed to fetch deactivated users: ${res.status} - ${errorText}`);
       }
 
       const data = await res.json();
-      setUsers(data.users || []);
+      const deactivatedUsers = data.users || [];
+      console.log('Deactivated users:', deactivatedUsers.length, deactivatedUsers.map(u => ({ id: u.id, username: u.username, status: u.status })));
+      
+      if (deactivatedUsers.length === 0) {
+        console.log('No deactivated users found. All users in database are ACTIVE.');
+        console.log('To test: Go to any user management page and deactivate a user, then refresh this page.');
+      }
+      
+      setUsers(deactivatedUsers);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -98,22 +111,29 @@ export default function DeadUsersPage() {
   const handleActivate = async (userIds: string[]) => {
     try {
       setActivating(true);
-      const res = await fetch('/api/users/update-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userIds: userIds,
-          isActive: true,
-        }),
-      });
+      
+      // Send individual requests for each user
+      const promises = userIds.map(userId => 
+        fetch('/api/users/update-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: userId,
+            isActive: true,
+          }),
+        })
+      );
 
-      if (!res.ok) {
-        throw new Error('Failed to activate users');
+      const responses = await Promise.all(promises);
+      
+      // Check if all requests were successful
+      const failedRequests = responses.filter(res => !res.ok);
+      if (failedRequests.length > 0) {
+        throw new Error(`Failed to activate ${failedRequests.length} users`);
       }
 
-      const result = await res.json();
       fetchDeadUsers(); // Refresh the list
       setSelectedUsers([]); // Clear selection
     } catch (err) {
@@ -207,12 +227,12 @@ export default function DeadUsersPage() {
   const getRoleDisplayName = (role: string) => {
     const roleMap: { [key: string]: string } = {
       'OWNER': 'Owner',
-      'SUB_OWNER': 'Sub Owner',
-      'SUPER_ADMIN': 'Super Admin',
+      'SUB_OWN': 'Sub Owner',
+      'SUP_ADM': 'Super Admin',
       'ADMIN': 'Admin',
-      'SUB': 'Sub',
-      'MASTER': 'Master',
-      'SUPER_AGENT': 'Super Agent',
+      'SUB_ADM': 'Sub',
+      'MAS_AGENT': 'Master',
+      'SUP_AGENT': 'Super Agent',
       'AGENT': 'Agent',
       'USER': 'Client'
     };
@@ -220,16 +240,16 @@ export default function DeadUsersPage() {
   };
 
   const getRoleOptions = () => {
-    const roles = ['OWNER', 'SUB_OWNER', 'SUPER_ADMIN', 'ADMIN', 'SUB', 'MASTER', 'SUPER_AGENT', 'AGENT', 'USER'];
+    const roles = ['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'];
     return roles.map(role => ({
       value: role,
       label: getRoleDisplayName(role)
     }));
   };
 
-  // Function to determine if user was cascade-deactivated
+  // Function to determine if user was cascade-deactivated (not used anymore since we only show directly deactivated users)
   const isCascadeDeactivated = (user: User) => {
-    return user.parentId && user.parent && user.parent.username;
+    return false; // All users shown are directly deactivated
   };
 
   // Filter users based on search term and role filter
@@ -417,7 +437,20 @@ export default function DeadUsersPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {paginatedUsers.length === 0 && (<tr><td colSpan={12} style={{ textAlign: 'center' }}>No dead users found.</td></tr>)}
+                              {paginatedUsers.length === 0 && (
+                                <tr>
+                                  <td colSpan={12} style={{ textAlign: 'center', padding: '20px' }}>
+                                    <div>
+                                      <i className="fas fa-info-circle" style={{ fontSize: '24px', color: '#6c757d', marginBottom: '10px' }}></i>
+                                      <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px' }}>No deactivated users found</div>
+                                      <div style={{ fontSize: '14px', color: '#6c757d' }}>
+                                        All users in the database are currently ACTIVE.<br/>
+                                        To test: Go to any user management page and deactivate a user, then refresh this page.
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
                               {paginatedUsers.map((user, idx) => (
                                 <tr key={user.id} className={selectedUsers.includes(user.id) ? 'table-active' : ''}>
                                   <td><input type="checkbox" checked={selectedUsers.includes(user.id)} onChange={(e) => handleSelectUser(user.id, e.target.checked)} /></td>
@@ -460,9 +493,9 @@ export default function DeadUsersPage() {
                                           {user.parent?.username || 'Unknown'}
                                         </span>
                                         <br />
-                                        <small className="text-info">
-                                          <i className="fa fa-sitemap mr-1"></i>
-                                          Cascade Deactivated
+                                        <small className="text-warning">
+                                          <i className="fa fa-user-times mr-1"></i>
+                                          Direct Deactivation
                                         </small>
                                       </div>
                                     ) : (

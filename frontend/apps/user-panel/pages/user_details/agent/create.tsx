@@ -17,7 +17,7 @@ const AgentCreatePage = () => {
     casinoCommission: '',
     casinoStatus: false,
     matchCommission: '',
-    sessionCommission: '',
+    sessioncommission: '',
     // Parent commission fields (editable)
     myShare: '',
     myCasinoShare: '',
@@ -47,7 +47,7 @@ const AgentCreatePage = () => {
           targetParentId = parentId;
         } else {
           // Get current user's session to get their ID (default behavior)
-          const sessionRes = await fetch('/api/auth/session');
+          const sessionRes = await fetch('/api/auth/unified-session-check');
           const sessionData = await sessionRes.json();
           
           if (!sessionData.valid) {
@@ -67,7 +67,7 @@ const AgentCreatePage = () => {
           setParentData(parentUserData.user);
           
           // Set parent's values for display - use proper state update
-          const commissionShare = parentUserData.user.UserCommissionShare;
+          const commissionShare = parentUserData.user.userCommissionShare;
           
           // Update form state with new values
           setForm(prevForm => ({
@@ -124,7 +124,7 @@ const AgentCreatePage = () => {
         targetParentId = parentIdFromQuery;
       } else {
         // Get current user's session to get their ID (default behavior)
-        const sessionRes = await fetch('/api/auth/session');
+        const sessionRes = await fetch('/api/auth/unified-session-check');
         const sessionData = await sessionRes.json();
         
         if (!sessionData.valid) {
@@ -149,7 +149,7 @@ const AgentCreatePage = () => {
           casinoShare: form.casinoShare,
           casinoCommission: form.casinoCommission,
           matchCommission: form.matchCommission,
-          sessionCommission: form.sessionCommission,
+          sessioncommission: form.sessioncommission,
           commissionType: form.commissionType,
           casinoStatus: form.casinoStatus,
           // Parent's commission and share values
@@ -339,7 +339,7 @@ const AgentCreatePage = () => {
                         <div className="form-group row mb-0">
                           <div className="form-group col-md-6">
                             <label>Session Commission</label>
-                            <input type="number" min="0" max={form.mySessionCommission || 100} name="sessionCommission" className="form-control" placeholder="Session Commission" value={form.sessionCommission || ''} onChange={handleChange} />
+                            <input type="number" min="0" max={form.mySessionCommission || 100} name="sessioncommission" className="form-control" placeholder="Session Commission" value={form.sessioncommission || ''} onChange={handleChange} />
                           </div>
                           <div className="form-group col-md-6">
                             <label>My Session Commission (Parent)</label>

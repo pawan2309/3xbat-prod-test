@@ -23,7 +23,6 @@ export interface CreateUserRequest {
   // Share and commission for the new user
   share: number;
   matchCommission?: number;
-  sessionCommission?: number;
   casinoCommission?: number;
   commissionType?: string;
   casinoStatus?: boolean;
@@ -45,7 +44,6 @@ export interface UpdateUserRequest {
   // Share and commission updates
   share?: number;
   matchCommission?: number;
-  sessionCommission?: number;
   casinoCommission?: number;
   commissionType?: string;
   casinoStatus?: boolean;
@@ -80,7 +78,6 @@ export async function createUserWithRoleValidation(request: CreateUserRequest): 
       parentId,
       share,
       matchCommission = 0,
-      sessionCommission = 0,
       casinoCommission = 0,
       commissionType = 'NoCommission',
       casinoStatus = false,
@@ -172,8 +169,7 @@ export async function createUserWithRoleValidation(request: CreateUserRequest): 
           icshare: 0,
           casinocommission: casinoCommission,
           matchcommission: matchCommission,
-          sessioncommission: sessionCommission,
-          sessionCommission: sessionCommission,
+          sessioncommission: 0,
           session_commission_type: commissionType === 'BetByBet' ? 'BetByBet' : 'No Comm',
           commissionType,
           updatedAt: new Date()
@@ -306,17 +302,13 @@ export async function updateUserWithRoleValidation(request: UpdateUserRequest): 
 
       // Update commission share data
       if (updateData.share !== undefined || updateData.matchCommission !== undefined || 
-          updateData.sessionCommission !== undefined || updateData.casinoCommission !== undefined ||
+          updateData.casinoCommission !== undefined ||
           updateData.commissionType !== undefined || updateData.casinoShare !== undefined) {
         
         const commissionUpdateData: any = {};
         
         if (updateData.share !== undefined) commissionUpdateData.share = updateData.share;
         if (updateData.matchCommission !== undefined) commissionUpdateData.matchcommission = updateData.matchCommission;
-        if (updateData.sessionCommission !== undefined) {
-          commissionUpdateData.sessioncommission = updateData.sessionCommission;
-          commissionUpdateData.sessionCommission = updateData.sessionCommission;
-        }
         if (updateData.casinoCommission !== undefined) commissionUpdateData.casinocommission = updateData.casinoCommission;
         if (updateData.commissionType !== undefined) commissionUpdateData.commissionType = updateData.commissionType;
         if (updateData.casinoShare !== undefined) commissionUpdateData.cshare = updateData.casinoShare;

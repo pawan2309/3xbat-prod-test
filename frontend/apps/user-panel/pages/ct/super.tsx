@@ -59,7 +59,7 @@ export default function CashSuperPage() {
 
   const fetchSupers = async () => {
     try {
-      const response = await fetch('/api/users?role=SUPER_AGENT');
+      const response = await fetch('/api/users?role=SUP_AGENT');
       if (response.ok) {
         const data = await response.json();
         setSupers(Array.isArray(data) ? data : data.users || []);

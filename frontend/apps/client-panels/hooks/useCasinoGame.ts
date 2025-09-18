@@ -138,9 +138,9 @@ export function useCasinoGame({
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const socketUrl = 'http://localhost:4000';
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const newSocket = io(socketUrl, {
-      timeout: 10000,
+      timeout: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '10000'),
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -180,7 +180,7 @@ export function useCasinoGame({
     newSocket.on('casino_tv_updated', (payload: any) => {
       if (payload.game === gameType && payload.data) {
         console.log(`🎰 Received casino TV data for ${gameType}:`, payload);
-        setCasinoTvUrl(`https://jmdapi.com/tablevideo/?id=${streamId}`);
+        setCasinoTvUrl(`${process.env.NEXT_PUBLIC_CASINO_VIDEO_URL || 'https://jmdapi.com/tablevideo/'}?id=${streamId}`);
       }
     });
 

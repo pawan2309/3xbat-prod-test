@@ -117,7 +117,7 @@ const MasterPage = () => {
       setLoading(true);
       setError('');
       try {
-        const res = await fetch('/api/users?role=MASTER&isActive=true&excludeInactiveParents=true');
+        const res = await fetch('/api/users?role=MAS_AGENT&isActive=true&excludeInactiveParents=true');
         const data = await res.json();
         if (res.ok) {
           setMasters(data.users || []);
@@ -138,7 +138,7 @@ const MasterPage = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/users?role=MASTER&isActive=true&excludeInactiveParents=true');
+      const res = await fetch('/api/users?role=MAS_AGENT&isActive=true&excludeInactiveParents=true');
       const data = await res.json();
       if (res.ok) {
         setMasters(data.users || []);
@@ -308,27 +308,33 @@ const MasterPage = () => {
     }
 
     try {
-      const res = await fetch('/api/users/update-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userIds: usersToUpdate,
-          isActive: isActive,
-          role: 'MASTER'
-        }),
-      });
+      // Send individual requests for each user
+      const promises = usersToUpdate.map(userId => 
+        fetch('/api/users/update-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            isActive: isActive,
+          }),
+        })
+      );
 
-      const data = await res.json();
-      if (data.success) {
-        // Update local state
-        setMasters(prev => prev.map(user => 
-          usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user
-        ));
-        if (!userIds) {
-          setSelectedUsers([]);
-        }
+      const responses = await Promise.all(promises);
+      
+      // Check if all requests were successful
+      const failedRequests = responses.filter(res => !res.ok);
+      if (failedRequests.length > 0) {
+        throw new Error(`Failed to ${isActive ? 'activate' : 'deactivate'} ${failedRequests.length} users`);
+      }
+
+      // Update local state
+      setMasters(prev => prev.map(user => 
+        usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user
+      ));
+      if (!userIds) {
+        setSelectedUsers([]);
+      }
         
         // Auto-refresh the page after successful status update
         setTimeout(() => {
@@ -472,7 +478,7 @@ const MasterPage = () => {
                   <div className="card-header">
                     <div className="form-group">
                       <div className="user-action-grid">
-                        <NewUserButton role="MASTER" className="btn btn-primary">
+                        <NewUserButton role="MAS_AGENT" className="btn btn-primary">
                           New <i className="fa fa-plus-circle"></i>
                         </NewUserButton>
                         <Link href="/user_details/master/limit" className="btn btn-info">

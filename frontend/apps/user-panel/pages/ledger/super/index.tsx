@@ -66,7 +66,7 @@ export default function AllSuperLedgerPage() {
       setError('');
       try {
         // Get all super agents
-        const supersRes = await fetch('/api/users?role=SUPER_AGENT');
+        const supersRes = await fetch('/api/users?role=SUP_AGENT');
         const supersData = await supersRes.json();
         
         if (!supersData.success) {

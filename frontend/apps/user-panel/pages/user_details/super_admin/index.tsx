@@ -4,6 +4,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import NewUserButton from '../../../components/NewUserButton';
+import MobileTable from '../../../components/MobileTable';
 
 function PortalDropdown({ show, anchorEl, children, dropdownRef }: { show: boolean; anchorEl: HTMLElement | null; children: React.ReactNode; dropdownRef: React.RefObject<HTMLDivElement> }) {
   const [coords, setCoords] = React.useState({ top: 0, left: 0, width: 0 });
@@ -104,7 +105,7 @@ export default function SuperAdminMasterPage() {
       setLoading(true);
       setError('');
       try {
-        const res = await fetch('/api/users?role=SUPER_ADMIN&isActive=true&excludeInactiveParents=true');
+        const res = await fetch('/api/users?role=SUP_ADM&isActive=true&excludeInactiveParents=true');
         const data = await res.json();
         if (data.success) {
           setSuperAdmins(data.users || []);
@@ -125,7 +126,7 @@ export default function SuperAdminMasterPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/users?role=SUPER_ADMIN&isActive=true&excludeInactiveParents=true');
+      const res = await fetch('/api/users?role=SUP_ADM&isActive=true&excludeInactiveParents=true');
       const data = await res.json();
       if (data.success) {
         setSuperAdmins(data.users || []);
@@ -291,32 +292,40 @@ export default function SuperAdminMasterPage() {
       setDeactivating(true);
     }
     try {
-      const res = await fetch('/api/users/update-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Ensure cookies/session are sent in all environments
-        body: JSON.stringify({
-          userIds: usersToUpdate,
-          isActive: isActive,
-          role: 'SUPER_ADMIN'
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSuperAdmins(prev => prev.map(user =>
-          usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user
-        ));
-        if (!userIds) {
-          setSelectedUsers([]);
-        }
-        
-        // Auto-refresh the page after successful status update
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000); // 1 second delay to show success state
-      } else {
-        console.error('Failed to update status:', data.message);
+      // Send individual requests for each user
+      const promises = usersToUpdate.map(userId => 
+        fetch('/api/users/update-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            userId: userId,
+            isActive: isActive,
+          }),
+        })
+      );
+
+      const responses = await Promise.all(promises);
+      
+      // Check if all requests were successful
+      const failedRequests = responses.filter(res => !res.ok);
+      if (failedRequests.length > 0) {
+        throw new Error(`Failed to ${isActive ? 'activate' : 'deactivate'} ${failedRequests.length} users`);
       }
+
+      // Update the UI
+      setSuperAdmins(prev => prev.map(user =>
+        usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user
+      ));
+      
+      if (!userIds) {
+        setSelectedUsers([]);
+      }
+        
+      // Auto-refresh the page after successful status update
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // 1 second delay to show success state
     } catch (err) {
       console.error('Failed to update status:', err);
     } finally {
@@ -427,7 +436,7 @@ export default function SuperAdminMasterPage() {
                   <div className="card-header">
                     <div className="form-group">
                       <div className="user-action-grid">
-                        <NewUserButton role="SUPER_ADMIN" className="btn btn-primary">
+                        <NewUserButton role="SUP_ADM" className="btn btn-primary">
                           New <i className="fa fa-plus-circle"></i>
                         </NewUserButton>
                         <Link href="/user_details/super_admin/limit" className="btn btn-info">
@@ -480,30 +489,33 @@ export default function SuperAdminMasterPage() {
                             </label>
                           </div>
                         </div>
-                        <table className="table table-bordered table-striped" style={{ width: '100%', tableLayout: 'fixed' }}>
-                          <thead>
-                            <tr>
-                              <th><div style={{ textAlign: 'center' }}><input type="checkbox" checked={selectedUsers.length === paginatedSuperAdmins.length && paginatedSuperAdmins.length > 0} onChange={(e) => handleSelectAll(e.target.checked)} /></div></th>
-                              <th>SNO</th>
-                              <th>CODE</th>
-                              <th>Name</th>
-                              <th>Mobile</th>
-                              <th>Password</th>
-                              <th>Limit</th>
-                              <th>Match</th>
-                              <th>Session</th>
-                              <th>Share</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {paginatedSuperAdmins.length === 0 && (<tr><td colSpan={11} style={{ textAlign: 'center' }}>No super admin users found.</td></tr>)}
-                            {paginatedSuperAdmins.map((user, idx) => (
-                              <tr key={user.id} className={selectedUsers.includes(user.id) ? 'table-active' : ''}>
-                                <td><input type="checkbox" checked={selectedUsers.includes(user.id)} onChange={(e) => handleUserSelect(user.id, e.target.checked)} /></td>
-                                <td style={{ verticalAlign: 'middle' }}>
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                          <div className="form-check">
+                            <input 
+                              type="checkbox" 
+                              className="form-check-input" 
+                              checked={selectedUsers.length === paginatedSuperAdmins.length && paginatedSuperAdmins.length > 0} 
+                              onChange={(e) => handleSelectAll(e.target.checked)} 
+                            />
+                            <label className="form-check-label">Select All</label>
+                          </div>
+                        </div>
+                        
+                        <MobileTable
+                          data={paginatedSuperAdmins}
+                          columns={[
+                            {
+                              key: 'sno',
+                              label: 'SNO',
+                              priority: 1,
+                              render: (_, row, idx) => {
+                                const userIndex = idx ?? 0;
+                                const user = paginatedSuperAdmins[userIndex];
+                                if (!user) return null;
+                                
+                                return (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontWeight: 'bold' }}>{idx + 1}</span>
+                                    <span style={{ fontWeight: 'bold' }}>{userIndex + 1}</span>
                                     <div className="dropdown">
                                       <button
                                         className="btn btn-sm"
@@ -531,20 +543,74 @@ export default function SuperAdminMasterPage() {
                                       </PortalDropdown>
                                     </div>
                                   </div>
-                                </td>
-                                <td>{user.code || 'N/A'}</td>
-                                <td>{user.name || 'N/A'}</td>
-                                <td>{user.contactno || 'N/A'}</td>
-                                <td>{user.password || 'N/A'}</td>
-                                <td>{(user.creditLimit || 0).toLocaleString()}</td>
-                                <td>{user.UserCommissionShare?.matchcommission ?? '0'}</td>
-                                <td>{user.UserCommissionShare?.sessioncommission ?? '0'}</td>
-                                <td>{user.UserCommissionShare?.share || 0}%</td>
-                                <td><span className={`badge ${user.isActive ? 'badge-success' : 'badge-danger'}`}>{user.isActive ? 'Active' : 'Inactive'}</span></td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                                );
+                              }
+                            },
+                            {
+                              key: 'code',
+                              label: 'CODE',
+                              priority: 2,
+                              render: (value) => value || 'N/A'
+                            },
+                            {
+                              key: 'name',
+                              label: 'Name',
+                              priority: 3,
+                              render: (value) => value || 'N/A'
+                            },
+                            {
+                              key: 'contactno',
+                              label: 'Mobile',
+                              mobileHide: true,
+                              render: (value) => value || 'N/A'
+                            },
+                            {
+                              key: 'password',
+                              label: 'Password',
+                              mobileHide: true,
+                              render: (value) => value || 'N/A'
+                            },
+                            {
+                              key: 'creditLimit',
+                              label: 'Limit',
+                              priority: 4,
+                              render: (value) => (value || 0).toLocaleString()
+                            },
+                            {
+                              key: 'matchcommission',
+                              label: 'Match',
+                              mobileHide: true,
+                              render: (_, row) => row.UserCommissionShare?.matchcommission ?? '0'
+                            },
+                            {
+                              key: 'sessioncommission',
+                              label: 'Session',
+                              mobileHide: true,
+                              render: (_, row) => row.UserCommissionShare?.sessioncommission ?? '0'
+                            },
+                            {
+                              key: 'share',
+                              label: 'Share',
+                              mobileHide: true,
+                              render: (_, row) => `${row.UserCommissionShare?.share || 0}%`
+                            },
+                            {
+                              key: 'isActive',
+                              label: 'Status',
+                              priority: 5,
+                              render: (value) => (
+                                <span className={`badge ${value ? 'badge-success' : 'badge-danger'}`}>
+                                  {value ? 'Active' : 'Inactive'}
+                                </span>
+                              )
+                            }
+                          ]}
+                          onRowClick={(row) => {
+                            // Handle row click if needed
+                            console.log('Row clicked:', row);
+                          }}
+                          className="table-bordered table-striped"
+                        />
                         <div className="row mt-3">
                           <div className="col-sm-6">
                             <p>Showing {startIndex + 1} to {Math.min(endIndex, filteredSuperAdmins.length)} of {filteredSuperAdmins.length} entries</p>

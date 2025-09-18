@@ -32,7 +32,7 @@ export const config = {
   },
   commission: {
     matchCommission: 0.05,
-    sessionCommission: 0.03,
+    sessioncommission: 0.03,
     casinoCommission: 0.02,
   },
   external: {

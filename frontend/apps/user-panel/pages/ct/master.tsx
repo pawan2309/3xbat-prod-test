@@ -56,7 +56,7 @@ export default function CashMasterPage() {
 
   const fetchMasters = async () => {
     try {
-      const response = await fetch('/api/users?role=MASTER');
+      const response = await fetch('/api/users?role=MAS_AGENT');
       if (response.ok) {
         const data = await response.json();
         setMasters(Array.isArray(data) ? data : data.users || []);

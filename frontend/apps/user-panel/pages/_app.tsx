@@ -1,5 +1,6 @@
 import type { AppProps } from 'next/app'
 import '../styles/globals.css'
+import '../styles/mobile.css'
 import { useEffect, useState } from 'react'
 import ErrorBoundary from '../components/ErrorBoundary'
 
@@ -98,7 +99,6 @@ const ClientApp = ({ Component, pageProps }: { Component: AppProps['Component'];
         
         // 5. Load AdminLTE last
         await loadScript('https://adminlite.s3.ap-south-1.amazonaws.com/adminlite/dist/js/adminlte.min.js');
-        await loadScript('https://adminlite.s3.ap-south-1.amazonaws.com/adminlite/dist/js/demo.js');
 
         // Initialize AdminLTE after scripts are loaded
         if ((window as any).AdminLTE) {

@@ -81,20 +81,20 @@ const EditSuperAdmin = () => {
         if (userData.success) {
           setUser(userData.user);
           setForm({
-            code: userData.user.code || '',
+            code: userData.user.username || '',
             name: userData.user.name || '',
             reference: userData.user.reference || '',
             password: userData.user.password || '',
             contactno: userData.user.contactno || '',
             // Current user's commission and share values from UserCommissionShare
-            share: userData.user.userCommissionShare?.share || '',
+            share: userData.user.userCommissionShare?.share || 0,
             commissionType: userData.user.userCommissionShare?.commissionType || 'NoCommission',
-            matchCommission: userData.user.userCommissionShare?.matchcommission || '',
-            sessionCommission: userData.user.userCommissionShare?.sessioncommission || '',
-            casinoShare: userData.user.userCommissionShare?.cshare || '',
-            casinoCommission: userData.user.userCommissionShare?.casinocommission || '',
-            cshare: userData.user.userCommissionShare?.cshare || '',
-            icshare: userData.user.userCommissionShare?.icshare || '',
+            matchCommission: userData.user.userCommissionShare?.matchcommission || 0,
+            sessioncommission: userData.user.userCommissionShare?.sessioncommission || 0,
+            casinoShare: userData.user.userCommissionShare?.cshare || 0,
+            casinoCommission: userData.user.userCommissionShare?.casinocommission || 0,
+            cshare: userData.user.userCommissionShare?.cshare || 0,
+            icshare: userData.user.userCommissionShare?.icshare || 0,
             casinoStatus: userData.user.casinoStatus || false,
             // Parent values will be set after fetching parent data
             myShare: '',
@@ -112,7 +112,7 @@ const EditSuperAdmin = () => {
             if (parentData.success) {
               setParentUser(parentData.user);
               // Set parent's values for display - use proper state update
-              const commissionShare = parentData.user.UserCommissionShare;
+              const commissionShare = parentData.user.userCommissionShare;
               
               // Update form state with new values
               setForm(prevForm => ({
@@ -215,7 +215,7 @@ const EditSuperAdmin = () => {
           cshare: form.cshare,
           icshare: form.icshare,
           matchcommission: form.commissionType === 'BetByBet' ? form.matchCommission : 0, // Fixed: matchCommission -> matchcommission
-          sessioncommission: form.commissionType === 'BetByBet' ? form.sessionCommission : 0, // Fixed: sessionCommission -> sessioncommission
+          sessioncommission: form.commissionType === 'BetByBet' ? form.sessioncommission : 0,
           casinoShare: form.casinoShare,
           casinoCommission: form.casinoCommission,
           session_commission_type: form.commissionType === 'BetByBet' ? 'BetByBet' : 'No Comm',
@@ -318,21 +318,33 @@ const EditSuperAdmin = () => {
                         <div className="form-group row mb-0">
                           <div className="form-group col-md-6">
                             <label>Match Commission</label>
-                            <input type="number" min="0" max={form.myMatchCommission || 100} name="matchCommission" className="form-control" placeholder="Match Commission" value={form.matchCommission || ''} onChange={handleChange} />
+                            <input type="number" min="0" max={form.myMatchCommission || 100} name="matchCommission" className="form-control" placeholder="Match Commission" value={form.matchCommission || 0} onChange={handleChange} />
                           </div>
                           <div className="form-group col-md-6">
                             <label>My Match Commission (Parent)</label>
-                            <input type="number" name="myMatchCommission" className="form-control" placeholder="Parent Match Commission" value={form.myMatchCommission || ''} onChange={handleChange} />
+                            <input
+                              type="number"
+                              className="form-control"
+                              readOnly
+                              value={form.myMatchCommission || 0}
+                              style={{ backgroundColor: '#f8f9fa', color: '#495057' }}
+                            />
                           </div>
                         </div>
                         <div className="form-group row mb-0">
                           <div className="form-group col-md-6">
                             <label>Session Commission</label>
-                            <input type="number" min="0" max={form.mySessionCommission || 100} name="sessionCommission" className="form-control" placeholder="Session Commission" value={form.sessionCommission || ''} onChange={handleChange} />
+                            <input type="number" min="0" max={form.mySessionCommission || 100} name="sessioncommission" className="form-control" placeholder="Session Commission" value={form.sessioncommission || 0} onChange={handleChange} />
                           </div>
                           <div className="form-group col-md-6">
                             <label>My Session Commission (Parent)</label>
-                            <input type="number" name="mySessionCommission" className="form-control" placeholder="Parent Session Commission" value={form.mySessionCommission || ''} onChange={handleChange} />
+                            <input
+                              type="number"
+                              className="form-control"
+                              readOnly
+                              value={form.mySessionCommission || 0}
+                              style={{ backgroundColor: '#f8f9fa', color: '#495057' }}
+                            />
                           </div>
                         </div>
                       </>
@@ -365,7 +377,13 @@ const EditSuperAdmin = () => {
                           </div>
                           <div className="form-group col-md-6">
                             <label>My Casino Share (Parent)</label>
-                            <input type="number" name="myCasinoShare" className="form-control shadow-none" placeholder="Parent Casino Share" value={form.myCasinoShare || ''} onChange={handleChange} />
+                            <input
+                              type="number"
+                              className="form-control shadow-none"
+                              readOnly
+                              value={form.myCasinoShare || 0}
+                              style={{ backgroundColor: '#f8f9fa', color: '#495057' }}
+                            />
                           </div>
                         </div>
                         <div className="form-group row mb-0">
@@ -375,7 +393,13 @@ const EditSuperAdmin = () => {
                           </div>
                           <div className="form-group col-md-6">
                             <label>My Casino Commission (Parent)</label>
-                            <input type="number" name="myCasinoCommission" className="form-control shadow-none" placeholder="Parent Casino Commission" value={form.myCasinoCommission || ''} onChange={handleChange} />
+                            <input
+                              type="number"
+                              className="form-control shadow-none"
+                              readOnly
+                              value={form.myCasinoCommission || 0}
+                              style={{ backgroundColor: '#f8f9fa', color: '#495057' }}
+                            />
                           </div>
                         </div>
                       </>

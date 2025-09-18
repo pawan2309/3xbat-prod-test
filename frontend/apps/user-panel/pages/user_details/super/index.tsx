@@ -116,7 +116,7 @@ export default function SuperPage() {
       setLoading(true);
       setError('');
       try {
-        const res = await fetch('/api/users?role=SUPER_AGENT&isActive=true&excludeInactiveParents=true');
+        const res = await fetch('/api/users?role=SUP_AGENT&isActive=true&excludeInactiveParents=true');
         const data = await res.json();
         if (data.success) {
           setSupers(data.users || []);
@@ -137,7 +137,7 @@ export default function SuperPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/users?role=SUPER_AGENT&isActive=true&excludeInactiveParents=true');
+      const res = await fetch('/api/users?role=SUP_AGENT&isActive=true&excludeInactiveParents=true');
       const data = await res.json();
       if (data.success) {
         setSupers(data.users || []);
@@ -470,7 +470,7 @@ export default function SuperPage() {
                   <div className="card-header">
                     <div className="form-group">
                       <div className="user-action-grid">
-                        <NewUserButton role="SUPER_AGENT" className="btn btn-primary">
+                        <NewUserButton role="SUP_AGENT" className="btn btn-primary">
                           New <i className="fa fa-plus-circle"></i>
                         </NewUserButton>
                         <Link href="/user_details/super/limit" className="btn btn-info">

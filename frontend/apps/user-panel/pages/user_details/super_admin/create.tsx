@@ -20,7 +20,7 @@ const CreateSuperAdmin = () => {
     casinoCommission: '',
     casinoStatus: false,
     matchCommission: '',
-    sessionCommission: '',
+    sessioncommission: '',
     // Remove hardcoded values - will be fetched from parent
     myShare: '',
     myCasinoShare: '',
@@ -52,10 +52,10 @@ const CreateSuperAdmin = () => {
           targetParentId = parentId;
         } else {
           // Get current user's session to get their ID (default behavior)
-          const sessionRes = await fetch('/api/auth/session');
+          const sessionRes = await fetch('/api/auth/unified-session-check');
           const sessionData = await sessionRes.json();
           
-          if (!sessionData.valid) {
+          if (!sessionData.success || !sessionData.valid) {
             setError('Session expired. Please login again.');
             router.push('/login');
             return;
@@ -70,9 +70,11 @@ const CreateSuperAdmin = () => {
         
         if (parentUserData.success) {
           setParentData(parentUserData.user);
+          console.log('Parent data received:', parentUserData.user);
+          console.log('Parent commission share:', parentUserData.user.userCommissionShare);
           
           // Set parent's values for display - use proper state update
-          const commissionShare = parentUserData.user.UserCommissionShare;
+          const commissionShare = parentUserData.user.userCommissionShare;
           
           // Update form state with new values
           setForm(prevForm => {
@@ -88,12 +90,8 @@ const CreateSuperAdmin = () => {
             return newForm;
           });
           
-          // Force re-render
-          setTimeout(() => {
-            setForm(prevForm => ({ ...prevForm }));
-          }, 100);
-          
         } else {
+          console.error('Failed to fetch parent data:', parentUserData);
           setError('Failed to fetch parent data');
         }
       } catch (err) {
@@ -137,10 +135,10 @@ const CreateSuperAdmin = () => {
         targetParentId = parentIdFromQuery;
       } else {
         // Get current user's session to get their ID (default behavior)
-        const sessionRes = await fetch('/api/auth/session');
+        const sessionRes = await fetch('/api/auth/unified-session-check');
         const sessionData = await sessionRes.json();
         
-        if (!sessionData.valid) {
+        if (!sessionData.success || !sessionData.valid) {
           setError('Session expired. Please login again.');
           router.push('/login');
           return;
@@ -152,14 +150,14 @@ const CreateSuperAdmin = () => {
       const requestData = {
         ...form,
         creditLimit: Number(form.creditLimit),
-        role: 'SUPER_ADMIN',
+        role: 'SUP_ADM',
         parentId: targetParentId, // Use the selected parent from hierarchy modal
         // Child's commission and share values
         share: form.share,
         casinoShare: form.casinoShare,
         casinoCommission: form.casinoCommission,
         matchcommission: form.matchCommission, // Fixed: matchCommission -> matchcommission
-        sessioncommission: form.sessionCommission, // Fixed: sessionCommission -> sessioncommission
+        sessioncommission: form.sessioncommission,
         commissionType: form.commissionType,
         session_commission_type: form.commissionType === 'BetByBet' ? 'BetByBet' : 'No Comm', // Add session commission type
         casinoStatus: form.casinoStatus,
@@ -299,7 +297,7 @@ const CreateSuperAdmin = () => {
                         type="number" 
                         className="form-control shadow-none" 
                         readOnly 
-                        value={parentData?.creditLimit || 0}
+                        value={parentData?.limit || 0}
                         style={{ backgroundColor: '#f8f9fa', color: '#495057' }}
                       />
                       <small className="form-text text-muted">This shows how much limit the parent has available</small>
@@ -343,17 +341,29 @@ const CreateSuperAdmin = () => {
                           </div>
                           <div className="form-group col-md-6">
                             <label>My Match Commission (Parent)</label>
-                            <input type="number" name="myMatchCommission" className="form-control" placeholder="Parent Match Commission" value={form.myMatchCommission || ''} onChange={handleChange} />
+                            <input
+                              type="number"
+                              className="form-control"
+                              readOnly
+                              value={form.myMatchCommission || 0}
+                              style={{ backgroundColor: '#f8f9fa', color: '#495057' }}
+                            />
                           </div>
                         </div>
                         <div className="form-group row mb-0">
                           <div className="form-group col-md-6">
                             <label>Session Commission</label>
-                            <input type="number" min="0" max={form.mySessionCommission || 100} name="sessionCommission" className="form-control" placeholder="Session Commission" value={form.sessionCommission || ''} onChange={handleChange} />
+                            <input type="number" min="0" max={form.mySessionCommission || 100} name="sessioncommission" className="form-control" placeholder="Session Commission" value={form.sessioncommission || ''} onChange={handleChange} />
                           </div>
                           <div className="form-group col-md-6">
                             <label>My Session Commission (Parent)</label>
-                            <input type="number" name="mySessionCommission" className="form-control" placeholder="Parent Session Commission" value={form.mySessionCommission || ''} onChange={handleChange} />
+                            <input
+                              type="number"
+                              className="form-control"
+                              readOnly
+                              value={form.mySessionCommission || 0}
+                              style={{ backgroundColor: '#f8f9fa', color: '#495057' }}
+                            />
                           </div>
                         </div>
                       </>
@@ -383,7 +393,13 @@ const CreateSuperAdmin = () => {
                           </div>
                           <div className="form-group col-md-6">
                             <label>My Casino Share (Parent)</label>
-                            <input type="number" name="myCasinoShare" className="form-control shadow-none" placeholder="Parent Casino Share" value={form.myCasinoShare || ''} onChange={handleChange} />
+                            <input
+                              type="number"
+                              className="form-control shadow-none"
+                              readOnly
+                              value={form.myCasinoShare || 0}
+                              style={{ backgroundColor: '#f8f9fa', color: '#495057' }}
+                            />
                           </div>
                         </div>
                         <div className="form-group row mb-0">
@@ -393,7 +409,13 @@ const CreateSuperAdmin = () => {
                           </div>
                           <div className="form-group col-md-6">
                             <label>My Casino Commission (Parent)</label>
-                            <input type="number" name="myCasinoCommission" className="form-control shadow-none" placeholder="Parent Casino Commission" value={form.myCasinoCommission || ''} onChange={handleChange} />
+                            <input
+                              type="number"
+                              className="form-control shadow-none"
+                              readOnly
+                              value={form.myCasinoCommission || 0}
+                              style={{ backgroundColor: '#f8f9fa', color: '#495057' }}
+                            />
                           </div>
                         </div>
                       </>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
+import ProtectedLayout from '@/components/ProtectedLayout';
 import ScorecardDisplay from '../../../components/ScorecardDisplay';
 
 interface ScorecardData {
@@ -39,7 +40,7 @@ export default function ScorecardPage() {
     if (typeof window !== 'undefined') {
       return `http://${window.location.hostname}:4000`;
     }
-    return 'http://localhost:4000';
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   };
 
   const fetchScorecardData = async () => {
@@ -137,11 +138,13 @@ export default function ScorecardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-2xl mx-auto">
-      {/* Scorecard Display */}
-        <ScorecardDisplay data={scorecardData.data} />
+    <ProtectedLayout>
+      <div className="min-h-screen bg-gray-100 p-4">
+        <div className="max-w-2xl mx-auto">
+        {/* Scorecard Display */}
+          <ScorecardDisplay data={scorecardData.data} />
+        </div>
       </div>
-    </div>
+    </ProtectedLayout>
   );
 }

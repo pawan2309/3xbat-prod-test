@@ -152,6 +152,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     const [isMobile, setIsMobile] = useState(false);
     const [isTablet, setIsTablet] = useState(false);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
 
   // -------- Toggle Sidebar Section --------
   const toggleSection = (sectionName: string) => {
@@ -168,6 +169,11 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       return newSet;
     });
   };
+
+  // Set mounted state to prevent SSR execution
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // -------- Sync Sidebar State on Mount --------
   useEffect(() => {
@@ -198,6 +204,29 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         }
     }
   }, []);
+
+  // Close sidebar when pressing Escape key (from client panel)
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (isMobile) {
+          setMobileSidebarOpen(false);
+        } else {
+          setSidebarCollapsed(true);
+          if (typeof document !== 'undefined') {
+            document.body.classList.add('sidebar-collapse');
+            localStorage.setItem('sidebarCollapsed', JSON.stringify(true));
+          }
+        }
+        setProfileDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isMobile]);
 
   // -------- Get User Data and Role-Based Navigation on Mount --------
   useEffect(() => {
@@ -232,7 +261,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             console.log('🔵 Navigation length:', Object.keys(navigation).length);
             
             if (Object.keys(navigation).length === 0) {
-              console.warn('🔴 No navigation items found for role:', data.user.role);
+              console.warn('🔴 No navigation items found for role:', sessionData.user.role);
               // Set a default navigation to prevent loading state
               setSidebarLinks({
                 'USER DETAILS': [
@@ -390,14 +419,31 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   // -------- Handle Mobile Detection --------
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 992);
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+      setIsTablet(width >= 768 && width < 992);
+      
+      // Add mobile class to body for CSS targeting
+      if (width < 768) {
+        document.body.classList.add('mobile-device');
+        document.body.classList.remove('tablet-device', 'desktop-device');
+      } else if (width >= 768 && width < 992) {
+        document.body.classList.add('tablet-device');
+        document.body.classList.remove('mobile-device', 'desktop-device');
+      } else {
+        document.body.classList.add('desktop-device');
+        document.body.classList.remove('mobile-device', 'tablet-device');
+      }
     };
     
     checkMobile();
     window.addEventListener('resize', checkMobile);
     
-    return () => window.removeEventListener('resize', checkMobile);
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      // Clean up classes on unmount
+      document.body.classList.remove('mobile-device', 'tablet-device', 'desktop-device');
+    };
   }, []);
 
   // -------- Close Mobile Sidebar on Route Change --------
@@ -437,6 +483,34 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     sidebarCollapsed,
     isMobile
   });
+
+  // Don't render during SSR to prevent context errors (from client panel)
+  if (!isMounted) {
+    return (
+      <div className="hold-transition sidebar-mini">
+        <div className="wrapper">
+          <div className="content-wrapper" style={{
+            marginTop: '64px',
+            marginLeft: '250px',
+            minHeight: 'calc(100vh - 64px)',
+            padding: '2px',
+            boxSizing: 'border-box',
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '50vh',
+              fontSize: '18px',
+              color: '#666'
+            }}>
+              Loading...
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="hold-transition sidebar-mini">
@@ -490,7 +564,8 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                 <a className="nav-link" href="#" role="button" onClick={(e) => {
                   e.preventDefault();
                   if (isMobile || isTablet) {
-                    setMobileSidebarOpen(true);
+                    console.log('📱 Mobile sidebar toggle clicked, current state:', mobileSidebarOpen);
+                    setMobileSidebarOpen(!mobileSidebarOpen);
                   } else {
                     toggleSidebar();
                   }
@@ -703,13 +778,27 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                     onClick={async (e) => {
                       e.preventDefault();
                       try {
-                                                    await fetch('/api/auth/logout', { 
+                        console.log('🚪 Logging out user...');
+                        const response = await fetch('/api/auth/unified-logout', { 
                           method: 'POST',
                           credentials: 'include'
                         });
+                        
+                        if (response.ok) {
+                          console.log('✅ Logout successful');
+                        } else {
+                          console.warn('⚠️ Logout response not OK:', response.status);
+                        }
+                        
+                        // Clear local storage and redirect regardless of response
+                        localStorage.clear();
+                        sessionStorage.clear();
                         router.push('/login');
                       } catch (error) {
-                        console.error('Logout error:', error);
+                        console.error('❌ Logout error:', error);
+                        // Clear local storage and redirect even on error
+                        localStorage.clear();
+                        sessionStorage.clear();
                         router.push('/login');
                       }
                     }}>
@@ -724,79 +813,113 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
         {/* ===================== Sidebar ===================== */}
         {isMobile ? (
-          mobileSidebarOpen && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              zIndex: 1031,
-              margin: 0,
-              padding: 0,
-              pointerEvents: 'auto',
-            }}>
-              {/* Sidebar */}
+          (() => {
+            console.log('📱 Mobile sidebar render check:', { isMobile, mobileSidebarOpen });
+            return mobileSidebarOpen;
+          })() && (
+            <>
+              {/* Backdrop - Enhanced from client panel */}
+              <div 
+                className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                onClick={() => setMobileSidebarOpen(false)}
+              />
+              {/* Sidebar - Enhanced from client panel */}
               <aside
-                className="main-sidebar sidebar-light-indigo elevation-4"
+                className="main-sidebar sidebar-light-indigo elevation-4 mobile-sidebar"
                 style={{
                   position: 'fixed',
                   top: 0,
                   left: 0,
-                  margin: 0,
-                  padding: 0,
+                  width: '280px',
+                  maxWidth: '85vw',
                   height: '100vh',
+                  backgroundColor: '#03045E',
+                  boxShadow: '2px 0 8px rgba(0,0,0,0.15)',
+                  zIndex: 1031,
                   display: 'flex',
                   flexDirection: 'column',
-                  width: '80vw',
-                  maxWidth: '100vw',
-                  minWidth: 0,
-                  background: '#03045E',
-                  boxShadow: '2px 0 8px rgba(0,0,0,0.15)',
-                  transition: 'left 0.4s cubic-bezier(.4,0,.2,1)',
-                  boxSizing: 'border-box',
+                  overflow: 'hidden',
+                  transform: 'translateX(0)',
+                  transition: 'transform 0.3s ease-in-out',
                 }}
               >
-                {/* Brand Logo */}
-                <Link href="/" className="brand-link" style={{
+                {/* Brand Logo with Close Button - Enhanced from client panel */}
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '0 20px',
-                  height: '80px',
+                  justifyContent: 'space-between',
+                  padding: '0 15px',
+                  height: '60px',
                   borderBottom: '2px solid rgba(202,240,248,0.3)',
                   flexShrink: 0,
                   backgroundColor: '#03045E',
                   color: '#CAF0F8',
-                  position: 'relative'
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}>
-                  <img 
-                    src="/images/IMG_0813.PNG" 
-                    alt="3X BAT Logo"
-                    className="brand-image" 
-                    style={{ 
-                      marginRight: '20px',
-                      width: '65px',
-                      height: 'auto',
-                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
-                    }}
-                  />
-                  <span 
-                      className="brand-text font-weight-bold" 
-                    id="brandName"
+                  <Link href="/" className="brand-link" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    flex: 1,
+                    textDecoration: 'none',
+                    color: 'inherit'
+                  }}>
+                    <img 
+                      src="/images/3x.PNG" 
+                      alt="3X BAT Logo"
+                      className="brand-image" 
+                      style={{ 
+                        marginRight: '12px',
+                        width: '40px',
+                        height: '40px',
+                        objectFit: 'contain',
+                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
+                      }}
+                    />
+                    <span 
+                        className="brand-text font-weight-bold" 
+                      id="brandName"
+                      style={{
+                        fontSize: '18px',
+                        fontWeight: '700',
+                        color: '#CAF0F8',
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.4)',
+                        letterSpacing: '1px',
+                        textTransform: 'uppercase',
+                        lineHeight: '1.2',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      3X BAT
+                    </span>
+                  </Link>
+                  <button
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="text-gray-500 hover:text-gray-700 p-2 -mr-2 active:bg-gray-100 rounded-md touch-manipulation"
+                    aria-label="Close navigation menu"
                     style={{
-                      fontSize: '28px',
-                      fontWeight: '700',
                       color: '#CAF0F8',
-                      textShadow: '1px 1px 2px rgba(0,0,0,0.4)',
-                      letterSpacing: '1.5px',
-                      textTransform: 'uppercase',
-                        lineHeight: '1.2'
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(202,240,248,0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
                     }}
                   >
-                    3X BAT
-                  </span>
-                </Link>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: '24px', height: '24px' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
                 {/* Sidebar Navigation Menu */}
                 <div className="sidebar" style={{ marginTop: '0', flex: 1, overflowY: 'auto', marginLeft: 0, paddingLeft: 0 }}>
                   <nav>
@@ -812,20 +935,23 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                                <React.Fragment key={section}>
                                   <li className="nav-header" style={{ 
                                     cursor: 'pointer',
-                                    padding: '15px 20px',
+                                    padding: '12px 15px',
                                     color: '#CAF0F8',
-                                    fontSize: '15px',
+                                    fontSize: '13px',
                                     fontWeight: '700',
                                     borderBottom: '2px solid rgba(202,240,248,0.3)',
                                     backgroundColor: '#023E8A',
                                     textTransform: 'uppercase',
                                     letterSpacing: '0.5px',
-                                    textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
+                                    textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
                                   }} onClick={() => toggleSection(section)}>
                                    {section}
                                     <i className={`fas fa-chevron-${isExpanded ? 'down' : 'right'} float-right`} style={{ 
-                                      fontSize: '14px', 
-                                      marginTop: '3px', 
+                                      fontSize: '12px', 
+                                      marginTop: '2px', 
                                       color: '#CAF0F8',
                                       transition: 'transform 0.2s ease'
                                     }}></i>
@@ -833,14 +959,19 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                                  {isExpanded && Array.isArray(links) && links.map((link: any) => (
                                    <li className="nav-item" key={link.label}>
                                       <Link href={link.href} className={`nav-link ${router.pathname === link.href ? 'active' : ''}`} style={{ 
-                                        padding: '10px 20px', 
-                                        fontSize: '13px',
+                                        padding: '8px 15px', 
+                                        fontSize: '12px',
                                         color: '#CAF0F8',
                                         textDecoration: 'none',
                                         borderLeft: router.pathname === link.href ? '3px solid #0077B6' : '3px solid transparent',
                                         backgroundColor: router.pathname === link.href ? '#0077B6' : 'transparent',
                                         transition: 'all 0.2s ease',
-                                        cursor: 'pointer'
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        display: 'flex',
+                                        alignItems: 'center'
                                       }}
                                         onMouseEnter={(e) => {
                                           if (router.pathname !== link.href) {
@@ -856,25 +987,24 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                                         }}
                                         onClick={() => {
                                           setMobileSidebarOpen(false);
-                                          // Preserve sidebar state when navigating
-                                          const currentState = localStorage.getItem('sidebarCollapsed');
-                                          if (currentState !== null) {
-                                            localStorage.setItem('sidebarCollapsed', currentState);
-                                          }
                                         }}
                                       >
                                         <i className={`nav-icon ${link.icon}`} style={{ 
-                                          fontSize: '14px', 
-                                          marginRight: '10px',
+                                          fontSize: '12px', 
+                                          marginRight: '8px',
                                           color: '#CAF0F8',
-                                          width: '20px',
-                                          textAlign: 'center'
+                                          width: '16px',
+                                          textAlign: 'center',
+                                          flexShrink: 0
                                         }}></i>
-                                        <p style={{ 
+                                        <span style={{ 
                                           margin: '0', 
-                                          fontSize: '13px',
-                                          fontWeight: '500'
-                                        }}>{link.label}</p>
+                                          fontSize: '12px',
+                                          fontWeight: '500',
+                                          flex: 1,
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis'
+                                        }}>{link.label}</span>
                                      </Link>
                                    </li>
                                  ))}
@@ -912,22 +1042,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                   </nav>
                 </div>
               </aside>
-              {/* Overlay */}
-              <div
-                onClick={() => setMobileSidebarOpen(false)}
-                style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  width: '100vw',
-                  height: '100vh',
-                  background: 'rgba(0,0,0,0.5)',
-                  zIndex: 1030,
-                  margin: 0,
-                  padding: 0,
-                }}
-              />
-            </div>
+            </>
           )
         ) : (
           // Desktop/Tablet Sidebar
@@ -964,7 +1079,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                 color: '#CAF0F8'
             }}>
                   <img 
-                    src="/images/IMG_0813.PNG" 
+                    src="/images/3x.PNG" 
                     alt="3X BAT Logo"
                     className="brand-image" 
                     style={{ 
@@ -1115,7 +1230,7 @@ const ClientLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
            marginLeft: (isMobile || isTablet) ? '0' : (sidebarCollapsed ? '0' : '250px'),
            minHeight: 'calc(100vh - 64px)',
            transition: 'margin-left 0.3s ease-in-out, width 0.3s ease-in-out',
-           padding: '2px',
+           padding: isMobile ? '8px' : isTablet ? '12px' : '2px',
            boxSizing: 'border-box',
            overflowX: 'hidden',
            maxWidth: '100%',

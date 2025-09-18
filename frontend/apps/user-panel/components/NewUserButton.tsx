@@ -6,16 +6,17 @@ import { checkHierarchyRelationship, getHierarchyIndex } from '../lib/hierarchyU
 // Function to map role names to directory names
 function getRoleDirectory(role: string): string {
   const roleMap: { [key: string]: string } = {
-    'SUPER_AGENT': 'super',
-    'SUPER_ADMIN': 'super_admin',
-    'SUB_OWNER': 'sub_owner',
+    'SUP_AGENT': 'super',
+    'SUP_ADM': 'super_admin',
+    'SUB_OWN': 'sub_owner',
     'ADMIN': 'admin',
-    'SUB': 'sub',
-    'MASTER': 'master',
+    'SUB_ADM': 'sub',
+    'MAS_AGENT': 'master',
     'AGENT': 'agent',
     'USER': 'client'
   };
   
+  console.log('🔍 getRoleDirectory called with role:', role, 'mapped to:', roleMap[role] || role.toLowerCase());
   return roleMap[role] || role.toLowerCase();
 }
 
@@ -35,7 +36,7 @@ const NewUserButton: React.FC<NewUserButtonProps> = ({ role, className, children
     // Get current user's role
     const getCurrentUserRole = async () => {
       try {
-        const res = await fetch('/api/auth/session');
+        const res = await fetch('/api/auth/unified-session-check');
         const data = await res.json();
         if (data.valid) {
           setCurrentUserRole(data.user.role);

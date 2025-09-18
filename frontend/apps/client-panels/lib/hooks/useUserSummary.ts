@@ -30,7 +30,7 @@ export function useUserSummary() {
     '/api/user/summary',
     fetcher,
     {
-      refreshInterval: 10000, // Refresh every 10 seconds
+      refreshInterval: parseInt(process.env.NEXT_PUBLIC_REFRESH_INTERVAL || '10000'), // Refresh interval
       revalidateOnFocus: true,
       revalidateOnReconnect: true,
       dedupingInterval: 5000, // Dedupe requests within 5 seconds

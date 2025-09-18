@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
+import ProtectedLayout from '@/components/ProtectedLayout';
 import CasinoGameLayout from '@/components/CasinoGameLayout';
 
 export default function AB20Page() {
   return (
-    <CasinoGameLayout
+    <ProtectedLayout>
+      <CasinoGameLayout
       gameType="ab20"
-      streamId="3036"
+      streamId={process.env.NEXT_PUBLIC_AB20_STREAM_ID || "3043"}
       title="AB20 B"
     >
       {({ getBettingOdds }) => {
@@ -165,6 +167,7 @@ export default function AB20Page() {
           </div>
         );
       }}
-    </CasinoGameLayout>
+      </CasinoGameLayout>
+    </ProtectedLayout>
   );
 }

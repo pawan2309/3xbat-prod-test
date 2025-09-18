@@ -32,7 +32,7 @@ export default function TVPlayer({
     <div className={`bg-black rounded-lg overflow-hidden ${className}`}>
       <div className="relative w-full h-64">
         <iframe
-          src={`http://localhost:4000/api/cricket/tv/html?eventId=${matchId}`}
+          src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/cricket/tv/html?eventId=${matchId}`}
           className="w-full h-full border-0"
           allowFullScreen
           title={`Live TV Stream - Match ${matchId}`}

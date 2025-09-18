@@ -85,7 +85,7 @@ export default function ProgressiveCricketLoader({
     if (typeof window !== 'undefined') {
       return `http://${window.location.hostname}:4000`
     }
-    return 'http://localhost:4000'
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
   }
 
   // Load initial data with progressive enhancement
@@ -113,7 +113,7 @@ export default function ProgressiveCricketLoader({
       // Check if we already have recent data
       const cachedData = expandedMatchDataRef.current.get(match.beventId)
       const now = Date.now()
-      if (cachedData && (now - cachedData.lastUpdated) < 10000) { // 10 seconds cache
+      if (cachedData && (now - cachedData.lastUpdated) < parseInt(process.env.NEXT_PUBLIC_REFRESH_INTERVAL || '10000')) { // Cache duration
         return
       }
 

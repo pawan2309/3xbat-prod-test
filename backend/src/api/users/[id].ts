@@ -84,7 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name,
         contactno,
         casinoShare,
-        casinoCommission,
+        casinocommission,
         ishare,
         mobileshare,
         isActive
@@ -93,7 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const updateData: any = {};
       if (name !== undefined) updateData.name = name;
       if (contactno !== undefined) updateData.contactno = contactno;
-      if (isActive !== undefined) updateData.isActive = isActive;
+      if (isActive !== undefined) updateData.status = isActive ? 'ACTIVE' : 'INACTIVE';
 
       // Update user
       const updatedUser = await prisma.user.update({
@@ -102,10 +102,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       // Handle commission share updates
-      if (casinoShare !== undefined || casinoCommission !== undefined) {
+      if (casinoShare !== undefined || casinocommission !== undefined) {
         const commissionShareData = {
           cshare: parseFloat(casinoShare) || 0,
-          casinocommission: parseFloat(casinoCommission) || 0,
+          casinocommission: parseFloat(casinocommission) || 0,
           ishare: parseFloat(ishare) || 0,
           mobileshare: parseFloat(mobileshare) || 0
         };

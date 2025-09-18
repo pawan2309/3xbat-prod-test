@@ -44,7 +44,7 @@ export default function MyLedgerPage() {
       setError('');
       try {
         // Get current user
-        const userRes = await fetch('/api/auth/session');
+        const userRes = await fetch('/api/auth/unified-session-check');
         const userData = await userRes.json();
         
         if (!userData.valid || !userData.user) {

@@ -34,13 +34,23 @@ export default function LoginPage() {
           return;
         }
 
-        // Redirect to root page with a longer delay to ensure cookie is set
-        console.log('Setting timeout for redirect...'); // Debug log
-        setTimeout(() => {
-          console.log('Executing redirect to root page...'); // Debug log
-          // Use window.location.href to force a full page reload
-          window.location.href = '/';
-        }, 500);
+        // Check for redirect path stored before login
+        const redirectPath = localStorage.getItem('redirectAfterLogin');
+        if (redirectPath) {
+          localStorage.removeItem('redirectAfterLogin');
+          console.log('Redirecting to stored path:', redirectPath);
+          setTimeout(() => {
+            window.location.href = redirectPath;
+          }, 500);
+        } else {
+          // Redirect to root page with a longer delay to ensure cookie is set
+          console.log('Setting timeout for redirect...'); // Debug log
+          setTimeout(() => {
+            console.log('Executing redirect to root page...'); // Debug log
+            // Use window.location.href to force a full page reload
+            window.location.href = '/';
+          }, 500);
+        }
       } else {
         console.log('Login failed:', data.message); // Debug log
         setError(data.message || 'Login failed');

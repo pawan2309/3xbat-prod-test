@@ -138,8 +138,8 @@ export default function ProfilePage() {
 
                     <p className="text-muted text-center">
                       {user.role === 'BOSS' && 'Boss'}
-                      {user.role === 'MASTER' && 'Master Agent'}
-                      {user.role === 'SUPER_AGENT' && 'Super Agent'}
+                      {user.role === 'MAS_AGENT' && 'Master Agent'}
+                      {user.role === 'SUP_AGENT' && 'Super Agent'}
                       {user.role === 'AGENT' && 'Agent'}
                       {user.role === 'SUB' && 'Sub Agent'}
                       {user.role === 'USER' && 'Client'}

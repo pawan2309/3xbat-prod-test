@@ -105,24 +105,50 @@ export const authorizeRole = (allowedRoles: string[]) => {
   };
 };
 
-// Check if user has permission for a specific role
-export const hasRolePermission = (userRole: string, requiredRole: string): boolean => {
-  const roleHierarchy = [
-    'USER',
-    'AGENT',
-    'SUP_AGENT',
-    'MAS_AGENT',
-    'SUB_ADM',
-    'ADMIN',
-    'SUP_ADM',
-    'SUB_OWN',
-    'OWNER'
-  ];
+// Role hierarchy with clear descriptions (highest to lowest authority)
+const roleHierarchy = [
+  'OWNER',          // Level 1: Owner (highest authority)
+  'SUB_OWN',        // Level 2: Sub-owner
+  'SUP_ADM',        // Level 3: Super administrator
+  'ADMIN',          // Level 4: Administrator
+  'SUB_ADM',        // Level 5: Sub-administrator
+  'MAS_AGENT',      // Level 6: Master agent
+  'SUP_AGENT',      // Level 7: Super agent
+  'AGENT',          // Level 8: Agent
+  'USER'            // Level 9: User (lowest level)
+];
 
+// Role descriptions for better understanding
+export const roleDescriptions = {
+  'USER': 'End users/players - Can place bets and view their own data',
+  'AGENT': 'Basic agents - Can manage users and view basic reports',
+  'SUP_AGENT': 'Super agents - Can manage agents and view advanced reports',
+  'MAS_AGENT': 'Master agents - Can manage super agents and access master-level features',
+  'SUB_ADM': 'Sub-administrators - Can manage masters and access sub-admin features',
+  'ADMIN': 'Administrators - Can manage subs and access admin features',
+  'SUP_ADM': 'Super administrators - Can manage admins and access super admin features',
+  'SUB_OWN': 'Sub-owners - Can manage super admins and access sub-owner features',
+  'OWNER': 'Owner - Highest level, can manage all users and access all features'
+};
+
+// Check if user has permission for a specific role
+// Lower index = higher authority, so user can access roles with higher or equal index
+export const hasRolePermission = (userRole: string, requiredRole: string): boolean => {
   const userIndex = roleHierarchy.indexOf(userRole);
   const requiredIndex = roleHierarchy.indexOf(requiredRole);
   
-  return userIndex >= requiredIndex;
+  // User can access roles that are at their level or lower (higher index)
+  return userIndex <= requiredIndex;
+};
+
+// Get role level (1-9, where 1 is highest authority)
+export const getRoleLevel = (role: string): number => {
+  return roleHierarchy.indexOf(role) + 1;
+};
+
+// Get role description
+export const getRoleDescription = (role: string): string => {
+  return roleDescriptions[role as keyof typeof roleDescriptions] || 'Unknown role';
 };
 
 // Middleware to check if user can access specific role

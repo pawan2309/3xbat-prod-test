@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
+import ProtectedLayout from '@/components/ProtectedLayout';
 import CasinoGameLayout from '@/components/CasinoGameLayout';
 
 export default function DT20Page() {
   return (
-    <CasinoGameLayout
+    <ProtectedLayout>
+      <CasinoGameLayout
       gameType="dt20"
-      streamId="3035"
+      streamId={process.env.NEXT_PUBLIC_DT20_STREAM_ID || "3035"}
       title="20-20 Dragon Tiger"
     >
       {({ getBettingOdds }) => {
@@ -63,6 +65,7 @@ export default function DT20Page() {
           </div>
         );
       }}
-    </CasinoGameLayout>
+      </CasinoGameLayout>
+    </ProtectedLayout>
   );
 }

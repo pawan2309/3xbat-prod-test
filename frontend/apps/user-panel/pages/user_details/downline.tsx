@@ -239,23 +239,34 @@ export default function DownlinePage() {
     }
     if (isActive) { setActivating(true); } else { setDeactivating(true); }
     try {
-      const res = await fetch('/api/users/update-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: usersToUpdate, isActive: isActive }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUsers(prev => prev.map(user => usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user));
-        if (!userIds) { setSelectedUsers([]); }
-        
-        // Auto-refresh the page after successful status update
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000); // 1 second delay to show success state
-      } else {
-        console.error('Failed to update status:', data.message);
+      // Send individual requests for each user
+      const promises = usersToUpdate.map(userId => 
+        fetch('/api/users/update-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            isActive: isActive,
+          }),
+        })
+      );
+
+      const responses = await Promise.all(promises);
+      
+      // Check if all requests were successful
+      const failedRequests = responses.filter(res => !res.ok);
+      if (failedRequests.length > 0) {
+        throw new Error(`Failed to ${isActive ? 'activate' : 'deactivate'} ${failedRequests.length} users`);
       }
+
+      // Update the UI
+      setUsers(prev => prev.map(user => usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user));
+      if (!userIds) { setSelectedUsers([]); }
+      
+      // Auto-refresh the page after successful status update
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // 1 second delay to show success state
     } catch (err) {
       console.error('Failed to update status:', err);
     } finally {

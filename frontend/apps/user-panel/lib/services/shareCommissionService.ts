@@ -13,7 +13,6 @@ export interface ShareAssignmentRequest {
   parentId: string;
   assignedShare: number;
   matchCommission?: number;
-  sessionCommission?: number;
   casinoCommission?: number;
   commissionType?: string;
   casinoStatus?: boolean;
@@ -40,7 +39,6 @@ export interface CommissionShareData {
   casinocommission: number;
   matchcommission: number;
   sessioncommission: number;
-  sessionCommission?: number;
   session_commission_type: string;
   commissionType?: string;
 }
@@ -198,7 +196,6 @@ export async function assignUserWithShare(request: ShareAssignmentRequest): Prom
       parentId,
       assignedShare,
       matchCommission = 0,
-      sessionCommission = 0,
       casinoCommission = 0,
       commissionType = 'NoCommission',
       casinoStatus = false
@@ -213,7 +210,6 @@ export async function assignUserWithShare(request: ShareAssignmentRequest): Prom
     // Validate commission values
     const commissionValidations = [
       validateCommissionValue(matchCommission, 'Match Commission'),
-      validateCommissionValue(sessionCommission, 'Session Commission'),
       validateCommissionValue(casinoCommission, 'Casino Commission')
     ].filter(Boolean);
 
@@ -278,8 +274,7 @@ export async function assignUserWithShare(request: ShareAssignmentRequest): Prom
       icshare: 0, // International casino share - set to 0 for now
       casinocommission: casinoCommission,
       matchcommission: matchCommission,
-      sessioncommission: sessionCommission,
-      sessionCommission: sessionCommission,
+      sessioncommission: 0,
       session_commission_type: commissionType === 'BetByBet' ? 'BetByBet' : 'No Comm',
       commissionType
     };
@@ -627,7 +622,6 @@ export async function updateUserCommissions(
   userId: string,
   commissions: {
     matchCommission?: number;
-    sessionCommission?: number;
     casinoCommission?: number;
     commissionType?: string;
   }
@@ -637,12 +631,11 @@ export async function updateUserCommissions(
   error?: string;
 }> {
   try {
-    const { matchCommission, sessionCommission, casinoCommission, commissionType } = commissions;
+    const { matchCommission, casinoCommission, commissionType } = commissions;
 
     // Validate commission values
     const validations = [
       matchCommission !== undefined && validateCommissionValue(matchCommission, 'Match Commission'),
-      sessionCommission !== undefined && validateCommissionValue(sessionCommission, 'Session Commission'),
       casinoCommission !== undefined && validateCommissionValue(casinoCommission, 'Casino Commission')
     ].filter(Boolean);
 
@@ -662,10 +655,6 @@ export async function updateUserCommissions(
     const updateData: Partial<CommissionShareData> = {};
 
     if (matchCommission !== undefined) updateData.matchcommission = matchCommission;
-    if (sessionCommission !== undefined) {
-      updateData.sessioncommission = sessionCommission;
-      updateData.sessionCommission = sessionCommission;
-    }
     if (casinoCommission !== undefined) updateData.casinocommission = casinoCommission;
     if (commissionType !== undefined) updateData.commissionType = commissionType;
 
@@ -684,8 +673,7 @@ export async function updateUserCommissions(
             icshare: 0,
             casinocommission: casinoCommission || 0,
             matchcommission: matchCommission || 0,
-            sessioncommission: sessionCommission || 0,
-            sessionCommission: sessionCommission,
+            sessioncommission: 0,
             session_commission_type: commissionType === 'BetByBet' ? 'BetByBet' : 'No Comm',
             commissionType,
             updatedAt: new Date()

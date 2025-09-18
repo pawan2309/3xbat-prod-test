@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
+import ProtectedLayout from '@/components/ProtectedLayout';
 import CasinoGameLayout from '@/components/CasinoGameLayout';
 
 export default function Lucky7EUPage() {
   return (
-    <CasinoGameLayout
+    <ProtectedLayout>
+      <CasinoGameLayout
       gameType="lucky7eu"
-      streamId="3032"
+      streamId={process.env.NEXT_PUBLIC_LUCKY7EU_STREAM_ID || "3032"}
       title="Lucky 7 EU"
     >
       {({ getBettingOdds }) => {
@@ -45,6 +47,7 @@ export default function Lucky7EUPage() {
           </div>
         );
       }}
-    </CasinoGameLayout>
+      </CasinoGameLayout>
+    </ProtectedLayout>
   );
 }

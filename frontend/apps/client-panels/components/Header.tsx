@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useUserSummary } from '@/lib/hooks/useUserSummary'
 
 export default function Header() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -11,23 +12,24 @@ export default function Header() {
   const router = useRouter()
   const dropdownRef = useRef<HTMLDivElement>(null)
   
-  // Mock user data for testing
+  // Fetch real user data from API
+  const { balance, exposure, creditLimit, availableBalance, isLoading: isUserLoading, error: userError } = useUserSummary()
+  
   const user = {
     id: '1',
-    username: 'testuser',
-    name: 'Test User',
+    username: 'User',
+    name: 'User',
     role: 'client',
-    balance: 10000,
+    balance: balance,
     isActive: true,
-    code: 'TEST001',
-    contactno: '1234567890',
-    creditLimit: 50000,
-    exposure: 2500
+    code: 'N/A',
+    contactno: 'N/A',
+    creditLimit: creditLimit,
+    exposure: exposure
   }
   
-  const liveBalance = 10000
-  const exposure = 2500
-  const isBalanceLoading = false
+  const liveBalance = balance
+  const isBalanceLoading = isUserLoading
 
   // Set mounted state to prevent SSR execution
   useEffect(() => {

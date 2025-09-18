@@ -67,15 +67,6 @@ export const unifiedLogin = async (req: Request, res: Response) => {
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '24h' });
 
-    // Set HTTP-only cookie
-    res.cookie('betx_session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      path: '/'
-    });
-
     // Get role-based navigation and permissions
     const navigation = getRoleBasedNavigation(user.role);
     const accessibleRoles = getAccessibleRoles(user.role);
@@ -85,6 +76,24 @@ export const unifiedLogin = async (req: Request, res: Response) => {
     const redirectInfo = process.env.NODE_ENV === 'production' 
       ? shouldRedirect(user.role as any, currentDomain)
       : { shouldRedirect: false, targetDomain: currentDomain };
+
+    // Set HTTP-only cookie (only once)
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: '/',
+      // Don't set domain in development to allow localhost cookies
+      ...(process.env.NODE_ENV === 'production' && { domain: '.3xbat.com' })
+    };
+    
+    console.log('🍪 Setting cookie with options:', cookieOptions);
+    console.log('🍪 Request host:', req.get('host'));
+    console.log('🍪 Request origin:', req.get('origin'));
+    
+    res.cookie('betx_session', token, cookieOptions);
+    console.log('🍪 Cookie set successfully');
 
     return res.status(200).json({
       success: true,
@@ -131,19 +140,35 @@ export const unifiedLogout = async (req: Request, res: Response) => {
     }
 
     // Clear the session cookie with multiple path options to ensure complete cleanup
-    res.clearCookie('betx_session', {
+    const clearCookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
-    });
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: 0, // Immediately expire the cookie
+      // Don't set domain in development to allow localhost cookies
+      ...(process.env.NODE_ENV === 'production' && { domain: '.3xbat.com' })
+    };
+
+    console.log('🍪 Clearing session cookie with options:', clearCookieOptions);
+    res.clearCookie('betx_session', clearCookieOptions);
 
     // Also clear any potential variations of the cookie
     res.clearCookie('betx_session', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/'
+      ...clearCookieOptions,
+      sameSite: 'strict' as const
+    });
+
+    // Clear with different path variations
+    res.clearCookie('betx_session', {
+      ...clearCookieOptions,
+      path: '/api'
+    });
+
+    // Set an empty cookie to ensure it's cleared
+    res.cookie('betx_session', '', {
+      ...clearCookieOptions,
+      expires: new Date(0)
     });
 
     // Log logout event
@@ -172,9 +197,12 @@ export const unifiedLogout = async (req: Request, res: Response) => {
 // Unified session check handler
 export const unifiedSessionCheck = async (req: Request, res: Response) => {
   try {
+    console.log('🔍 Session check: Request cookies:', req.cookies);
     const authToken = req.cookies.betx_session;
+    console.log('🔍 Session check: Auth token present:', !!authToken);
 
     if (!authToken) {
+      console.log('🔍 Session check: No auth token found');
       return res.status(401).json({
         success: false,
         valid: false,
@@ -220,7 +248,9 @@ export const unifiedSessionCheck = async (req: Request, res: Response) => {
     }
 
     // Get role-based navigation and permissions
+    console.log('🔍 Getting navigation for role:', user.role);
     const navigation = getRoleBasedNavigation(user.role);
+    console.log('🔍 Navigation result:', Object.keys(navigation));
     const accessibleRoles = getAccessibleRoles(user.role);
 
     return res.status(200).json({

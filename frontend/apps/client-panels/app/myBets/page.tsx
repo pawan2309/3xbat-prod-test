@@ -1,11 +1,134 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import ProtectedLayout from '@/components/ProtectedLayout'
+
+interface Bet {
+  id: string
+  type: 'match' | 'session' | 'casino'
+  team?: string
+  session?: string
+  casino?: string
+  name?: string
+  roundId?: string
+  rate: number
+  amount: number
+  runs?: number
+  mode: string
+  time: string
+  status: string
+  transactionId?: string
+}
 
 export default function MyBetsPage() {
   const router = useRouter()
-  
+  const [matchBets, setMatchBets] = useState<Bet[]>([])
+  const [sessionBets, setSessionBets] = useState<Bet[]>([])
+  const [casinoBets, setCasinoBets] = useState<Bet[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch bets data from API
+  useEffect(() => {
+    const fetchBetsData = async () => {
+      try {
+        setLoading(true)
+        // TODO: Replace with actual API calls
+        // const [matchResponse, sessionResponse, casinoResponse] = await Promise.all([
+        //   fetch('/api/bets/match'),
+        //   fetch('/api/bets/session'),
+        //   fetch('/api/bets/casino')
+        // ])
+        // const [matchData, sessionData, casinoData] = await Promise.all([
+        //   matchResponse.json(),
+        //   sessionResponse.json(),
+        //   casinoResponse.json()
+        // ])
+        
+        // For now, show empty state
+        setMatchBets([])
+        setSessionBets([])
+        setCasinoBets([])
+      } catch (err) {
+        setError('Failed to load bets data')
+        console.error('Error fetching bets data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchBetsData()
+  }, [])
+
+  if (loading) {
+    return (
+      <ProtectedLayout>
+        <div className="min-h-dvh bg-white">
+          <div className="pt-[70px]">
+            <div className="w-full">
+              <div>
+                <button 
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full bg-red-600 text-white font-bold text-md p-2 border border-red-800 hover:bg-red-700 transition-colors"
+                >
+                  BACK TO MENU
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-2 sm:p-4">
+              <div className="max-w-6xl mx-auto">
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading bets data...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ProtectedLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <ProtectedLayout>
+        <div className="min-h-dvh bg-white">
+          <div className="pt-[70px]">
+            <div className="w-full">
+              <div>
+                <button 
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full bg-red-600 text-white font-bold text-md p-2 border border-red-800 hover:bg-red-700 transition-colors"
+                >
+                  BACK TO MENU
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-2 sm:p-4">
+              <div className="max-w-6xl mx-auto">
+                <div className="text-center py-12">
+                  <div className="text-red-600 text-lg font-semibold mb-2">Error Loading Bets</div>
+                  <p className="text-gray-600 mb-4">{error}</p>
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ProtectedLayout>
+    )
+  }
+
   return (
     <ProtectedLayout>
       <div className="min-h-dvh bg-white">
@@ -44,7 +167,7 @@ export default function MyBetsPage() {
                     </div>
                     <div className="p-4">
                       <div className="text-center text-gray-500 py-8">
-                        No match bets
+                        {matchBets.length === 0 ? 'No match bets found' : 'Loading match bets...'}
                       </div>
                     </div>
                   </div>
@@ -62,7 +185,7 @@ export default function MyBetsPage() {
                       </div>
                       <div className="p-4">
                         <div className="text-center text-gray-500 py-8 text-sm">
-                          No match bets
+                          {matchBets.length === 0 ? 'No match bets found' : 'Loading match bets...'}
                         </div>
                       </div>
                     </div>
@@ -95,7 +218,7 @@ export default function MyBetsPage() {
                     </div>
                     <div className="p-4">
                       <div className="text-center text-gray-500 py-8">
-                        No session bets
+                        {sessionBets.length === 0 ? 'No session bets found' : 'Loading session bets...'}
                       </div>
                     </div>
                   </div>
@@ -114,7 +237,7 @@ export default function MyBetsPage() {
                       </div>
                       <div className="p-4">
                         <div className="text-center text-gray-500 py-8 text-sm">
-                          No session bets
+                          {sessionBets.length === 0 ? 'No session bets found' : 'Loading session bets...'}
                         </div>
                       </div>
                     </div>
@@ -147,7 +270,7 @@ export default function MyBetsPage() {
                     </div>
                     <div className="p-4">
                       <div className="text-center text-gray-500 py-8">
-                        No casino bets
+                        {casinoBets.length === 0 ? 'No casino bets found' : 'Loading casino bets...'}
                       </div>
                     </div>
                   </div>
@@ -166,7 +289,7 @@ export default function MyBetsPage() {
                       </div>
                       <div className="p-4">
                         <div className="text-center text-gray-500 py-8 text-sm">
-                          No casino bets
+                          {casinoBets.length === 0 ? 'No casino bets found' : 'Loading casino bets...'}
                         </div>
                       </div>
                     </div>

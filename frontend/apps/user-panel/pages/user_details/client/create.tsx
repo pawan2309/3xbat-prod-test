@@ -17,7 +17,7 @@ const ClientCreatePage = () => {
     casinoCommission: '',
     casinoStatus: false,
     matchCommission: '',
-    sessionCommission: '',
+    sessioncommission: '',
     myShare: '',
     myCasinoShare: '',
     myCasinoCommission: '',
@@ -40,7 +40,7 @@ const ClientCreatePage = () => {
         if (parentId) {
           targetParentId = parentId;
         } else {
-          const sessionRes = await fetch('/api/auth/session');
+          const sessionRes = await fetch('/api/auth/unified-session-check');
           const sessionData = await sessionRes.json();
           
           if (!sessionData.valid) {
@@ -56,7 +56,7 @@ const ClientCreatePage = () => {
         
         if (parentUserData.success) {
           setParentData(parentUserData.user);
-          const commissionShare = parentUserData.user.UserCommissionShare;
+          const commissionShare = parentUserData.user.userCommissionShare;
           
           setForm(prevForm => ({
             ...prevForm,
@@ -111,7 +111,7 @@ const ClientCreatePage = () => {
       if (parentIdFromQuery) {
         targetParentId = parentIdFromQuery;
       } else {
-        const sessionRes = await fetch('/api/auth/session');
+        const sessionRes = await fetch('/api/auth/unified-session-check');
         const sessionData = await sessionRes.json();
         
         if (!sessionData.valid) {
@@ -137,7 +137,7 @@ const ClientCreatePage = () => {
           casinoShare: form.casinoShare,
           casinoCommission: form.casinoCommission,
           matchCommission: form.matchCommission,
-          sessionCommission: form.sessionCommission,
+          sessioncommission: form.sessioncommission,
           commissionType: form.commissionType,
           casinoStatus: form.casinoStatus,
           creditLimit: form.balance,
@@ -335,7 +335,7 @@ const ClientCreatePage = () => {
                       <div className="form-group row mb-0">
                         <div className="form-group col-md-6">
                           <label>Session Commission</label>
-                          <input type="number" min="0" max={form.mySessionCommission || 100} name="sessionCommission" className="form-control" placeholder="Session Commission" value={form.sessionCommission || ''} onChange={handleChange} />
+                          <input type="number" min="0" max={form.mySessionCommission || 100} name="sessioncommission" className="form-control" placeholder="Session Commission" value={form.sessioncommission || ''} onChange={handleChange} />
                         </div>
                         <div className="form-group col-md-6">
                           <label>My Session Commission (Parent)</label>

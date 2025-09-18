@@ -2,22 +2,83 @@
 
 import { useRouter } from 'next/navigation'
 import ProtectedLayout from '@/components/ProtectedLayout'
+import { useUserSummary } from '@/lib/hooks/useUserSummary'
 
 export default function ProfilePage() {
   const router = useRouter()
   
-  // Mock user data for testing
+  // Fetch real user data from API
+  const { balance, exposure, creditLimit, availableBalance, isLoading: isUserLoading, error: userError } = useUserSummary()
+  
   const user = {
     id: '1',
-    username: 'testuser',
-    name: 'Test User',
+    username: 'User',
+    name: 'User',
     role: 'client',
-    balance: 10000,
+    balance: balance,
     isActive: true,
-    code: 'TEST001',
-    contactno: '1234567890',
-    creditLimit: 50000,
-    exposure: 2500
+    code: 'N/A',
+    contactno: 'N/A',
+    creditLimit: creditLimit,
+    exposure: exposure
+  }
+
+  if (isUserLoading) {
+    return (
+      <ProtectedLayout>
+        <div className="min-h-screen bg-white">
+          <div className="w-full">
+            <div>
+              <button 
+                onClick={() => router.push('/dashboard')}
+                className="w-full bg-red-600 text-white font-bold text-md p-2 border border-red-800 hover:bg-red-700 transition-colors"
+              >
+                BACK TO MENU
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading profile...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ProtectedLayout>
+    )
+  }
+
+  if (userError) {
+    return (
+      <ProtectedLayout>
+        <div className="min-h-screen bg-white">
+          <div className="w-full">
+            <div>
+              <button 
+                onClick={() => router.push('/dashboard')}
+                className="w-full bg-red-600 text-white font-bold text-md p-2 border border-red-800 hover:bg-red-700 transition-colors"
+              >
+                BACK TO MENU
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center py-12">
+                <div className="text-red-600 text-lg font-semibold mb-2">Error Loading Profile</div>
+                <p className="text-gray-600">Unable to load user profile. Please try again later.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ProtectedLayout>
+    )
   }
 
   return (
@@ -89,6 +150,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </ProtectedLayout>
   )

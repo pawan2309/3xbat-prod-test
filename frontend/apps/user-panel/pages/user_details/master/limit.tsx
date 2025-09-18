@@ -27,7 +27,7 @@ const MasterLimitUpdatePage = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/users?role=MASTER&excludeInactiveParents=true');
+      const res = await fetch('/api/users?role=MAS_AGENT&excludeInactiveParents=true');
       const data = await res.json();
       if (res.ok && data.users) {
         setMasters(data.users);

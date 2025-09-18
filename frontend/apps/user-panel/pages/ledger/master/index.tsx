@@ -66,7 +66,7 @@ export default function AllMasterLedgerPage() {
       setError('');
       try {
         // Get all masters
-        const mastersRes = await fetch('/api/users?role=MASTER');
+        const mastersRes = await fetch('/api/users?role=MAS_AGENT');
         const mastersData = await mastersRes.json();
         
         if (!mastersData.success) {

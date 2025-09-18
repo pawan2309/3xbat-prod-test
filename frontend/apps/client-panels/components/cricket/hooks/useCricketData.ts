@@ -77,9 +77,9 @@ export const useCricketData = (
         // Try to fetch data directly as fallback
         try {
           if (process.env.NODE_ENV === 'development') {
-            console.log('🌐 Attempting API call to:', 'http://localhost:4000/api/cricket/fixtures')
+            console.log('🌐 Attempting API call to:', `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/cricket/fixtures`)
           }
-          const response = await fetch('http://localhost:4000/api/cricket/fixtures', {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/cricket/fixtures`, {
             credentials: 'include',
             mode: 'cors'
           })
@@ -141,12 +141,12 @@ export const useCricketData = (
 
   // WebSocket connection for real-time data
   useEffect(() => {
-    const socket = io('ws://localhost:4000', {
+    const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000', {
       transports: ['websocket']
     })
 
     socket.on('connect', () => {
-      console.log('✔ WebSocket connected to:', 'ws://localhost:4000')
+      console.log('✔ WebSocket connected to:', process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000')
       // Join the matches room to receive fixture data
       socket.emit('join_room', { room: 'global:matches' })
     })
@@ -180,7 +180,7 @@ export const useCricketData = (
       if (matches.length === 0 && loading) {
         console.log('⏰ WebSocket timeout, trying direct API call...')
         try {
-          const response = await fetch('http://localhost:4000/api/cricket/fixtures', {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/cricket/fixtures`, {
             credentials: 'include',
             mode: 'cors'
           })
@@ -203,7 +203,7 @@ export const useCricketData = (
           setLoading(false)
         }
       }
-    }, 10000) // 10 seconds timeout
+    }, parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '10000')) // API timeout
 
     return () => {
       clearTimeout(fallbackTimeout)

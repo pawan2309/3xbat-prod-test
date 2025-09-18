@@ -18,7 +18,7 @@ const ClientEditPage = () => {
     casinoCommission: '',
     casinoStatus: false,
     matchCommission: '',
-    sessionCommission: '',
+    sessioncommission: '',
     // Parent commission fields (editable)
     myShare: '',
     myCasinoShare: '',
@@ -66,7 +66,7 @@ const ClientEditPage = () => {
           casinoCommission: client.userCommissionShare?.casinocommission?.toString() || '',
           casinoStatus: client.casinoStatus || false,
           matchCommission: client.userCommissionShare?.matchcommission?.toString() || '',
-          sessionCommission: client.userCommissionShare?.sessioncommission?.toString() || '',
+          sessioncommission: client.userCommissionShare?.sessioncommission?.toString() || '',
           // Parent commission fields (will be set when parent data is fetched)
           myShare: '',
           myCasinoShare: '',
@@ -155,8 +155,8 @@ const ClientEditPage = () => {
       errors.matchCommission = `Match commission cannot exceed parent's match commission (${form.myMatchCommission || 100}%)`;
     }
     
-    if (form.sessionCommission && parseFloat(form.sessionCommission) > parseFloat(form.mySessionCommission || '100')) {
-      errors.sessionCommission = `Session commission cannot exceed parent's session commission (${form.mySessionCommission || 100}%)`;
+    if (form.sessioncommission && parseFloat(form.sessioncommission) > parseFloat(form.mySessionCommission || '100')) {
+      errors.sessioncommission = `Session commission cannot exceed parent's session commission (${form.mySessionCommission || 100}%)`;
     }
     
     if (form.casinoCommission && parseFloat(form.casinoCommission) > parseFloat(form.myCasinoCommission || '100')) {
@@ -193,7 +193,7 @@ const ClientEditPage = () => {
           casinoShare: form.casinoShare,
           casinoCommission: form.casinoCommission,
           matchCommission: form.matchCommission,
-          sessionCommission: form.sessionCommission,
+          sessioncommission: form.sessioncommission,
           commissionType: form.commissionType,
           casinoStatus: form.casinoStatus,
           creditLimit: form.balance,
@@ -381,7 +381,7 @@ const ClientEditPage = () => {
                       <div className="form-group row mb-0">
                         <div className="form-group col-md-6">
                           <label>Match Commission</label>
-                          <input type="number" min="0" max={form.myMatchCommission || 100} name="matchCommission" className="form-control" placeholder="Match Commission" value={form.matchCommission || ''} onChange={handleChange} />
+                            <input type="number" min="0" max={form.myMatchCommission || 100} name="matchCommission" className="form-control" placeholder="Match Commission" value={form.matchCommission || 0} onChange={handleChange} />
                         </div>
                         <div className="form-group col-md-6">
                           <label>My Match Commission (Parent)</label>
@@ -397,7 +397,7 @@ const ClientEditPage = () => {
                       <div className="form-group row mb-0">
                         <div className="form-group col-md-6">
                           <label>Session Commission</label>
-                          <input type="number" min="0" max={form.mySessionCommission || 100} name="sessionCommission" className="form-control" placeholder="Session Commission" value={form.sessionCommission || ''} onChange={handleChange} />
+                            <input type="number" min="0" max={form.mySessionCommission || 100} name="sessioncommission" className="form-control" placeholder="Session Commission" value={form.sessioncommission || 0} onChange={handleChange} />
                         </div>
                         <div className="form-group col-md-6">
                           <label>My Session Commission (Parent)</label>

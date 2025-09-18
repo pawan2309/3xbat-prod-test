@@ -80,9 +80,16 @@ const ClientIndexPage = () => {
           console.log('Session valid, setting user data');
           setUser(sessionData.user);
           
-          // Get role-based navigation
-          const navigation = getRoleBasedNavigation(sessionData.user.role);
-          setSidebarLinks(navigation);
+          // Use navigation from backend session response
+          if (sessionData.navigation) {
+            console.log('Using navigation from backend:', Object.keys(sessionData.navigation));
+            setSidebarLinks(sessionData.navigation);
+          } else {
+            console.log('No navigation from backend, using fallback');
+            // Fallback to local navigation if backend doesn't provide it
+            const navigation = getRoleBasedNavigation(sessionData.user.role);
+            setSidebarLinks(navigation);
+          }
         } else {
           console.log('Session invalid, redirecting to login');
           router.push('/login');
@@ -102,10 +109,27 @@ const ClientIndexPage = () => {
   // -------- Logout Handler --------
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      console.log('🚪 Index page: Starting logout process');
+      const response = await fetch('/api/auth/unified-logout', { 
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        console.log('✅ Index page: Logout successful');
+      } else {
+        console.warn('⚠️ Index page: Logout response not OK:', response.status);
+      }
+      
+      // Clear all storage and redirect
+      localStorage.clear();
+      sessionStorage.clear();
       router.replace('/login');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ Index page: Logout error:', error);
+      // Clear storage and redirect even on error
+      localStorage.clear();
+      sessionStorage.clear();
       router.replace('/login');
     }
   };
@@ -168,7 +192,7 @@ const ClientIndexPage = () => {
         <div className="container-fluid">
          
           <div className="row">
-            <div className="col-lg-3 col-6" onClick={() => showModel('USER DETAILS')}>
+            <div className="col-lg-3 col-md-6 col-12 mb-3" onClick={() => showModel('USER DETAILS')}>
               <div className="small-box bg-primary" style={{ cursor: 'pointer' }}>
                 <div className="inner">
                   <h3>1</h3>
@@ -180,7 +204,7 @@ const ClientIndexPage = () => {
                 <span className="small-box-footer">More Info <i className="fas fa-arrow-circle-right"></i></span>
               </div>
             </div>
-            <div className="col-lg-3 col-6" onClick={() => showModel('GAMES')}>
+            <div className="col-lg-3 col-md-6 col-12 mb-3" onClick={() => showModel('GAMES')}>
               <div className="small-box bg-success" style={{ cursor: 'pointer' }}>
                 <div className="inner">
                   <h3>2</h3>
@@ -192,7 +216,7 @@ const ClientIndexPage = () => {
                 <span className="small-box-footer">More Info <i className="fas fa-arrow-circle-right"></i></span>
               </div>
             </div>
-            <div className="col-lg-3 col-6" onClick={() => showModel('CASH TRANSACTION')}>
+            <div className="col-lg-3 col-md-6 col-12 mb-3" onClick={() => showModel('CASH TRANSACTION')}>
               <div className="small-box bg-warning" style={{ cursor: 'pointer' }}>
                 <div className="inner">
                   <h3>3</h3>
@@ -204,7 +228,7 @@ const ClientIndexPage = () => {
                 <span className="small-box-footer">More Info <i className="fas fa-arrow-circle-right"></i></span>
               </div>
             </div>
-            <div className="col-lg-3 col-6" onClick={() => showModel('LEDGER')}>
+            <div className="col-lg-3 col-md-6 col-12 mb-3" onClick={() => showModel('LEDGER')}>
               <div className="small-box bg-danger" style={{ cursor: 'pointer' }}>
                 <div className="inner">
                   <h3>4</h3>
@@ -220,11 +244,11 @@ const ClientIndexPage = () => {
           {/* Modal Section */}
           {showModal && (
             <div className="modal show d-block" tabIndex={-1} role="dialog" style={{ background: 'rgba(0,0,0,0.5)' }}>
-              <div className="modal-dialog modal-lg" role="document">
+              <div className="modal-dialog modal-lg modal-dialog-scrollable" role="document">
                 <div className="modal-content">
                   <div className="modal-header">
                     <h5 className="modal-title">Details</h5>
-                    <button type="button" className="close" onClick={() => setShowModal(false)}>
+                    <button type="button" className="close" onClick={() => setShowModal(false)} style={{ fontSize: '24px', padding: '0', background: 'none', border: 'none' }}>
                       <span>&times;</span>
                     </button>
                   </div>

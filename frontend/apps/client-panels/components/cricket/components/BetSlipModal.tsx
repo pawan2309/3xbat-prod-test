@@ -22,7 +22,9 @@ export default function BetSlipModal({
 }: BetSlipModalProps) {
   if (!betSlipModal.isOpen) return null
 
-  const betAmounts = [100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000, 200000, 300000, 500000]
+  const betAmounts = process.env.NEXT_PUBLIC_BET_AMOUNTS 
+    ? process.env.NEXT_PUBLIC_BET_AMOUNTS.split(',').map(amount => parseInt(amount.trim()))
+    : [100, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000, 200000, 300000, 500000]
 
   return (
     <div 

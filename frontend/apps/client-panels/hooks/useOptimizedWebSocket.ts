@@ -27,7 +27,7 @@ export const useOptimizedWebSocket = (config: WebSocketConfig) => {
     if (typeof window !== 'undefined') {
       return `http://${window.location.hostname}:4000`;
     }
-    return 'http://localhost:4000';
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   };
 
   const connect = useCallback(() => {

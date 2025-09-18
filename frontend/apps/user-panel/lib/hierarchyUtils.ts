@@ -39,7 +39,10 @@ export function checkHierarchyRelationship(creatorRole: string, newUserRole: str
   const creatorIndex = getHierarchyIndex(creatorRole);
   const newUserIndex = getHierarchyIndex(newUserRole);
   
+  console.log('🔍 Hierarchy Check:', { creatorRole, newUserRole, creatorIndex, newUserIndex });
+  
   if (creatorIndex === undefined || newUserIndex === undefined) {
+    console.log('🔴 Invalid roles provided');
     return { isDirectSubordinate: false, upperRole: null, skipLevel: 0 };
   }
   
@@ -47,13 +50,16 @@ export function checkHierarchyRelationship(creatorRole: string, newUserRole: str
   // So creatorIndex should be higher than newUserIndex for valid creation
   if (creatorIndex <= newUserIndex) {
     // Creator cannot create same level or higher level
+    console.log('🔴 Creator cannot create same level or higher level');
     return { isDirectSubordinate: false, upperRole: null, skipLevel: 0 };
   }
   
   const skipLevel = creatorIndex - newUserIndex;
+  console.log('🔍 Skip level calculated:', skipLevel);
   
   if (skipLevel === 1) {
-    // Direct subordinate (e.g., SUB_OWNER creates SUB)
+    // Direct subordinate (e.g., SUB_OWNER creates SUP_ADM)
+    console.log('✅ Direct subordinate - no modal needed');
     return { isDirectSubordinate: true, upperRole: null, skipLevel: 1 };
   } else if (skipLevel > 1) {
     // Skip hierarchy (e.g., SUB_OWNER creates MASTER)
@@ -62,9 +68,12 @@ export function checkHierarchyRelationship(creatorRole: string, newUserRole: str
     const immediateParentRole = Object.keys(ROLE_HIERARCHY).find(role => 
       ROLE_HIERARCHY[role as Role] === immediateParentIndex
     );
+    console.log('🔍 Skip hierarchy - immediate parent role:', immediateParentRole);
+    console.log('🔍 Skip hierarchy - newUserIndex:', newUserIndex, 'immediateParentIndex:', immediateParentIndex);
     return { isDirectSubordinate: false, upperRole: immediateParentRole || null, skipLevel };
   } else {
     // Shouldn't happen
+    console.log('🔴 Unexpected skip level:', skipLevel);
     return { isDirectSubordinate: false, upperRole: null, skipLevel };
   }
 }

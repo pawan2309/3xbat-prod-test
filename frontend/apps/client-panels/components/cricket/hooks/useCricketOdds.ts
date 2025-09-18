@@ -22,7 +22,7 @@ export const useCricketOdds = (matches: Match[], expandedMatch: string | number 
 
   // WebSocket connection for odds data
   useEffect(() => {
-    const newSocket = io('ws://localhost:4000', {
+    const newSocket = io(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4000', {
       transports: ['websocket']
     })
 

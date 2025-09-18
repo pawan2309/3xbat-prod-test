@@ -15,7 +15,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:4000/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/:path*`,
       },
     ]
   },
@@ -31,9 +31,9 @@ const nextConfig = {
                     script-src 'self' 'unsafe-inline' 'unsafe-eval';
                     style-src 'self' 'unsafe-inline';
                     img-src 'self' data: blob:;
-                    media-src 'self' https://mis3.sqmr.xyz:3334 blob:;
-                    connect-src 'self' https://mis3.sqmr.xyz:3334 ws: wss: http://localhost:4000 http://localhost:5000;
-                    frame-src 'self' http://localhost:4000;
+                    media-src 'self' ${process.env.NEXT_PUBLIC_STREAMING_DOMAIN || 'https://mis3.sqmr.xyz:3334'} blob:;
+                    connect-src 'self' ${process.env.NEXT_PUBLIC_STREAMING_DOMAIN || 'https://mis3.sqmr.xyz:3334'} ws: wss: ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'} ${process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:5000'};
+                    frame-src 'self' ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'};
                   `.replace(/\s{2,}/g, ' ').trim(),
                 },
               ],

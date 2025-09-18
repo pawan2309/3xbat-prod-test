@@ -102,7 +102,6 @@ model UserCommissionShare {
   casinocommission        Float    @default(0)
   matchcommission         Float    @default(0)
   sessioncommission       Float    @default(0)
-  sessionCommission       Float?
   session_commission_type String   @default("No Comm")
   commissionType          String?
   createdAt               DateTime @default(now())

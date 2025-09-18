@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useParams } from 'next/navigation';
+import ProtectedLayout from '@/components/ProtectedLayout';
 
 interface TVPlayerProps {
   eventId: string | number;
@@ -10,7 +11,7 @@ interface TVPlayerProps {
 const TVPlayer: React.FC<TVPlayerProps> = ({ eventId }) => {
   return (
     <iframe
-      src={`http://localhost:4000/api/cricket/tv/html?eventId=${eventId}`}
+      src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/cricket/tv/html?eventId=${eventId}`}
       style={{
         width: "100%",
         height: "500px",
@@ -28,8 +29,10 @@ export default function TVPage() {
   const eventId = params.eventId as string
 
   return (
-    <div className="w-full h-screen bg-black flex items-center justify-center p-4">
-      <TVPlayer eventId={eventId} />
-    </div>
+    <ProtectedLayout>
+      <div className="w-full h-screen bg-black flex items-center justify-center p-4">
+        <TVPlayer eventId={eventId} />
+      </div>
+    </ProtectedLayout>
   )
 }

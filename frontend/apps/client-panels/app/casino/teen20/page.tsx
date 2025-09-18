@@ -1,14 +1,16 @@
 'use client'
 
 import React from 'react'
+import ProtectedLayout from '@/components/ProtectedLayout'
 import CasinoGameLayout from '@/components/CasinoGameLayout'
 import { PlayingCard } from '@/components/PlayingCard'
 
 export default function Teen20Page() {
   return (
-    <CasinoGameLayout
+    <ProtectedLayout>
+      <CasinoGameLayout
       gameType="teen20"
-      streamId="3030"
+      streamId={process.env.NEXT_PUBLIC_TEEN20_STREAM_ID || "3030"}
       title="20-20 Teenpatti"
     >
       {({ gameData, getBettingOdds, getGameData }) => {
@@ -126,6 +128,7 @@ export default function Teen20Page() {
           </>
         )
       }}
-    </CasinoGameLayout>
+      </CasinoGameLayout>
+    </ProtectedLayout>
   )
 }

@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
+import ProtectedLayout from '@/components/ProtectedLayout';
 import CasinoGameLayout from '@/components/CasinoGameLayout';
 
 export default function AAAPage() {
   return (
-    <CasinoGameLayout
+    <ProtectedLayout>
+      <CasinoGameLayout
       gameType="aaa"
-      streamId="3056"
+      streamId={process.env.NEXT_PUBLIC_AAA_STREAM_ID || "3056"}
       title="Amar Akbar Anthony"
     >
       {({ getBettingOdds }) => {
@@ -149,6 +151,7 @@ export default function AAAPage() {
           </div>
         );
       }}
-    </CasinoGameLayout>
+      </CasinoGameLayout>
+    </ProtectedLayout>
   );
 }

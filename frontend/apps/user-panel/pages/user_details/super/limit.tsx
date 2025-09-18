@@ -27,7 +27,7 @@ const SuperLimitUpdatePage = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/users?role=SUPER_AGENT&excludeInactiveParents=true');
+      const res = await fetch('/api/users?role=SUP_AGENT&excludeInactiveParents=true');
       const data = await res.json();
       if (res.ok && data.users) {
         setSuperAgents(data.users);

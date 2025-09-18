@@ -17,7 +17,7 @@ const SuperAgentCreatePage = () => {
     casinoCommission: '',
     casinoStatus: false,
     matchCommission: '',
-    sessionCommission: '',
+    sessioncommission: '',
     // Parent commission fields (editable)
     myShare: '',
     myCasinoShare: '',
@@ -47,7 +47,7 @@ const SuperAgentCreatePage = () => {
           targetParentId = parentId;
         } else {
           // Get current user's session to get their ID (default behavior)
-          const sessionRes = await fetch('/api/auth/session');
+          const sessionRes = await fetch('/api/auth/unified-session-check');
           const sessionData = await sessionRes.json();
           
           if (!sessionData.valid) {
@@ -67,7 +67,7 @@ const SuperAgentCreatePage = () => {
           setParentData(parentUserData.user);
           
           // Set parent's values for display - use proper state update
-          const commissionShare = parentUserData.user.UserCommissionShare;
+          const commissionShare = parentUserData.user.userCommissionShare;
           
           // Update form state with new values
           setForm(prevForm => ({
@@ -124,7 +124,7 @@ const SuperAgentCreatePage = () => {
         targetParentId = parentIdFromQuery;
       } else {
         // Get current user's session to get their ID (default behavior)
-        const sessionRes = await fetch('/api/auth/session');
+        const sessionRes = await fetch('/api/auth/unified-session-check');
         const sessionData = await sessionRes.json();
         
         if (!sessionData.valid) {
@@ -149,7 +149,7 @@ const SuperAgentCreatePage = () => {
           casinoShare: form.casinoShare,
           casinoCommission: form.casinoCommission,
           matchcommission: form.matchCommission, // Fixed: matchCommission -> matchcommission
-          sessioncommission: form.sessionCommission, // Fixed: sessionCommission -> sessioncommission
+          sessioncommission: form.sessioncommission,
           commissionType: form.commissionType,
           session_commission_type: form.commissionType === 'BetByBet' ? 'BetByBet' : 'No Comm', // Add session commission type
           casinoStatus: form.casinoStatus,
@@ -340,7 +340,7 @@ const SuperAgentCreatePage = () => {
                         <div className="form-group row mb-0">
                           <div className="form-group col-md-6">
                             <label>Session Commission</label>
-                            <input type="number" min="0" max={form.mySessionCommission || 100} name="sessionCommission" className="form-control" placeholder="Session Commission" value={form.sessionCommission || ''} onChange={handleChange} />
+                            <input type="number" min="0" max={form.mySessionCommission || 100} name="sessioncommission" className="form-control" placeholder="Session Commission" value={form.sessioncommission || ''} onChange={handleChange} />
                           </div>
                           <div className="form-group col-md-6">
                             <label>My Session Commission (Parent)</label>

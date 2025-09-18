@@ -47,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Return user data (without password)
     const { password: _, ...userWithoutPassword } = user;
 
-    return res.status(200).json({
+    const responseData = {
       success: true,
       user: {
         id: user.id,
@@ -56,10 +56,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         role: user.role,
         status: user.status,
         limit: user.limit,
+        creditLimit: user.limit, // Map limit to creditLimit for frontend compatibility
         casinoStatus: user.casinoStatus,
+        contactno: user.contactno, // Show actual database value
+        createdAt: user.createdAt,
+        code: user.username, // Use username as code since there's no code field
+        reference: user.reference, // Show actual database value
+        mobileshare: 100, // Default value since there's no mobileshare field
         userCommissionShare: user.userCommissionShare
       }
-    });
+    };
+
+    return res.status(200).json(responseData);
 
   } catch (error) {
     console.error('Profile error:', error);

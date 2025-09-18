@@ -28,28 +28,29 @@ import {
 // Apply authentication middleware to all routes
 router.use(authenticateToken);
 
-// User CRUD routes - require admin level access
-router.get('/users', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), getUsers);
-router.post('/users', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), createUser);
-router.get('/users/:id', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), getUserById);
-router.put('/users/:id', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), updateUser);
-router.delete('/users/:id', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), deleteUser);
+// User CRUD routes - require appropriate role level access
+router.get('/users', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), getUsers);
+router.post('/users', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), createUser);
+router.get('/users/:id', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), getUserById);
+router.put('/users/:id', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), updateUser);
+router.delete('/users/:id', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), deleteUser);
 
-// User filtering routes - require admin level access
-router.get('/users/by-role', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), getUsersByRole);
-router.get('/users/filtered', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), getFilteredUsers);
-router.get('/users/role-based', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), getRoleBasedUsers);
+// User filtering routes - require appropriate role level access
+router.get('/users/by-role', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), getUsersByRole);
+router.get('/users/filtered', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), getFilteredUsers);
+router.get('/users/role-based', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), getRoleBasedUsers);
+router.post('/users/role-based', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), createUser);
 
-// User management routes - require admin level access
-router.post('/users/update-limit', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), updateUserLimit);
-router.post('/users/update-limits', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), updateUserLimits);
-router.post('/users/transfer-limit', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), transferLimit);
-router.post('/users/update-status', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), updateUserStatus);
-router.post('/users/change-password', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), changePassword);
-router.post('/users/share-commission', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), shareCommission);
+// User management routes - require appropriate role level access
+router.post('/users/update-limit', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), updateUserLimit);
+router.post('/users/update-limits', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), updateUserLimits);
+router.post('/users/transfer-limit', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), transferLimit);
+router.post('/users/update-status', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), updateUserStatus);
+router.post('/users/change-password', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), changePassword);
+router.post('/users/share-commission', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), shareCommission);
 
-// User financial routes - require admin level access
-router.get('/users/:id/ledger', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), getUserLedger);
-router.post('/users/:id/manual-ledger', authorizeRole(['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER']), createManualLedger);
+// User financial routes - require appropriate role level access
+router.get('/users/:id/ledger', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), getUserLedger);
+router.post('/users/:id/manual-ledger', authorizeRole(['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT']), createManualLedger);
 
 export default router;

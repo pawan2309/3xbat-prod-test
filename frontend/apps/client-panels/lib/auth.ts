@@ -1,7 +1,7 @@
 // Authentication service for client-panels
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
-  ? `${process.env.NEXT_PUBLIC_API_URL}/api/auth`
-  : 'http://localhost:4000/api/auth';
+import { config } from './config';
+
+const API_BASE_URL = config.authApiUrl;
 
 export interface User {
   id: string;

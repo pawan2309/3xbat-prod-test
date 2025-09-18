@@ -275,27 +275,34 @@ export default function AdminMasterPage() {
     
     if (isActive) { setActivating(true); } else { setDeactivating(true); }
     try {
-      const requestBody = { userIds: usersToUpdate, isActive: isActive, role: 'ADMIN' };
+      // Send individual requests for each user
+      const promises = usersToUpdate.map(userId => 
+        fetch('/api/users/update-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            isActive: isActive,
+          }),
+        })
+      );
+
+      const responses = await Promise.all(promises);
       
-      const res = await fetch('/api/users/update-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-      
-      const data = await res.json();
-      
-      if (data.success) {
-        setAdmins(prev => prev.map(user => usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user));
-        if (!userIds) { setSelectedUsers([]); }
-        
-        // Auto-refresh the page after successful status update
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000); // 1 second delay to show success state
-      } else {
-        console.error('❌ Frontend: Failed to update status:', data.message);
+      // Check if all requests were successful
+      const failedRequests = responses.filter(res => !res.ok);
+      if (failedRequests.length > 0) {
+        throw new Error(`Failed to ${isActive ? 'activate' : 'deactivate'} ${failedRequests.length} users`);
       }
+
+      // Update the UI
+      setAdmins(prev => prev.map(user => usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user));
+      if (!userIds) { setSelectedUsers([]); }
+      
+      // Auto-refresh the page after successful status update
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // 1 second delay to show success state
     } catch (err) {
       console.error('❌ Frontend: Network error during status update:', err);
     } finally {

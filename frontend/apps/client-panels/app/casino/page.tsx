@@ -29,7 +29,7 @@ export default function CasinoPage() {
   const loadActiveCasinoGames = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:4000/api/casino/games/active', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/casino/games/active`, {
         credentials: 'include',
         mode: 'cors'
       });
@@ -119,7 +119,7 @@ export default function CasinoPage() {
   const loadFallbackGames = () => {
     const fallbackGames = [
       {
-        streamingId: '3030',
+        streamingId: process.env.NEXT_PUBLIC_TEEN20_STREAM_ID || '3030',
         name: 'Teen20',
         fullName: 'Teen Patti 20-20',
         category: 'Indian Poker',
@@ -127,7 +127,7 @@ export default function CasinoPage() {
         description: 'Classic Indian poker game with 20-20 format'
       },
       {
-        streamingId: '3043',
+        streamingId: process.env.NEXT_PUBLIC_AB20_STREAM_ID || '3043',
         name: 'AB20',
         fullName: 'Andar Bahar 20-20',
         category: 'Card Game',
@@ -135,7 +135,7 @@ export default function CasinoPage() {
         description: 'Traditional Andar Bahar with 20 cards'
       },
       {
-        streamingId: '3035',
+        streamingId: process.env.NEXT_PUBLIC_DT20_STREAM_ID || '3035',
         name: 'DT20',
         fullName: 'Dragon Tiger 20-20',
         category: 'Asian Card',
@@ -143,7 +143,7 @@ export default function CasinoPage() {
         description: 'Dragon vs Tiger card battle game'
       },
       {
-        streamingId: '3056',
+        streamingId: process.env.NEXT_PUBLIC_AAA_STREAM_ID || '3056',
         name: 'AAA',
         fullName: 'Three Aces',
         category: 'Live Casino',
@@ -151,7 +151,7 @@ export default function CasinoPage() {
         description: 'Special three aces card game'
       },
       {
-        streamingId: '3034',
+        streamingId: process.env.NEXT_PUBLIC_CARD32EU_STREAM_ID || '3034',
         name: 'Card32EU',
         fullName: '32 Cards European',
         category: 'Card Game',
@@ -159,7 +159,7 @@ export default function CasinoPage() {
         description: 'European style 32-card game'
       },
       {
-        streamingId: '3032',
+        streamingId: process.env.NEXT_PUBLIC_LUCKY7EU_STREAM_ID || '3032',
         name: 'Lucky7EU',
         fullName: 'Lucky Seven',
         category: 'Luck Game',
@@ -288,6 +288,7 @@ export default function CasinoPage() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </ProtectedLayout>
   )

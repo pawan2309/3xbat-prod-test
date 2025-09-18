@@ -313,27 +313,33 @@ export default function AgentPage() {
     }
 
     try {
-      const res = await fetch('/api/users/update-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userIds: usersToUpdate,
-          isActive: isActive,
-          role: 'AGENT'
-        }),
-      });
+      // Send individual requests for each user
+      const promises = usersToUpdate.map(userId => 
+        fetch('/api/users/update-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            isActive: isActive,
+          }),
+        })
+      );
 
-      const data = await res.json();
-      if (data.success) {
-        // Update local state
-        setAgents(prev => prev.map(user => 
-          usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user
-        ));
-        if (!userIds) {
-          setSelectedUsers([]);
-        }
+      const responses = await Promise.all(promises);
+      
+      // Check if all requests were successful
+      const failedRequests = responses.filter(res => !res.ok);
+      if (failedRequests.length > 0) {
+        throw new Error(`Failed to ${isActive ? 'activate' : 'deactivate'} ${failedRequests.length} users`);
+      }
+
+      // Update local state
+      setAgents(prev => prev.map(user => 
+        usersToUpdate.includes(user.id) ? { ...user, isActive: isActive } : user
+      ));
+      if (!userIds) {
+        setSelectedUsers([]);
+      }
         
         // Auto-refresh the page after successful status update
         setTimeout(() => {

@@ -43,7 +43,7 @@ const UserCreatePage = () => {
   // Constants for commission calculations - now using config
   const [commissionConstants] = useState({
     mc: config.commission.matchCommission,
-    sc: config.commission.sessionCommission,  
+    sc: config.commission.sessioncommission,  
     cc: config.commission.casinoCommission
   });
 
@@ -60,11 +60,11 @@ const UserCreatePage = () => {
   const getRoleDisplayName = (role: string) => {
     switch (role) {
       case 'ADMIN': return 'Admin';
-      case 'SUPER_ADMIN': return 'Super Admin';
-      case 'SUB_OWNER': return 'Sub Owner';
-      case 'SUB': return 'Sub Agent';
-      case 'MASTER': return 'Master Agent';
-      case 'SUPER_AGENT': return 'Super Agent';
+      case 'SUP_ADM': return 'Super Admin';
+      case 'SUB_OWN': return 'Sub Owner';
+      case 'SUB_ADM': return 'Sub Agent';
+      case 'MAS_AGENT': return 'Master Agent';
+      case 'SUP_AGENT': return 'Super Agent';
       case 'AGENT': return 'Agent';
       case 'USER': return 'Client';
       default: return 'User';
@@ -74,9 +74,9 @@ const UserCreatePage = () => {
   // Get redirect path based on role
   const getRedirectPath = (role: string) => {
     switch (role) {
-      case 'SUB': return '/user_details/sub';
-      case 'MASTER': return '/user_details/master';
-      case 'SUPER_AGENT': return '/user_details/super';
+      case 'SUB_ADM': return '/user_details/sub';
+      case 'MAS_AGENT': return '/user_details/master';
+      case 'SUP_AGENT': return '/user_details/super';
       case 'AGENT': return '/user_details/agent';
       case 'USER': return '/user_details/client';
       default: return '/user_details/sub';
@@ -90,7 +90,7 @@ const UserCreatePage = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await fetch('/api/auth/session', {
+        const res = await fetch('/api/auth/unified-session-check', {
           credentials: 'include'
         });
         const data = await res.json();
@@ -134,17 +134,20 @@ const UserCreatePage = () => {
       
       if (parentUserData.success) {
         setParentData(parentUserData.user);
+        console.log('Parent data received:', parentUserData.user);
+        console.log('Parent commission share:', parentUserData.user.userCommissionShare);
+        
         // Set parent's values for display
         setFormData(prev => ({
           ...prev,
-          myShare: parentUserData.user.UserCommissionShare?.share || 0,
-          myCasinoShare: parentUserData.user.UserCommissionShare?.cshare || 0,
-          myCasinoCommission: parentUserData.user.UserCommissionShare?.casinocommission || 0,
-          myMatchCommission: parentUserData.user.UserCommissionShare?.matchcommission || 0,
-          mySessionCommission: parentUserData.user.UserCommissionShare?.sessioncommission || 0,
+          myShare: parentUserData.user.userCommissionShare?.share || 0,
+          myCasinoShare: parentUserData.user.userCommissionShare?.cshare || 0,
+          myCasinoCommission: parentUserData.user.userCommissionShare?.casinocommission || 0,
+          myMatchCommission: parentUserData.user.userCommissionShare?.matchcommission || 0,
+          mySessionCommission: parentUserData.user.userCommissionShare?.sessioncommission || 0,
         }));
       } else {
-        console.error('Failed to fetch parent data');
+        console.error('Failed to fetch parent data:', parentUserData);
       }
     } catch (err) {
       console.error('Error fetching parent data:', err);
@@ -289,7 +292,7 @@ const UserCreatePage = () => {
   const createUser = async (userRole: string, parentId?: string | null) => {
     try {
       // Get current user's session to determine parentId if not provided
-      const sessionRes = await fetch('/api/auth/session', {
+      const sessionRes = await fetch('/api/auth/unified-session-check', {
         credentials: 'include'
       });
       const sessionData = await sessionRes.json();
@@ -317,7 +320,7 @@ const UserCreatePage = () => {
         casinoShare: formData.casinoShare,
         casinoCommission: formData.casinoCommission,
         matchCommission: formData.matchcommission,
-        sessionCommission: formData.sessioncommission,
+        sessioncommission: formData.sessioncommission,
         commissionType: formData.commissionType,
         casinoStatus: formData.casinoStatus,
         // Parent's commission and share values
@@ -549,7 +552,7 @@ const UserCreatePage = () => {
                         type="number" 
                         className="form-control shadow-none" 
                         readOnly 
-                        value={parentData?.creditLimit || 0}
+                        value={parentData?.limit || 0}
                         style={{ backgroundColor: '#f8f9fa', color: '#495057' }}
                       />
                       <small className="form-text text-muted">This shows how much limit the parent has available</small>

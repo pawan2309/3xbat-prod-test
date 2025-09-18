@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     // Forward the request to the backend API
-    const response = await fetch('http://localhost:4000/api/cricket/matches', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/cricket/matches`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

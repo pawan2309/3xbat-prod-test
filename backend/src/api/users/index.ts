@@ -6,12 +6,13 @@ export const runtime = 'nodejs';
 // Function to get role prefix (3 letters)
 function getRolePrefix(role: string): string {
   const rolePrefixes: { [key: string]: string } = {
+    'OWNER': 'OWN',
     'ADMIN': 'ADM',
-    'SUPER_ADMIN': 'SUD',
-    'SUB_OWNER': 'SOW',
-    'SUB': 'SUB', 
-    'MASTER': 'MAS',
-    'SUPER_AGENT': 'SUP',
+    'SUP_ADM': 'SUD',
+    'SUB_OWN': 'SOW',
+    'SUB_ADM': 'SUB', 
+    'MAS_AGENT': 'MAS',
+    'SUP_AGENT': 'SUP',
     'AGENT': 'AGE',
     'USER': 'USE'
   };
@@ -43,7 +44,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       
       let whereClause: any = {};
       if (role && typeof role === 'string') {
-        whereClause.role = role as any;
+        // Map old role names to new role names for backward compatibility
+        const roleMapping: { [key: string]: string } = {
+          'SUPER_ADMIN': 'SUP_ADM',
+          'SUB_OWNER': 'SUB_OWN',
+          'SUB_ADMIN': 'SUB_ADM',
+          'MASTER': 'MAS_AGENT',
+          'SUPER_AGENT': 'SUP_AGENT'
+        };
+        
+        const mappedRole = roleMapping[role] || role;
+        whereClause.role = mappedRole as any;
+        
+        console.log(`🔄 Role mapping: ${role} -> ${mappedRole}`);
       }
       if (parentId && typeof parentId === 'string') {
         whereClause.parentId = parentId;
@@ -54,19 +67,36 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         // Support legacy isActive by mapping to status
         const isActiveBool = String(isActive) === 'true';
         whereClause.status = isActiveBool ? 'ACTIVE' : 'INACTIVE';
+        console.log('Filtering by isActive:', isActive, '-> status:', whereClause.status);
       }
       
       // If excludeInactiveParents is true, we need to filter out users whose parents are inactive
       if (excludeInactiveParents === 'true') {
-        whereClause.OR = [
-          { parentId: null }, // Top-level users (no parent)
-          {
-            parent: {
-              status: 'ACTIVE' // Only users whose parent is active
+        // Preserve the status filter while adding parent status filter
+        const parentFilter = {
+          OR: [
+            { parentId: null }, // Top-level users (no parent)
+            {
+              parent: {
+                status: 'ACTIVE' // Only users whose parent is active
+              }
             }
-          }
-        ];
+          ]
+        };
+        
+        // If we already have a status filter, combine them with AND
+        if (whereClause.status) {
+          whereClause.AND = [
+            { status: whereClause.status },
+            parentFilter
+          ];
+          delete whereClause.status; // Remove the direct status filter
+        } else {
+          whereClause.OR = parentFilter.OR;
+        }
       }
+      
+      console.log('Final whereClause:', JSON.stringify(whereClause, null, 2));
       
       const users = await prisma.user.findMany({
         where: whereClause,
@@ -96,7 +126,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               casinocommission: true,
               matchcommission: true,
               sessioncommission: true,
-              sessionCommission: true,
               session_commission_type: true,
               commissionType: true,
             }
@@ -138,7 +167,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         commissionType,
         casinoStatus,
         matchCommission,
-        sessionCommission,
         casinoShare,
         casinoCommission,
         // Parent commission fields
@@ -304,7 +332,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         casinocommission: parseFloat(casinocommission) || 0,
         matchcommission: parseFloat(matchcommission) || 0, // Use actual value from frontend
         sessioncommission: parseFloat(sessioncommission) || 0, // Use actual value from frontend
-        sessionCommission: sessionCommission !== undefined ? parseFloat(sessionCommission) : null,
         session_commission_type: session_commission_type || "No Comm",
         commissionType: commissionType || null,
       };
@@ -346,14 +373,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       console.log('Creating commission share with data:', commissionShareData);
       await prisma.userCommissionShare.create({
         data: {
-          user: { connect: { id: user.id } },
+          userId: user.id,
           share: commissionShareData.share,
           available_share_percent: commissionShareData.available_share_percent,
           cshare: commissionShareData.cshare,
           casinocommission: commissionShareData.casinocommission,
           matchcommission: commissionShareData.matchcommission,
           sessioncommission: commissionShareData.sessioncommission,
-          sessionCommission: commissionShareData.sessionCommission,
           session_commission_type: commissionShareData.session_commission_type,
           commissionType: commissionShareData.commissionType,
           updatedAt: new Date()
@@ -383,6 +409,69 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       }
       
       return res.status(500).json({ success: false, message: 'Failed to create user', error: (error as Error).message });
+    }
+  }
+
+  if (req.method === 'GET' && req.url?.includes('/by-role')) {
+    // Handle /api/users/by-role endpoint
+    try {
+      const { role } = req.query;
+      
+      if (!role || typeof role !== 'string') {
+        return res.status(400).json({ success: false, message: 'Role parameter is required' });
+      }
+
+      // Map old role names to new role names for backward compatibility
+      const roleMapping: { [key: string]: string } = {
+        'SUPER_ADMIN': 'SUP_ADM',
+        'SUB_OWNER': 'SUB_OWN',
+        'SUB_ADMIN': 'SUB_ADM',
+        'MASTER': 'MAS_AGENT',
+        'SUPER_AGENT': 'SUP_AGENT'
+      };
+      
+      const mappedRole = roleMapping[role] || role;
+      
+      const users = await prisma.user.findMany({
+        where: { 
+          role: mappedRole as any,
+          status: 'ACTIVE'
+        },
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          role: true,
+          status: true,
+          contactno: true,
+          parentId: true,
+          createdAt: true,
+          parent: {
+            select: {
+              username: true,
+              name: true,
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      // Transform users to match the expected format for the modal
+      const transformedUsers = users.map(user => ({
+        id: user.id,
+        label: `${user.username} - ${user.name}`,
+        value: user.id,
+        username: user.username,
+        name: user.name,
+        code: user.username // Using username as code
+      }));
+
+      console.log(`Found ${transformedUsers.length} users with role ${mappedRole}`);
+      
+      return res.status(200).json({ success: true, users: transformedUsers });
+    } catch (error) {
+      console.error('Error fetching users by role:', error);
+      return res.status(500).json({ success: false, message: 'Failed to fetch users by role', error: (error as Error).message });
     }
   }
 

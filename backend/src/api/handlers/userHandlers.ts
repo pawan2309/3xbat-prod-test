@@ -6,12 +6,13 @@ const prisma = new PrismaClient();
 // Function to get role prefix (3 letters)
 function getRolePrefix(role: string): string {
   const rolePrefixes: { [key: string]: string } = {
+    'OWNER': 'OWN',
     'ADMIN': 'ADM',
-    'SUPER_ADMIN': 'SUD',
-    'SUB_OWNER': 'SOW',
-    'SUB': 'SUB', 
-    'MASTER': 'MAS',
-    'SUPER_AGENT': 'SUP',
+    'SUP_ADM': 'SUD',
+    'SUB_OWN': 'SOW',
+    'SUB_ADM': 'SUB', 
+    'MAS_AGENT': 'MAS',
+    'SUP_AGENT': 'SUP',
     'AGENT': 'AGE',
     'USER': 'USE'
   };
@@ -38,17 +39,34 @@ function generateCode(role: string, existingCodes: string[] = []) {
 // GET /api/users - List users with optional filtering
 export const getUsers = async (req: Request, res: Response) => {
   try {
-    const { role, parentId, status, excludeInactiveParents } = req.query;
+    const { role, parentId, status, isActive, excludeInactiveParents } = req.query;
     
     let whereClause: any = {};
     if (role && typeof role === 'string') {
-      whereClause.role = role as any;
+      // Map old role names to new role names for backward compatibility
+      const roleMapping: { [key: string]: string } = {
+        'SUPER_ADMIN': 'SUP_ADM',
+        'SUB_OWNER': 'SUB_OWN',
+        'SUB_ADMIN': 'SUB_ADM',
+        'MASTER': 'MAS_AGENT',
+        'SUPER_AGENT': 'SUP_AGENT'
+      };
+      
+      const mappedRole = roleMapping[role] || role;
+      whereClause.role = mappedRole as any;
+      
+      console.log(`🔄 Role mapping: ${role} -> ${mappedRole}`);
     }
     if (parentId && typeof parentId === 'string') {
       whereClause.parentId = parentId;
     }
-    if (status !== undefined) {
-      whereClause.status = status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE';
+    if (typeof status === 'string') {
+      whereClause.status = status as any;
+    } else if (isActive !== undefined) {
+      // Support legacy isActive by mapping to status
+      const isActiveBool = String(isActive) === 'true';
+      whereClause.status = isActiveBool ? 'ACTIVE' : 'INACTIVE';
+      console.log('Filtering by isActive:', isActive, '-> status:', whereClause.status);
     }
     if (excludeInactiveParents === 'true') {
       whereClause.parent = {
@@ -84,7 +102,6 @@ export const getUsers = async (req: Request, res: Response) => {
             casinocommission: true,
             matchcommission: true,
             sessioncommission: true,
-            sessionCommission: true,
             session_commission_type: true,
             commissionType: true,
           }
@@ -92,12 +109,21 @@ export const getUsers = async (req: Request, res: Response) => {
       },
       orderBy: { createdAt: 'desc' }
     });
+
+    // Transform users to include frontend-expected fields
+    const transformedUsers = users.map(user => ({
+      ...user,
+      code: user.username, // Map username to code
+      creditLimit: user.limit, // Map limit to creditLimit
+      isActive: user.status === 'ACTIVE', // Map status to isActive boolean
+      UserCommissionShare: user.userCommissionShare // Ensure proper casing
+    }));
     
-    console.log('Found users:', users.length);
+    console.log('Found users:', transformedUsers.length);
     console.log('Where clause:', whereClause);
-    console.log('Sample users:', users.slice(0, 3).map(u => ({ id: u.id, username: u.username, role: u.role, status: u.status })));
+    console.log('Sample users:', transformedUsers.slice(0, 3).map(u => ({ id: u.id, username: u.username, role: u.role, status: u.status, isActive: u.isActive })));
     
-    return res.status(200).json({ success: true, users });
+    return res.status(200).json({ success: true, users: transformedUsers });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to fetch users', error: (error as Error).message });
   }
@@ -126,7 +152,6 @@ export const createUser = async (req: Request, res: Response) => {
       commissionType,
       casinoStatus,
       matchCommission,
-      sessionCommission,
       casinoShare,
       casinoCommission,
       // Parent commission fields
@@ -145,7 +170,7 @@ export const createUser = async (req: Request, res: Response) => {
     }
 
     // Validate role
-    const validRoles = ['ADMIN', 'SUPER_ADMIN', 'SUB_OWNER', 'SUB', 'MASTER', 'SUPER_AGENT', 'AGENT', 'USER'];
+    const validRoles = ['OWNER', 'ADMIN', 'SUP_ADM', 'SUB_OWN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ success: false, message: `Invalid role: ${role}. Valid roles are: ${validRoles.join(', ')}` });
     }
@@ -178,13 +203,13 @@ export const createUser = async (req: Request, res: Response) => {
         status: 'ACTIVE',
         userCommissionShare: {
           create: {
-            share: share || 0,
-            available_share_percent: share || 0,
-            cshare: cshare || 0,
+            share: parseFloat(share) || 0,
+            available_share_percent: parseFloat(share) || 0,
+            cshare: parseFloat(cshare) || 0,
             session_commission_type: session_commission_type || 'PERCENTAGE',
-            matchcommission: matchcommission || 0,
-            sessioncommission: sessioncommission || 0,
-            casinocommission: casinocommission || 0,
+            matchcommission: parseFloat(matchcommission) || 0,
+            sessioncommission: parseFloat(sessioncommission) || 0,
+            casinocommission: parseFloat(casinocommission) || 0,
             commissionType: commissionType || 'PERCENTAGE'
           }
         }
@@ -325,8 +350,45 @@ export const transferLimit = async (req: Request, res: Response) => {
 };
 
 export const updateUserStatus = async (req: Request, res: Response) => {
-  // Implementation for updateUserStatus
-  res.status(200).json({ success: true, message: 'Update user status - to be implemented' });
+  try {
+    const { userId, isActive } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ success: false, message: 'isActive must be a boolean value' });
+    }
+
+    // Update user status
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        status: isActive ? 'ACTIVE' : 'INACTIVE'
+      },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        status: true,
+        role: true
+      }
+    });
+
+    return res.status(200).json({ 
+      success: true, 
+      message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update user status',
+      error: (error as Error).message 
+    });
+  }
 };
 
 export const changePassword = async (req: Request, res: Response) => {

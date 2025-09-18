@@ -633,7 +633,7 @@ export class WebSocketDataPublisher {
         });
       }
 
-      logger.info(`📊 Published dashboard stats: ${totalUsers} users, ${totalMatches} matches, ${totalBets} bets`);
+      logger.info(`📊 Published dashboard stats: ${activeUsers} active users, ${totalMatches} matches, ${totalBets} bets`);
       
       await prisma.$disconnect();
     } catch (error) {

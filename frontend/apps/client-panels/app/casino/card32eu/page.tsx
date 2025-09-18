@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
+import ProtectedLayout from '@/components/ProtectedLayout';
 import CasinoGameLayout from '@/components/CasinoGameLayout';
 
 export default function Card32EUPage() {
   return (
-    <CasinoGameLayout
+    <ProtectedLayout>
+      <CasinoGameLayout
       gameType="card32eu"
-      streamId="3034"
+      streamId={process.env.NEXT_PUBLIC_CARD32EU_STREAM_ID || "3034"}
       title="Card 32 EU"
     >
       {({ getBettingOdds }) => {
@@ -45,6 +47,7 @@ export default function Card32EUPage() {
           </div>
         );
       }}
-    </CasinoGameLayout>
+      </CasinoGameLayout>
+    </ProtectedLayout>
   );
 }
