@@ -129,7 +129,7 @@ const CasinoUpdatePage: React.FC = () => {
 
   const loadCasinoData = async (casinoId: string) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/casino/games/${casinoId}`);
+      const response = await fetch(`https://control.3xbat.com/api/casino/games/${casinoId}`);
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -215,7 +215,7 @@ const CasinoUpdatePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`http://localhost:4000/api/casino/games/${id}`, {
+      const response = await fetch(`https://control.3xbat.com/api/casino/games/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

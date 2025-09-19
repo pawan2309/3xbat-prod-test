@@ -1,7 +1,7 @@
 // Authentication service for user-panel
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
   ? `${process.env.NEXT_PUBLIC_API_URL}/api/auth`
-  : 'http://13.60.145.70:4000/api/auth';
+  : 'https://user.3xbat.com/api/auth';
 
 export interface User {
   id: string;

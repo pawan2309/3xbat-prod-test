@@ -37,10 +37,10 @@ interface AppConfig {
 export const getConfig = (): AppConfig => {
   return {
     // API Configuration
-    apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000',
-    wsUrl: process.env.NEXT_PUBLIC_WS_URL || 'ws://13.60.145.70:4000',
-    authApiUrl: process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://13.60.145.70:4000/api/auth',
-    backendUrl: process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000',
+    apiUrl: process.env.NEXT_PUBLIC_API_URL || 'https://3xbat.com',
+    wsUrl: process.env.NEXT_PUBLIC_WS_URL || 'wss://3xbat.com',
+    authApiUrl: process.env.NEXT_PUBLIC_AUTH_API_URL || 'https://3xbat.com/api/auth',
+    backendUrl: process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'https://3xbat.com',
     
     // External Services
     streamingDomain: process.env.NEXT_PUBLIC_STREAMING_DOMAIN || 'https://mis3.sqmr.xyz:3334',

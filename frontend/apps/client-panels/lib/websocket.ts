@@ -41,7 +41,7 @@ class WebSocketManager {
     if (typeof window === 'undefined') return;
     
     try {
-      this.socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000', {
+      this.socket = io(process.env.NEXT_PUBLIC_API_URL || 'https://3xbat.com', {
         transports: ['websocket', 'polling'],
         autoConnect: true,
         reconnection: true,

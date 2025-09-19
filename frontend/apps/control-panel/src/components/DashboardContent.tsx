@@ -99,7 +99,7 @@ const DashboardContent: React.FC = () => {
     const loadDashboardStats = async () => {
       try {
         console.log('📊 Loading dashboard stats as fallback...');
-        const response = await fetch('http://localhost:4000/api/dashboard/stats', {
+        const response = await fetch('https://control.3xbat.com/api/dashboard/stats', {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -176,7 +176,7 @@ const DashboardContent: React.FC = () => {
       const immediateApiCall = async () => {
         try {
           console.log('🚀 Making immediate API call for faster loading...');
-          const response = await fetch('http://localhost:4000/api/cricket/fixtures', {
+          const response = await fetch('https://control.3xbat.com/api/cricket/fixtures', {
             method: 'GET',
             credentials: 'include',
             headers: {
@@ -248,7 +248,7 @@ const DashboardContent: React.FC = () => {
 
   // WebSocket connection for real-time cricket data
   useEffect(() => {
-    const newSocket = io('ws://localhost:4000', {
+    const newSocket = io('wss://control.3xbat.com', {
       transports: ['websocket'],
       timeout: 5000,
       reconnection: true,
@@ -366,7 +366,7 @@ const DashboardContent: React.FC = () => {
       if (matches.length === 0 && matchesLoading) {
         console.log('⏰ WebSocket timeout, trying direct API call...');
         try {
-          const response = await fetch('http://localhost:4000/api/cricket/fixtures', {
+          const response = await fetch('https://control.3xbat.com/api/cricket/fixtures', {
             method: 'GET',
             credentials: 'include',
             headers: {

@@ -1,4 +1,4 @@
-export const API_BASE: string = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+export const API_BASE: string = (process.env.NEXT_PUBLIC_API_URL || 'https://control.3xbat.com').replace(/\/$/, '');
 
 function normalizePath(path: string): string {
   if (!path) return '';

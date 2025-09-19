@@ -1,7 +1,7 @@
 // Configuration for user-panel
 export const config = {
   api: {
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000',
+    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'https://user.3xbat.com',
     timeout: 30000,
   },
   auth: {

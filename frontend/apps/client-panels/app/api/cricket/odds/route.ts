@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Forward the request to the backend API
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/cricket/odds?marketId=${marketId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://3xbat.com'}/api/cricket/odds?marketId=${marketId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

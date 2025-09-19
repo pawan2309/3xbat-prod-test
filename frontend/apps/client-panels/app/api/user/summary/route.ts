@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     // Forward the request to the backend API
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000'}/api/user/summary`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://3xbat.com'}/api/user/summary`, {
       method: 'GET',
       headers: {
         'Cookie': request.headers.get('cookie') || '',

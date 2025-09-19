@@ -85,7 +85,7 @@ export default function ProgressiveCricketLoader({
     if (typeof window !== 'undefined') {
       return `http://${window.location.hostname}:4000`
     }
-    return process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000'
+    return process.env.NEXT_PUBLIC_API_URL || 'https://3xbat.com'
   }
 
   // Load initial data with progressive enhancement

@@ -29,7 +29,7 @@ export default function CasinoPage() {
   const loadActiveCasinoGames = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000'}/api/casino/games/active`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://3xbat.com'}/api/casino/games/active`, {
         credentials: 'include',
         mode: 'cors'
       });

@@ -11,7 +11,7 @@ interface TVPlayerProps {
 const TVPlayer: React.FC<TVPlayerProps> = ({ eventId }) => {
   return (
     <iframe
-      src={`${process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000'}/api/cricket/tv/html?eventId=${eventId}`}
+      src={`${process.env.NEXT_PUBLIC_API_URL || 'https://3xbat.com'}/api/cricket/tv/html?eventId=${eventId}`}
       style={{
         width: "100%",
         height: "500px",

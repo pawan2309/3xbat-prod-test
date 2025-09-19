@@ -123,7 +123,7 @@ const MatchUpdatePage: React.FC = () => {
 
   const loadMarketTypes = async (eventId: string) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/matches/market-types?eventId=${eventId}`);
+      const response = await fetch(`https://control.3xbat.com/api/matches/market-types?eventId=${eventId}`);
       const data = await response.json();
       
       if (data.success && data.data.marketTypes) {

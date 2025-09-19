@@ -77,9 +77,9 @@ export const useCricketData = (
         // Try to fetch data directly as fallback
         try {
           if (process.env.NODE_ENV === 'development') {
-            console.log('🌐 Attempting API call to:', `${process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000'}/api/cricket/fixtures`)
+            console.log('🌐 Attempting API call to:', `${process.env.NEXT_PUBLIC_API_URL || 'https://3xbat.com'}/api/cricket/fixtures`)
           }
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000'}/api/cricket/fixtures`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://3xbat.com'}/api/cricket/fixtures`, {
             credentials: 'include',
             mode: 'cors'
           })
@@ -141,12 +141,12 @@ export const useCricketData = (
 
   // WebSocket connection for real-time data
   useEffect(() => {
-    const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'ws://13.60.145.70:4000', {
+    const socket = io(process.env.NEXT_PUBLIC_WS_URL || 'wss://3xbat.com', {
       transports: ['websocket']
     })
 
     socket.on('connect', () => {
-      console.log('✔ WebSocket connected to:', process.env.NEXT_PUBLIC_WS_URL || 'ws://13.60.145.70:4000')
+      console.log('✔ WebSocket connected to:', process.env.NEXT_PUBLIC_WS_URL || 'wss://3xbat.com')
       // Join the matches room to receive fixture data
       socket.emit('join_room', { room: 'global:matches' })
     })
@@ -180,7 +180,7 @@ export const useCricketData = (
       if (matches.length === 0 && loading) {
         console.log('⏰ WebSocket timeout, trying direct API call...')
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://13.60.145.70:4000'}/api/cricket/fixtures`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://3xbat.com'}/api/cricket/fixtures`, {
             credentials: 'include',
             mode: 'cors'
           })
