@@ -1,0 +1,13 @@
+/* Basic styles for TV player */
+body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+  font-family: Arial, sans-serif;
+}
+
+#player {
+  width: 100%;
+  height: 100vh;
+  background: #000;
+}
