@@ -2,20 +2,21 @@ import { Role } from './types';
 
 // Domain configuration
 export const DOMAIN_CONFIG = {
-  OWNER: 'control.3xbat.com',
-  SUB_OWN: 'suo.3xbat.com',
-  SUP_ADM: 'sup.3xbat.com',
-  ADMIN: 'adm.3xbat.com',
+  OPERATING_PANEL: 'operate.3xbat.com',
+  OWNER: 'owner.3xbat.com',
+  SUB_OWN: 'subowner.3xbat.com',
+  SUP_ADM: 'superadmin.3xbat.com',
+  ADMIN: 'admin.3xbat.com',
   SUB_ADM: 'sub.3xbat.com',
-  MAS_AGENT: 'mas.3xbat.com',
-  SUP_AGENT: 'sua.3xbat.com',
-  AGENT: 'age.3xbat.com',
+  MAS_AGENT: 'master.3xbat.com',
+  SUP_AGENT: 'superagent.3xbat.com',
+  AGENT: 'agent.3xbat.com',
   USER: '3xbat.com' // Separate package
 } as const;
 
 // Access control rules - each role has their own domain
 export const DOMAIN_ACCESS_RULES: Record<Role, readonly string[]> = {
-  OWNER: [DOMAIN_CONFIG.OWNER], // OWNER can only access control panel
+  OWNER: [DOMAIN_CONFIG.OPERATING_PANEL], // OWNER can only access operating panel
   SUB_OWN: [DOMAIN_CONFIG.SUB_OWN],
   SUP_ADM: [DOMAIN_CONFIG.SUP_ADM],
   ADMIN: [DOMAIN_CONFIG.ADMIN],

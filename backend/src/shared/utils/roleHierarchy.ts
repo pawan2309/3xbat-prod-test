@@ -16,11 +16,8 @@ export type Role = keyof typeof ROLE_HIERARCHY;
 
 // Function to get hierarchy index
 export function getHierarchyIndex(role: string): number {
-  console.log('🔵 getHierarchyIndex called with role:', role);
   const index = ROLE_HIERARCHY[role as Role];
-  console.log('🔵 Role hierarchy index:', index);
   if (index === undefined) {
-    console.warn(`🔴 Invalid role: ${role}`);
     return 0; // Return lowest priority for invalid roles
   }
   return index;
@@ -89,6 +86,11 @@ export function getHierarchyModalTitle(upperRole: string): string {
 // Function to check if a user can access a specific role's data
 export function canAccessRole(userRole: string, targetRole: string): boolean {
   // OWNER is restricted to control panel only - not accessible from user panel
+  if (userRole === 'OWNER') {
+    return false;
+  }
+  
+  // OWNER data is not accessible from user panel
   if (targetRole === 'OWNER') {
     return false;
   }
@@ -205,16 +207,12 @@ export function canAccessUserData(requestingUserRole: string, targetUserRole: st
 
 // Function to get role-based navigation items
 export function getRoleBasedNavigation(userRole: string) {
-  console.log('🔵 getRoleBasedNavigation called with role:', userRole);
   if (!userRole || typeof userRole !== 'string') {
-    console.warn('🔴 Invalid userRole provided to getRoleBasedNavigation:', userRole);
     return {};
   }
   
   const userIndex = getHierarchyIndex(userRole);
-  console.log('🔵 User hierarchy index:', userIndex);
   if (userIndex === 0) {
-    console.warn(`🔴 Invalid role "${userRole}" provided to getRoleBasedNavigation`);
     return {};
   }
 
@@ -278,7 +276,6 @@ export function getRoleBasedNavigation(userRole: string) {
 
   // Special handling for SUB_OWN - give full access to everything
   if (userRole === 'SUB_OWN') {
-    console.log('🔵 SUB_OWN user - returning full navigation');
     return allNavigation;
   }
   
@@ -294,7 +291,7 @@ export function getRoleBasedNavigation(userRole: string) {
         // For restricted sections, filter links based on hierarchy (only show roles below user)
         const filteredLinks = links.filter(link => {
           const linkIndex = getHierarchyIndex(link.role);
-          return linkIndex > userIndex; // Only show links for roles below the user
+          return linkIndex >= userIndex; // Show links for roles at or below the user level
         });
         if (filteredLinks.length > 0) {
           filteredNavigation[section] = filteredLinks;
@@ -305,7 +302,7 @@ export function getRoleBasedNavigation(userRole: string) {
       // For non-restricted sections, filter links based on hierarchy (only show roles below user)
       const filteredLinks = links.filter(link => {
         const linkIndex = getHierarchyIndex(link.role);
-        return linkIndex > userIndex; // Only show links for roles below the user
+        return linkIndex >= userIndex; // Show links for roles at or below the user level
       });
       if (filteredLinks.length > 0) {
         filteredNavigation[section] = filteredLinks;
@@ -313,6 +310,5 @@ export function getRoleBasedNavigation(userRole: string) {
     }
   });
   
-  console.log('🔵 Final filtered navigation:', filteredNavigation);
   return filteredNavigation;
 }
