@@ -35,7 +35,7 @@ export function requireAuth(handler: GetServerSideProps) {
 
     try {
       // Verify session with backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://user.3xbat.com'}/api/auth/unified-session-check`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://subown.3xbat.com'}/api/auth/unified-session-check`, {
         method: 'GET',
         headers: {
           'Cookie': `betx_session=${sessionCookie}`,

@@ -25,14 +25,9 @@ model User {
   updatedAt           DateTime             @updatedAt
   bets                Bet[]
   ledger              Ledger[]
-  limits              Limit[]
   loginSessions       LoginSession[]
-  notifications       Notification[]
-  sessions            Session[]
   transactions        Transaction[]
   userCommissionShare UserCommissionShare?
-  exposures           UserExposure[]
-  preferences         UserPreferences?
   parent              User?                @relation("UserHierarchy", fields: [parentId], references: [id])
   children            User[]               @relation("UserHierarchy")
 
@@ -44,36 +39,18 @@ model CasinoGame {
   name          String
   shortName     String
   eventId       String
-  cacheUrl      String
-  socketUrl     String
   videoUrl1     String
-  videoUrl2     String
-  videoUrl3     String?
   minStake      Int
   maxStake      Int
-  fetchDataType String   @default("socket")
-  videoUrlType  String   @default("1")
   betStatus     Boolean  @default(true)
   casinoStatus  Boolean  @default(true)
   errorMessage  String   @default("Game is under maintenance")
-  oddsDifference String  @default("0.01")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@map("casino_games")
 }
 
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
-}
 
 model LoginSession {
   id              String    @id @default(cuid())
@@ -136,9 +113,6 @@ model Match {
   lastUpdated     DateTime       @updatedAt
   bets            Bet[]
   ledger          Ledger[]
-  markets         Market[]
-  odds            MatchOdds[]
-  exposures       UserExposure[]
 
   @@index([bmarket])
   @@index([bevent])
@@ -149,57 +123,8 @@ model Match {
   @@map("matches")
 }
 
-model MatchOdds {
-  id          String       @id @default(cuid())
-  matchId     String
-  marketId    String
-  marketName  String
-  gtype       String
-  status      String
-  lastUpdated DateTime     @updatedAt
-  scope       BettingScope @default(MATCH)
-  match       Match        @relation(fields: [matchId], references: [id])
 
-  @@index([marketId])
-  @@index([matchId])
-  @@index([status])
-  @@map("match_odds")
-}
 
-model Market {
-  id               String       @id @default(cuid())
-  matchId          String
-  name             String
-  type             MarketType
-  status           MarketStatus @default(ACTIVE)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  isActive         Boolean      @default(true)
-  scope            BettingScope @default(MATCH)
-  suspendedAt      DateTime?
-  suspensionReason String?
-  bets             Bet[]
-  ledger           Ledger[]
-  match            Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  selections       Selection[]
-
-  @@map("markets")
-}
-
-model Selection {
-  id        String          @id @default(cuid())
-  marketId  String
-  name      String
-  odds      Float
-  status    SelectionStatus @default(ACTIVE)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  isActive  Boolean         @default(true)
-  bets      Bet[]
-  market    Market          @relation(fields: [marketId], references: [id], onDelete: Cascade)
-
-  @@map("selections")
-}
 
 model Bet {
   id                String       @id @default(cuid())
@@ -233,9 +158,7 @@ model Bet {
   roundId           String?      // For CASINO BETS - ROUND ID column
   transactionId     String?      // For CASINO BETS - TRANSACTION ID column
   
-  market            Market?      @relation(fields: [marketId], references: [id], onDelete: Cascade)
   match             Match?       @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  selectionRelation Selection?   @relation(fields: [selectionId], references: [id], onDelete: Cascade)
   user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   ledger            Ledger[]
 
@@ -248,22 +171,6 @@ model Bet {
 }
 
 
-model Notification {
-  id        String             @id @default(cuid())
-  userId    String
-  type      String
-  title     String
-  message   String
-  status    NotificationStatus @default(UNREAD)
-  readAt    DateTime?
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([status])
-  @@map("notifications")
-}
 
 model Transaction {
   id          String            @id @default(cuid())
@@ -283,96 +190,10 @@ model Transaction {
   @@map("transactions")
 }
 
-model UserPreferences {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  language      String   @default("en")
-  timezone      String   @default("UTC")
-  currency      String   @default("INR")
-  notifications Json     @default("{\"sms\": false, \"push\": true, \"email\": true}")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("user_preferences")
-}
 
-model QueueItem {
-  id          String      @id @default(cuid())
-  queueName   String
-  data        String
-  priority    Int         @default(1)
-  status      QueueStatus @default(PENDING)
-  attempts    Int         @default(0)
-  lastError   String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  processedAt DateTime?
-  failedAt    DateTime?
 
-  @@index([queueName])
-  @@index([status])
-  @@index([priority])
-  @@map("queue_items")
-}
 
-model OddsHistory {
-  id               String   @id @default(cuid())
-  marketId         String
-  selectionId      String
-  previousOdds     Float
-  newOdds          Float
-  change           Float
-  changePercentage Float
-  timestamp        DateTime @default(now())
-
-  @@index([marketId])
-  @@index([selectionId])
-  @@index([timestamp])
-  @@map("odds_history")
-}
-
-model MarketSelection {
-  id        String   @id @default(cuid())
-  marketId  String
-  name      String
-  odds      Float
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([marketId])
-  @@map("market_selections")
-}
-
-model UserExposure {
-  id        String   @id @default(cuid())
-  userId    String
-  matchId   String
-  amount    Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([matchId])
-  @@map("user_exposures")
-}
-
-model Limit {
-  id        String   @id @default(cuid())
-  userId    String
-  value     Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  type      String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([type])
-  @@map("limits")
-}
 
 model Ledger {
   id        String   @id @default(cuid())
@@ -384,7 +205,6 @@ model Ledger {
   amount    Float
   createdAt DateTime @default(now())
   bet       Bet?     @relation(fields: [betId], references: [id])
-  market    Market?  @relation(fields: [marketId], references: [id])
   match     Match?   @relation(fields: [matchId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
 
@@ -396,51 +216,12 @@ model Ledger {
 }
 
 
-model CasinoTable {
-  id          Int             @id @default(autoincrement())
-  eventId     BigInt          @map("event_id")
-  name        String          @db.VarChar(50)
-  shortName   String          @map("short_name") @db.VarChar(20)
-  betStatus   CasinoBetStatus @default(OPEN) @map("bet_status")
-  minStake    Decimal         @default(0) @map("min_stake") @db.Decimal(10, 2)
-  maxStake    Decimal         @default(0) @map("max_stake") @db.Decimal(10, 2)
-  dataUrl     String?         @map("data_url")
-  resultUrl   String?         @map("result_url")
-  streamId    Int?            @map("stream_id")
-  lastUpdated DateTime        @default(now()) @updatedAt @map("last_updated")
 
-  @@index([betStatus], map: "idx_casino_tables_bet_status")
-  @@index([streamId], map: "idx_casino_tables_stream_id")
-  @@map("casino_tables")
-}
 
-model SystemConfig {
-  id        String     @id @default(cuid())
-  key       String     @unique
-  value     String
-  type      ConfigType
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  @@map("system_configs")
-}
-
-model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?
-  action     String
-  resource   String
-  resourceId String?
-  details    Json?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now())
-
-  @@map("audit_logs")
-}
 
 enum UserRole {
   OWNER
+  
   SUB_OWN
   SUP_ADM
   ADMIN
@@ -470,29 +251,8 @@ enum BettingScope {
   CASINO
 }
 
-enum MarketType {
-  MATCH_WINNER
-  OVER_UNDER
-  HANDICAP
-  CORRECT_SCORE
-  BOTH_TEAMS_SCORE
-  FIRST_GOAL_SCORER
-}
 
-enum MarketStatus {
-  ACTIVE
-  SUSPENDED
-  SETTLED
-  CANCELLED
-}
 
-enum SelectionStatus {
-  ACTIVE
-  SUSPENDED
-  WINNER
-  LOSER
-  VOID
-}
 
 enum BetStatus {
   PENDING
@@ -502,11 +262,6 @@ enum BetStatus {
   CANCELED
 }
 
-enum NotificationStatus {
-  UNREAD
-  READ
-  ARCHIVED
-}
 
 enum TransactionStatus {
   PENDING
@@ -515,12 +270,6 @@ enum TransactionStatus {
   CANCELLED
 }
 
-enum QueueStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-}
 
 enum GameStatus {
   ACTIVE
@@ -528,14 +277,4 @@ enum GameStatus {
   MAINTENANCE
 }
 
-enum CasinoBetStatus {
-  OPEN
-  CLOSED
-}
 
-enum ConfigType {
-  STRING
-  NUMBER
-  BOOLEAN
-  JSON
-}

@@ -1,1 +1,1 @@
-{"version":3,"file":"transfer-limit.d.ts","sourceRoot":"","sources":["../../../src/api/users/transfer-limit.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAGvD,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,iBAoG9E"}
+{"version":3,"file":"transfer-limit.d.ts","sourceRoot":"","sources":["../../../src/api/users/transfer-limit.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAIvD,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,gBAqH9E"}

@@ -2,7 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = handler;
 const roleBasedUserService_1 = require("../../lib/services/roleBasedUserService");
+const auth_1 = require("../../lib/auth");
 async function handler(req, res) {
+    // CRITICAL: Add authentication for all methods
+    const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
+    if (!token) {
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+    const decoded = (0, auth_1.verifyToken)(token);
+    if (!decoded) {
+        return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    // OWNER is restricted to control panel only
+    if (decoded.role === 'OWNER') {
+        return res.status(403).json({ success: false, message: 'Access denied - OWNER restricted to control panel' });
+    }
     if (req.method === 'POST') {
         // Create user with role validation
         try {

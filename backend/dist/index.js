@@ -15,7 +15,23 @@ const HOST = process.env.HOST || '0.0.0.0';
 const httpServer = http_1.default.createServer(app_1.default);
 const io = new socket_io_1.Server(httpServer, {
     cors: {
-        origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
+        origin: [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost:3002",
+            "http://13.60.145.70:3000",
+            "http://13.60.145.70:3001",
+            "http://13.60.145.70:3002",
+            "https://3xbat.com",
+            "https://operate.3xbat.com",
+            "https://admin.3xbat.com",
+            "https://subown.3xbat.com",
+            "https://supadm.3xbat.com",
+            "https://master.3xbat.com",
+            "https://supagent.3xbat.com",
+            "https://agent.3xbat.com",
+            "https://subadm.3xbat.com"
+        ],
         methods: ["GET", "POST"],
         credentials: true
     }

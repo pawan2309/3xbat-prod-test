@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runtime = void 0;
 const prisma_1 = require("../../lib/prisma");
@@ -37,17 +70,34 @@ async function handler(req, res) {
     if (req.method === 'GET') {
         // List users with optional role, parentId, and status filtering
         try {
+            // Verify authentication
+            const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
+            if (!token) {
+                return res.status(401).json({ success: false, message: 'Authentication required' });
+            }
+            // Verify token and get user info
+            const { verifyToken } = await Promise.resolve().then(() => __importStar(require('../../lib/auth')));
+            const decoded = verifyToken(token);
+            if (!decoded) {
+                return res.status(401).json({ success: false, message: 'Invalid token' });
+            }
+            const requestingUserRole = decoded.role;
+            const requestingUserId = decoded.userId || decoded.user?.id;
+            // OWNER is restricted to control panel only
+            if (requestingUserRole === 'OWNER') {
+                return res.status(403).json({ success: false, message: 'Access denied - OWNER restricted to control panel' });
+            }
             const { role, parentId, status, isActive, excludeInactiveParents } = req.query;
+            // Map old role names to new role names for backward compatibility
+            const roleMapping = {
+                'SUPER_ADMIN': 'SUP_ADM',
+                'SUB_OWNER': 'SUB_OWN',
+                'SUB_ADMIN': 'SUB_ADM',
+                'MASTER': 'MAS_AGENT',
+                'SUPER_AGENT': 'SUP_AGENT'
+            };
             let whereClause = {};
             if (role && typeof role === 'string') {
-                // Map old role names to new role names for backward compatibility
-                const roleMapping = {
-                    'SUPER_ADMIN': 'SUP_ADM',
-                    'SUB_OWNER': 'SUB_OWN',
-                    'SUB_ADMIN': 'SUB_ADM',
-                    'MASTER': 'MAS_AGENT',
-                    'SUPER_AGENT': 'SUP_AGENT'
-                };
                 const mappedRole = roleMapping[role] || role;
                 whereClause.role = mappedRole;
                 console.log(`🔄 Role mapping: ${role} -> ${mappedRole}`);
@@ -62,18 +112,56 @@ async function handler(req, res) {
                 // Support legacy isActive by mapping to status
                 const isActiveBool = String(isActive) === 'true';
                 whereClause.status = isActiveBool ? 'ACTIVE' : 'INACTIVE';
+                console.log('Filtering by isActive:', isActive, '-> status:', whereClause.status);
             }
             // If excludeInactiveParents is true, we need to filter out users whose parents are inactive
             if (excludeInactiveParents === 'true') {
-                whereClause.OR = [
-                    { parentId: null }, // Top-level users (no parent)
-                    {
-                        parent: {
-                            status: 'ACTIVE' // Only users whose parent is active
+                // Preserve the status filter while adding parent status filter
+                const parentFilter = {
+                    OR: [
+                        { parentId: null }, // Top-level users (no parent)
+                        {
+                            parent: {
+                                status: 'ACTIVE' // Only users whose parent is active
+                            }
                         }
-                    }
-                ];
+                    ]
+                };
+                // If we already have a status filter, combine them with AND
+                if (whereClause.status) {
+                    whereClause.AND = [
+                        { status: whereClause.status },
+                        parentFilter
+                    ];
+                    delete whereClause.status; // Remove the direct status filter
+                }
+                else {
+                    whereClause.OR = parentFilter.OR;
+                }
             }
+            // Apply role-based access control
+            if (requestingUserRole === 'USER') {
+                // USER can only see their own data
+                whereClause.id = requestingUserId;
+            }
+            else {
+                // For other roles, exclude OWNER data and apply hierarchy restrictions
+                whereClause.role = {
+                    not: 'OWNER' // Exclude OWNER data from user panel
+                };
+                // If a specific role is requested, check if user can access it
+                if (role && typeof role === 'string') {
+                    const { canAccessRole } = await Promise.resolve().then(() => __importStar(require('../../shared/utils/roleHierarchy')));
+                    const mappedRole = roleMapping[role] || role;
+                    if (!canAccessRole(requestingUserRole, mappedRole)) {
+                        return res.status(403).json({
+                            success: false,
+                            message: `Access denied - cannot access ${mappedRole} data`
+                        });
+                    }
+                }
+            }
+            console.log('Final whereClause:', JSON.stringify(whereClause, null, 2));
             const users = await prisma_1.prisma.user.findMany({
                 where: whereClause,
                 select: {
@@ -311,8 +399,7 @@ async function handler(req, res) {
                     matchcommission: commissionShareData.matchcommission,
                     sessioncommission: commissionShareData.sessioncommission,
                     session_commission_type: commissionShareData.session_commission_type,
-                    commissionType: commissionShareData.commissionType,
-                    updatedAt: new Date()
+                    commissionType: commissionShareData.commissionType
                 }
             });
             console.log('Commission share created successfully for user:', user.id);

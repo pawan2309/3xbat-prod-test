@@ -29,7 +29,7 @@ const app = (0, express_1.default)();
 app.use((0, helmet_1.default)({
     contentSecurityPolicy: {
         directives: {
-            frameAncestors: ["'self'", "http://localhost:3000", "http://localhost:3002"],
+            frameAncestors: ["'self'", "http://localhost:3000", "http://localhost:3002", "http://13.60.145.70:3000", "http://13.60.145.70:3002", "https://3xbat.com", "https://operate.3xbat.com", "https://admin.3xbat.com", "https://subown.3xbat.com", "https://supadm.3xbat.com", "https://master.3xbat.com", "https://supagent.3xbat.com", "https://agent.3xbat.com", "https://subadm.3xbat.com"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://mis3.sqmr.xyz"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://mis3.sqmr.xyz"],
             connectSrc: ["'self'", "https://mis3.sqmr.xyz"],
@@ -45,7 +45,21 @@ app.use((0, cors_1.default)({
         'http://localhost:3002',
         'http://192.168.29.248:3000',
         'http://192.168.29.248:3001',
-        'http://192.168.29.248:3002'
+        'http://192.168.29.248:3002',
+        'http://13.60.145.70:3000',
+        'http://13.60.145.70:3001',
+        'http://13.60.145.70:3002',
+        'http://13.60.145.70:4000',
+        'https://3xbat.com',
+        'https://api.3xbat.com',
+        'https://operate.3xbat.com',
+        'https://admin.3xbat.com',
+        'https://subown.3xbat.com',
+        'https://supadm.3xbat.com',
+        'https://master.3xbat.com',
+        'https://supagent.3xbat.com',
+        'https://agent.3xbat.com',
+        'https://subadm.3xbat.com'
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

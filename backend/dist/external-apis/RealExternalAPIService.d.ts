@@ -1,18 +1,19 @@
 export default class RealExternalAPIService {
-    private proxyBaseUrl;
+    private cricketBaseUrl;
+    private casinoBaseUrl;
     private timeout;
     private retryAttempts;
     private userAgent;
     constructor();
     /**
-     * Test proxy connection health
+     * Test external API connection health
      */
-    testProxyConnection(): Promise<boolean>;
+    testExternalAPIConnection(): Promise<boolean>;
     /**
      * Get health status of all external APIs
      */
     getHealthStatus(): Promise<{
-        proxy: string;
+        externalAPI: string;
         timestamp: string;
     }>;
     getCricketScorecard(marketId: string): Promise<unknown>;

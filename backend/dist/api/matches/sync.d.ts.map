@@ -1,1 +1,1 @@
-{"version":3,"file":"sync.d.ts","sourceRoot":"","sources":["../../../src/api/matches/sync.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAGvD,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,iBAoE9E"}
+{"version":3,"file":"sync.d.ts","sourceRoot":"","sources":["../../../src/api/matches/sync.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAGvD,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,gBAoE9E"}

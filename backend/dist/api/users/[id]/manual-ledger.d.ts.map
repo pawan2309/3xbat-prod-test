@@ -1,1 +1,1 @@
-{"version":3,"file":"manual-ledger.d.ts","sourceRoot":"","sources":["../../../../src/api/users/[id]/manual-ledger.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAIvD,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,iBA+F9E"}
+{"version":3,"file":"manual-ledger.d.ts","sourceRoot":"","sources":["../../../../src/api/users/[id]/manual-ledger.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAIvD,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,gBA+F9E"}

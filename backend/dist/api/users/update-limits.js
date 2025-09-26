@@ -2,11 +2,25 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = handler;
 const prisma_1 = require("../../lib/prisma");
+const auth_1 = require("../../lib/auth");
 async function handler(req, res) {
     if (req.method !== 'PUT') {
         return res.status(405).json({ success: false, message: 'Method not allowed' });
     }
     try {
+        // CRITICAL: Add authentication
+        const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Authentication required' });
+        }
+        const decoded = (0, auth_1.verifyToken)(token);
+        if (!decoded) {
+            return res.status(401).json({ success: false, message: 'Invalid token' });
+        }
+        // OWNER is restricted to control panel only
+        if (decoded.role === 'OWNER') {
+            return res.status(403).json({ success: false, message: 'Access denied - OWNER restricted to control panel' });
+        }
         const { userId, limits } = req.body;
         if (!userId) {
             return res.status(400).json({ success: false, message: 'User ID is required' });

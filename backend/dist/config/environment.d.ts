@@ -1,7 +1,7 @@
 export declare const serverConfig: {
     port: number;
     host: string;
-    environment: "development" | "production" | "test";
+    environment: string;
     isProduction: boolean;
     isDevelopment: boolean;
     isTest: boolean;
@@ -70,12 +70,6 @@ export declare const bcryptConfig: {
     saltRounds: number;
 };
 export declare const externalAPIConfig: {
-    proxyServer: {
-        baseUrl: string;
-        timeout: number;
-        retryAttempts: number;
-        userAgent: string;
-    };
     cricket: {
         baseUrl: string;
         timeout: number;
@@ -147,7 +141,7 @@ export declare const config: {
     server: {
         port: number;
         host: string;
-        environment: "development" | "production" | "test";
+        environment: string;
         isProduction: boolean;
         isDevelopment: boolean;
         isTest: boolean;
@@ -216,12 +210,6 @@ export declare const config: {
         saltRounds: number;
     };
     externalAPI: {
-        proxyServer: {
-            baseUrl: string;
-            timeout: number;
-            retryAttempts: number;
-            userAgent: string;
-        };
         cricket: {
             baseUrl: string;
             timeout: number;

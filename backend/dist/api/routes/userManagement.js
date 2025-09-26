@@ -4,10 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const client_1 = require("@prisma/client");
 const authMiddleware_1 = require("../../middleware/authMiddleware");
 const router = express_1.default.Router();
-const prisma = new client_1.PrismaClient();
 // Import user management handlers
 const userHandlers_1 = require("../handlers/userHandlers");
 // Apply authentication middleware to all routes

@@ -10,19 +10,12 @@ interface CasinoGameData {
   name: string;
   shortName: string;
   eventId: string;
-  cacheUrl: string;
-  socketUrl: string;
   videoUrl1: string;
-  videoUrl2: string;
-  videoUrl3: string | null;
   minStake: number;
   maxStake: number;
-  fetchDataType: string;
-  videoUrlType: string;
   betStatus: boolean;
   casinoStatus: boolean;
   errorMessage: string;
-  oddsDifference: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,19 +29,12 @@ router.get('/games', async (req, res) => {
         name,
         short_name as "shortName",
         event_id as "eventId",
-        cache_url as "cacheUrl",
-        socket_url as "socketUrl",
         video_url1 as "videoUrl1",
-        video_url2 as "videoUrl2",
-        video_url3 as "videoUrl3",
         min_stake as "minStake",
         max_stake as "maxStake",
-        fetch_data_type as "fetchDataType",
-        video_url_type as "videoUrlType",
         bet_status as "betStatus",
         casino_status as "casinoStatus",
         error_message as "errorMessage",
-        odds_difference as "oddsDifference",
         created_at as "createdAt",
         updated_at as "updatedAt"
       FROM casino_games
@@ -77,19 +63,12 @@ router.get('/games/:id', async (req, res) => {
         name,
         short_name as "shortName",
         event_id as "eventId",
-        cache_url as "cacheUrl",
-        socket_url as "socketUrl",
         video_url1 as "videoUrl1",
-        video_url2 as "videoUrl2",
-        video_url3 as "videoUrl3",
         min_stake as "minStake",
         max_stake as "maxStake",
-        fetch_data_type as "fetchDataType",
-        video_url_type as "videoUrlType",
         bet_status as "betStatus",
         casino_status as "casinoStatus",
         error_message as "errorMessage",
-        odds_difference as "oddsDifference",
         created_at as "createdAt",
         updated_at as "updatedAt"
       FROM casino_games
@@ -138,19 +117,12 @@ router.put('/games/:id/status', async (req, res) => {
         name,
         short_name as "shortName",
         event_id as "eventId",
-        cache_url as "cacheUrl",
-        socket_url as "socketUrl",
         video_url1 as "videoUrl1",
-        video_url2 as "videoUrl2",
-        video_url3 as "videoUrl3",
         min_stake as "minStake",
         max_stake as "maxStake",
-        fetch_data_type as "fetchDataType",
-        video_url_type as "videoUrlType",
         bet_status as "betStatus",
         casino_status as "casinoStatus",
         error_message as "errorMessage",
-        odds_difference as "oddsDifference",
         created_at as "createdAt",
         updated_at as "updatedAt"
       FROM casino_games
@@ -182,19 +154,12 @@ router.put('/games/:id', async (req, res) => {
       name: updateData.name,
       short_name: updateData.shortName,
       event_id: updateData.eventId,
-      cache_url: updateData.cacheUrl,
-      socket_url: updateData.socketUrl,
       video_url1: updateData.videoUrl1,
-      video_url2: updateData.videoUrl2,
-      video_url3: updateData.videoUrl3,
       min_stake: updateData.minStake,
       max_stake: updateData.maxStake,
-      fetch_data_type: updateData.fetchDataType,
-      video_url_type: updateData.videoUrlType,
       bet_status: updateData.betStatus,
       casino_status: updateData.casinoStatus,
-      error_message: updateData.errorMessage,
-      odds_difference: updateData.oddsDifference
+      error_message: updateData.errorMessage
     };
 
     await prisma.$executeRaw`
@@ -203,19 +168,12 @@ router.put('/games/:id', async (req, res) => {
         name = ${dbData.name},
         short_name = ${dbData.short_name},
         event_id = ${dbData.event_id},
-        cache_url = ${dbData.cache_url},
-        socket_url = ${dbData.socket_url},
         video_url1 = ${dbData.video_url1},
-        video_url2 = ${dbData.video_url2},
-        video_url3 = ${dbData.video_url3},
         min_stake = ${dbData.min_stake},
         max_stake = ${dbData.max_stake},
-        fetch_data_type = ${dbData.fetch_data_type},
-        video_url_type = ${dbData.video_url_type},
         bet_status = ${dbData.bet_status},
         casino_status = ${dbData.casino_status},
         error_message = ${dbData.error_message},
-        odds_difference = ${dbData.odds_difference},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${parseInt(id)}
     `;
@@ -227,19 +185,12 @@ router.put('/games/:id', async (req, res) => {
         name,
         short_name as "shortName",
         event_id as "eventId",
-        cache_url as "cacheUrl",
-        socket_url as "socketUrl",
         video_url1 as "videoUrl1",
-        video_url2 as "videoUrl2",
-        video_url3 as "videoUrl3",
         min_stake as "minStake",
         max_stake as "maxStake",
-        fetch_data_type as "fetchDataType",
-        video_url_type as "videoUrlType",
         bet_status as "betStatus",
         casino_status as "casinoStatus",
         error_message as "errorMessage",
-        odds_difference as "oddsDifference",
         created_at as "createdAt",
         updated_at as "updatedAt"
       FROM casino_games
@@ -269,19 +220,12 @@ router.get('/games/active', async (req, res) => {
         name,
         short_name as "shortName",
         event_id as "eventId",
-        cache_url as "cacheUrl",
-        socket_url as "socketUrl",
         video_url1 as "videoUrl1",
-        video_url2 as "videoUrl2",
-        video_url3 as "videoUrl3",
         min_stake as "minStake",
         max_stake as "maxStake",
-        fetch_data_type as "fetchDataType",
-        video_url_type as "videoUrlType",
         bet_status as "betStatus",
         casino_status as "casinoStatus",
         error_message as "errorMessage",
-        odds_difference as "oddsDifference"
       FROM casino_games
       WHERE casino_status = true
     `;
@@ -328,19 +272,12 @@ router.get('/:gameType', async (req, res) => {
         name,
         short_name as "shortName",
         event_id as "eventId",
-        cache_url as "cacheUrl",
-        socket_url as "socketUrl",
         video_url1 as "videoUrl1",
-        video_url2 as "videoUrl2",
-        video_url3 as "videoUrl3",
         min_stake as "minStake",
         max_stake as "maxStake",
-        fetch_data_type as "fetchDataType",
-        video_url_type as "videoUrlType",
         bet_status as "betStatus",
         casino_status as "casinoStatus",
         error_message as "errorMessage",
-        odds_difference as "oddsDifference",
         created_at as "createdAt",
         updated_at as "updatedAt"
       FROM casino_games

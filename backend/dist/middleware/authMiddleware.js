@@ -5,9 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.canAccessRole = exports.getRoleDescription = exports.getRoleLevel = exports.hasRolePermission = exports.roleDescriptions = exports.authorizeRole = exports.authenticateToken = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'L9vY7z!pQkR#eA1dT3u*Xj5@FbNmC2Ws';
+const prisma_1 = require("../lib/prisma");
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+}
 // Authentication middleware
 const authenticateToken = async (req, res, next) => {
     try {
@@ -32,7 +34,7 @@ const authenticateToken = async (req, res, next) => {
         }
         // Get user from database
         const userId = decoded.user?.id || decoded.userId;
-        const user = await prisma.user.findUnique({
+        const user = await prisma_1.prisma.user.findUnique({
             where: { id: userId },
             select: {
                 id: true,

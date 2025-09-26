@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runtime = void 0;
 exports.default = handler;
@@ -13,10 +46,7 @@ async function handler(req, res) {
         // Verify authentication
         const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
         console.log('🔍 Users API: Checking authentication');
-        console.log('🍪 Cookies:', req.cookies);
-        console.log('🔑 Token found:', !!token, 'Length:', token?.length || 0);
-        console.log('🔑 Token from header:', req.headers.authorization);
-        console.log('🔑 Token from cookie:', req.cookies.betx_session);
+        console.log('🔑 Token found:', !!token);
         if (!token) {
             console.log('❌ No token found');
             return res.status(401).json({ message: 'Authentication required' });
@@ -27,9 +57,7 @@ async function handler(req, res) {
             return res.status(401).json({ message: 'Invalid token format' });
         }
         const decoded = (0, auth_1.verifyToken)(token);
-        console.log('🔍 Token decoded:', decoded);
-        console.log('🔍 Token raw:', token);
-        console.log('🔍 Token length:', token.length);
+        console.log('🔍 Token decoded successfully');
         if (!decoded) {
             console.log('❌ Token verification failed');
             console.log('❌ Token verification failed - token might be malformed');
@@ -67,6 +95,28 @@ async function handler(req, res) {
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
             }
+            // Apply role-based access control
+            const requestingUserRole = decoded.role;
+            const requestingUserId = decoded.userId || decoded.user?.id;
+            // OWNER is restricted to control panel only
+            if (requestingUserRole === 'OWNER') {
+                return res.status(403).json({ message: 'Access denied - OWNER restricted to control panel' });
+            }
+            // USER can only access their own data
+            if (requestingUserRole === 'USER' && user.id !== requestingUserId) {
+                return res.status(403).json({ message: 'Access denied - can only access own data' });
+            }
+            // OWNER data is not accessible from user panel
+            if (user.role === 'OWNER') {
+                return res.status(403).json({ message: 'Access denied - OWNER data not accessible from user panel' });
+            }
+            // Check hierarchy access for other roles
+            if (requestingUserRole !== 'USER') {
+                const { canAccessUserData } = await Promise.resolve().then(() => __importStar(require('../../shared/utils/roleHierarchy')));
+                if (!canAccessUserData(requestingUserRole, user.role)) {
+                    return res.status(403).json({ message: 'Access denied - insufficient permissions' });
+                }
+            }
             return res.status(200).json({ success: true, user });
         }
         if (req.method === 'PUT') {
@@ -77,7 +127,7 @@ async function handler(req, res) {
             if (contactno !== undefined)
                 updateData.contactno = contactno;
             if (isActive !== undefined)
-                updateData.isActive = isActive;
+                updateData.status = isActive ? 'ACTIVE' : 'INACTIVE';
             // Update user
             const updatedUser = await prisma_1.prisma.user.update({
                 where: { id },
@@ -98,18 +148,17 @@ async function handler(req, res) {
                 if (existingShare) {
                     await prisma_1.prisma.userCommissionShare.update({
                         where: { userId: id },
-                        data: {
-                            ...commissionShareData,
-                            updatedAt: new Date()
-                        }
+                        data: commissionShareData
                     });
                 }
                 else {
                     await prisma_1.prisma.userCommissionShare.create({
                         data: {
                             userId: id,
-                            updatedAt: new Date(),
-                            ...commissionShareData
+                            cshare: commissionShareData.cshare,
+                            casinocommission: commissionShareData.casinocommission,
+                            ishare: commissionShareData.ishare,
+                            mobileshare: commissionShareData.mobileshare
                         }
                     });
                 }

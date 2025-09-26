@@ -1,1 +1,1 @@
-{"version":3,"file":"settle.d.ts","sourceRoot":"","sources":["../../../src/api/bets/settle.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAY5D,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,iBAyG9E"}
+{"version":3,"file":"settle.d.ts","sourceRoot":"","sources":["../../../src/api/bets/settle.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAY5D,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,gBAyG9E"}

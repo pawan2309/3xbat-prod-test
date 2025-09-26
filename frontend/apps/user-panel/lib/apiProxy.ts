@@ -14,7 +14,7 @@ export async function proxyToBackend(
   options: ProxyOptions = {}
 ) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://user.3xbat.com';
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://subown.3xbat.com';
     const method = options.method || req.method || 'GET';
     
     console.log('🔄 API Proxy: Backend URL:', backendUrl);

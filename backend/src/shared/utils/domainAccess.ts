@@ -3,29 +3,28 @@ import { Role } from './roleHierarchy';
 
 // Domain configuration
 export const DOMAIN_CONFIG = {
-  OPERATING_PANEL: 'operate.3xbat.com',
-  OWNER: 'owner.3xbat.com',
-  SUB_OWN: 'subowner.3xbat.com',
-  SUP_ADM: 'superadmin.3xbat.com',
-  ADMIN: 'admin.3xbat.com',
-  SUB_ADM: 'sub.3xbat.com',
-  MAS_AGENT: 'master.3xbat.com',
-  SUP_AGENT: 'superagent.3xbat.com',
-  AGENT: 'agent.3xbat.com',
-  USER: '3xbat.com' // Separate package
+  OWNER: 'operate.3xbat.com', // CONTROL PANEL
+  SUB_OWN: 'subown.3xbat.com', // USER PANEL
+  SUP_ADM: 'supadm.3xbat.com', // USER PANEL
+  ADMIN: 'admin.3xbat.com', // USER PANEL
+  SUB_ADM: 'subadm.3xbat.com', // USER PANEL
+  MAS_AGENT: 'master.3xbat.com', // USER PANEL
+  SUP_AGENT: 'supagent.3xbat.com', // USER PANEL
+  AGENT: 'agent.3xbat.com', // USER PANEL
+  USER: '3xbat.com' // CLIENT PANEL
 } as const;
 
 // Access control rules - each role has their own domain
 export const DOMAIN_ACCESS_RULES: Record<Role, readonly string[]> = {
-  OWNER: [DOMAIN_CONFIG.OPERATING_PANEL], // OWNER can only access operating panel
-  SUB_OWN: [DOMAIN_CONFIG.SUB_OWN],
-  SUP_ADM: [DOMAIN_CONFIG.SUP_ADM],
-  ADMIN: [DOMAIN_CONFIG.ADMIN],
-  SUB_ADM: [DOMAIN_CONFIG.SUB_ADM],
-  MAS_AGENT: [DOMAIN_CONFIG.MAS_AGENT],
-  SUP_AGENT: [DOMAIN_CONFIG.SUP_AGENT],
-  AGENT: [DOMAIN_CONFIG.AGENT],
-  USER: [DOMAIN_CONFIG.USER] // Separate package domain
+  OWNER: [DOMAIN_CONFIG.OWNER], // OWNER can only access control panel
+  SUB_OWN: [DOMAIN_CONFIG.SUB_OWN], // User panel
+  SUP_ADM: [DOMAIN_CONFIG.SUP_ADM], // User panel
+  ADMIN: [DOMAIN_CONFIG.ADMIN], // User panel
+  SUB_ADM: [DOMAIN_CONFIG.SUB_ADM], // User panel
+  MAS_AGENT: [DOMAIN_CONFIG.MAS_AGENT], // User panel
+  SUP_AGENT: [DOMAIN_CONFIG.SUP_AGENT], // User panel
+  AGENT: [DOMAIN_CONFIG.AGENT], // User panel
+  USER: [DOMAIN_CONFIG.USER] // Client panel
 } as const;
 
 /**
@@ -95,4 +94,39 @@ export function isOperatingPanelRole(role: Role): boolean {
  */
 export function isUserPackageRole(role: Role): boolean {
   return role === 'USER';
+}
+
+/**
+ * Get the panel type for a role
+ */
+export function getPanelType(role: Role): 'control-panel' | 'user-panel' | 'client-panel' {
+  switch (role) {
+    case 'OWNER':
+      return 'control-panel';
+    case 'SUB_OWN':
+    case 'SUP_ADM':
+    case 'ADMIN':
+    case 'SUB_ADM':
+    case 'MAS_AGENT':
+    case 'SUP_AGENT':
+    case 'AGENT':
+      return 'user-panel';
+    case 'USER':
+      return 'client-panel';
+    default:
+      return 'client-panel';
+  }
+}
+
+/**
+ * Get the correct domain and panel for a role
+ */
+export function getRoleConfiguration(role: Role): {
+  domain: string;
+  panel: 'control-panel' | 'user-panel' | 'client-panel';
+} {
+  return {
+    domain: getPrimaryDomain(role),
+    panel: getPanelType(role)
+  };
 }

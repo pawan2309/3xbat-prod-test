@@ -34,7 +34,7 @@ export const unifiedLogin = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid username or password'
+        message: 'Invalid username. Please check your username and try again.'
       });
     }
 
@@ -43,7 +43,7 @@ export const unifiedLogin = async (req: Request, res: Response) => {
     if (user.password !== password) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid username or password'
+        message: 'Wrong password. Please check your password and try again.'
       });
     }
 
@@ -51,7 +51,7 @@ export const unifiedLogin = async (req: Request, res: Response) => {
     if (user.status !== 'ACTIVE') {
       return res.status(401).json({
         success: false,
-        message: 'Account is inactive. Please contact administrator.'
+        message: 'Not a valid user. Your account is inactive. Please contact administrator.'
       });
     }
 

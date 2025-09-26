@@ -5,7 +5,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = handler;
 const shareCommissionService_1 = __importDefault(require("../../lib/services/shareCommissionService"));
+const auth_1 = require("../../lib/auth");
 async function handler(req, res) {
+    // CRITICAL: Add authentication for all methods
+    const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
+    if (!token) {
+        return res.status(401).json({ message: 'Authentication required' });
+    }
+    const decoded = (0, auth_1.verifyToken)(token);
+    if (!decoded) {
+        return res.status(401).json({ message: 'Invalid token' });
+    }
+    // OWNER is restricted to control panel only
+    if (decoded.role === 'OWNER') {
+        return res.status(403).json({ message: 'Access denied - OWNER restricted to control panel' });
+    }
     if (req.method === 'POST') {
         // Handle share assignment (stub)
         try {

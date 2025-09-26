@@ -14,11 +14,16 @@ export declare class AdaptiveRateLimiter {
     private lastAdaptation;
     private adaptationCooldown;
     private rateLimiter;
+    private internalRateLimiter;
     constructor(config: AdaptiveConfig);
     /**
      * Create the rate limiter instance
      */
     private createRateLimiter;
+    /**
+     * Create the internal rate limiter instance (lighter limits)
+     */
+    private createInternalRateLimiter;
     /**
      * Create adaptive rate limiter middleware
      */

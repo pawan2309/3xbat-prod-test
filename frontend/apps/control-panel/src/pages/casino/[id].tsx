@@ -6,19 +6,12 @@ interface CasinoData {
   name: string;
   shortName: string;
   eventId: string;
-  cacheUrl: string;
-  socketUrl: string;
   videoUrl1: string;
-  videoUrl2: string;
-  videoUrl3: string;
   minStake: number;
   maxStake: number;
-  fetchDataType?: string;
-  videoUrlType?: string;
   betStatus?: boolean;
   casinoStatus?: boolean;
   errorMessage?: string;
-  oddsDifference?: string;
 }
 
 // Casino game data mapping
@@ -27,11 +20,7 @@ const casinoGames: { [key: string]: CasinoData } = {
     name: 'Amar Akbar Anthony',
     shortName: 'AAA',
     eventId: '3056',
-    cacheUrl: 'https://casinoapi.trovetown.co/v2/api/casinoData?casinoType=aaa',
-    socketUrl: 'https://casinoapi.trovetown.co',
-    videoUrl1: 'https://casinostream.trovetown.co/route/?id=3056',
-    videoUrl2: 'https://stream.1ex99.in/casinoVideo/video?id=3056',
-    videoUrl3: '',
+    videoUrl1: 'https://jmdapi.com/tablevideo/?id=3056',
     minStake: 10,
     maxStake: 5000
   },
@@ -39,11 +28,7 @@ const casinoGames: { [key: string]: CasinoData } = {
     name: 'Andar Bahar 20',
     shortName: 'AB20',
     eventId: '3031',
-    cacheUrl: 'https://casinoapi.trovetown.co/v2/api/casinoData?casinoType=ab20',
-    socketUrl: 'https://casinoapi.trovetown.co',
-    videoUrl1: 'https://casinostream.trovetown.co/route/?id=3031',
-    videoUrl2: 'https://stream.1ex99.in/casinoVideo/video?id=3031',
-    videoUrl3: '',
+    videoUrl1: 'https://jmdapi.com/tablevideo/?id=3031',
     minStake: 5,
     maxStake: 1000
   },
@@ -51,11 +36,7 @@ const casinoGames: { [key: string]: CasinoData } = {
     name: 'Card 32 EU',
     shortName: 'Card32EU',
     eventId: '3033',
-    cacheUrl: 'https://casinoapi.trovetown.co/v2/api/casinoData?casinoType=card32eu',
-    socketUrl: 'https://casinoapi.trovetown.co',
-    videoUrl1: 'https://casinostream.trovetown.co/route/?id=3033',
-    videoUrl2: 'https://stream.1ex99.in/casinoVideo/video?id=3033',
-    videoUrl3: '',
+    videoUrl1: 'https://jmdapi.com/tablevideo/?id=3033',
     minStake: 25,
     maxStake: 10000
   },
@@ -63,11 +44,7 @@ const casinoGames: { [key: string]: CasinoData } = {
     name: 'Dragon Tiger 20',
     shortName: 'DT20',
     eventId: '3034',
-    cacheUrl: 'https://casinoapi.trovetown.co/v2/api/casinoData?casinoType=dt20',
-    socketUrl: 'https://casinoapi.trovetown.co',
-    videoUrl1: 'https://casinostream.trovetown.co/route/?id=3034',
-    videoUrl2: 'https://stream.1ex99.in/casinoVideo/video?id=3034',
-    videoUrl3: '',
+    videoUrl1: 'https://jmdapi.com/tablevideo/?id=3034',
     minStake: 50,
     maxStake: 25000
   },
@@ -75,11 +52,7 @@ const casinoGames: { [key: string]: CasinoData } = {
     name: 'Lucky 7 EU',
     shortName: 'Lucky7EU',
     eventId: '3032',
-    cacheUrl: 'https://casinoapi.trovetown.co/v2/api/casinoData?casinoType=lucky7eu',
-    socketUrl: 'https://casinoapi.trovetown.co',
-    videoUrl1: 'https://casinostream.trovetown.co/route/?id=3032',
-    videoUrl2: 'https://stream.1ex99.in/casinoVideo/video?id=3032',
-    videoUrl3: '',
+    videoUrl1: 'https://jmdapi.com/tablevideo/?id=3032',
     minStake: 100,
     maxStake: 50000
   },
@@ -87,11 +60,7 @@ const casinoGames: { [key: string]: CasinoData } = {
     name: '20-20 Teenpatti',
     shortName: 'Teen20',
     eventId: '3030',
-    cacheUrl: 'https://casinoapi.trovetown.co/v2/api/casinoData?casinoType=teen20',
-    socketUrl: 'https://casinoapi.trovetown.co',
-    videoUrl1: 'https://casinostream.trovetown.co/route/?id=3030',
-    videoUrl2: 'https://stream.1ex99.in/casinoVideo/video?id=3030',
-    videoUrl3: '',
+    videoUrl1: 'https://jmdapi.com/tablevideo/?id=3030',
     minStake: 20,
     maxStake: 20000
   }
@@ -104,19 +73,12 @@ const CasinoUpdatePage: React.FC = () => {
     name: '',
     shortName: '',
     eventId: id as string || '',
-    cacheUrl: '',
-    socketUrl: 'https://casinoapi.trovetown.co',
     videoUrl1: '',
-    videoUrl2: '',
-    videoUrl3: '',
     minStake: 0,
     maxStake: 0,
-    fetchDataType: 'socket',
-    videoUrlType: '1',
     betStatus: true,
     casinoStatus: true,
     errorMessage: 'Game is under maintenance',
-    oddsDifference: '0.01',
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -129,7 +91,7 @@ const CasinoUpdatePage: React.FC = () => {
 
   const loadCasinoData = async (casinoId: string) => {
     try {
-      const response = await fetch(`https://control.3xbat.com/api/casino/games/${casinoId}`);
+      const response = await fetch(`https://operate.3xbat.com/api/casino/games/${casinoId}`);
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -138,19 +100,12 @@ const CasinoUpdatePage: React.FC = () => {
           name: game.name,
           shortName: game.shortName,
           eventId: game.eventId,
-          cacheUrl: game.cacheUrl,
-          socketUrl: game.socketUrl,
           videoUrl1: game.videoUrl1,
-          videoUrl2: game.videoUrl2,
-          videoUrl3: game.videoUrl3 || '',
           minStake: game.minStake,
           maxStake: game.maxStake,
-          fetchDataType: game.fetchDataType || 'socket',
-          videoUrlType: game.videoUrlType || '1',
           betStatus: game.betStatus,
           casinoStatus: game.casinoStatus,
           errorMessage: game.errorMessage || 'Game is under maintenance',
-          oddsDifference: game.oddsDifference || '0.01',
         });
       } else {
         // Fallback to static data if API fails
@@ -160,19 +115,12 @@ const CasinoUpdatePage: React.FC = () => {
             name: game.name,
             shortName: game.shortName,
             eventId: game.eventId,
-            cacheUrl: game.cacheUrl,
-            socketUrl: game.socketUrl,
             videoUrl1: game.videoUrl1,
-            videoUrl2: game.videoUrl2,
-            videoUrl3: game.videoUrl3,
             minStake: game.minStake,
             maxStake: game.maxStake,
-            fetchDataType: 'socket',
-            videoUrlType: '1',
             betStatus: true,
             casinoStatus: true,
             errorMessage: 'Game is under maintenance',
-            oddsDifference: '0.01',
           });
         }
       }
@@ -186,19 +134,12 @@ const CasinoUpdatePage: React.FC = () => {
           name: game.name,
           shortName: game.shortName,
           eventId: game.eventId,
-          cacheUrl: game.cacheUrl,
-          socketUrl: game.socketUrl,
           videoUrl1: game.videoUrl1,
-          videoUrl2: game.videoUrl2,
-          videoUrl3: game.videoUrl3,
           minStake: game.minStake,
           maxStake: game.maxStake,
-          fetchDataType: 'socket',
-          videoUrlType: '1',
           betStatus: true,
           casinoStatus: true,
           errorMessage: 'Game is under maintenance',
-          oddsDifference: '0.01',
         });
       }
       setIsLoading(false);
@@ -215,7 +156,7 @@ const CasinoUpdatePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`https://control.3xbat.com/api/casino/games/${id}`, {
+      const response = await fetch(`https://operate.3xbat.com/api/casino/games/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -332,27 +273,6 @@ const CasinoUpdatePage: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-gray-500">Cache URL</label>
-                <input 
-                  className="w-full p-2 text-sm text-gray-900 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  type="text" 
-                  name="cacheUrl" 
-                  value={casinoData.cacheUrl}
-                  onChange={(e) => handleInputChange('cacheUrl', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-gray-500">Socket URL</label>
-                <input 
-                  className="w-full p-2 text-sm text-gray-900 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  type="text" 
-                  name="socketUrl" 
-                  value={casinoData.socketUrl}
-                  onChange={(e) => handleInputChange('socketUrl', e.target.value)}
-                />
-              </div>
 
               <div className="space-y-1">
                 <label className="block text-xs font-medium text-gray-500">Video URL 1</label>
@@ -365,53 +285,6 @@ const CasinoUpdatePage: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-gray-500">Video URL 2</label>
-                <input 
-                  className="w-full p-2 text-sm text-gray-900 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  type="text" 
-                  name="videoUrl2" 
-                  value={casinoData.videoUrl2}
-                  onChange={(e) => handleInputChange('videoUrl2', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-gray-500">Video URL 3</label>
-                <input 
-                  className="w-full p-2 text-sm text-gray-900 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  type="text" 
-                  name="videoUrl3" 
-                  value={casinoData.videoUrl3}
-                  onChange={(e) => handleInputChange('videoUrl3', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-gray-500">Fetch Data Type</label>
-                <select 
-                  className="w-full p-2 text-sm text-gray-900 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  value={casinoData.fetchDataType}
-                  onChange={(e) => handleInputChange('fetchDataType', e.target.value)}
-                >
-                  <option value="">Select fetch Type</option>
-                  <option value="socket">Socket</option>
-                  <option value="cache">Cache</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-xs font-medium text-gray-500">Video URL Type</label>
-                <select 
-                  className="w-full p-2 text-sm text-gray-900 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  value={casinoData.videoUrlType}
-                  onChange={(e) => handleInputChange('videoUrlType', e.target.value)}
-                >
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                </select>
-              </div>
 
               <div className="space-y-1">
                 <label className="block text-xs font-medium text-gray-500">Min Stake</label>
@@ -484,16 +357,6 @@ const CasinoUpdatePage: React.FC = () => {
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-gray-500">Odds Difference</label>
-                  <input 
-                    className="w-full p-2 text-sm text-gray-900 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    type="text" 
-                    name="oddsDifference" 
-                    value={casinoData.oddsDifference}
-                    onChange={(e) => handleInputChange('oddsDifference', e.target.value)}
-                  />
-                </div>
               </div>
             </div>
 

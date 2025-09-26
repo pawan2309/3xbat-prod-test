@@ -197,7 +197,7 @@ class CricketOddsBatcher extends RequestBatcher {
         super('cricket-odds', {
             processBatch: async (requests) => {
                 // Process multiple odds requests in parallel
-                const promises = requests.map(request => fetch(`http://localhost:8000/cricket/odds?eventId=${request.data}`, {
+                const promises = requests.map(request => fetch(`https://marketsarket.qnsports.live/cricket/odds?eventId=${request.data}`, {
                     method: 'GET',
                     headers: { 'User-Agent': 'Betting-ExternalAPI/1.0' }
                 }).then(res => res.json()));

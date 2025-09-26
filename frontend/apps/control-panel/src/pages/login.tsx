@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { authService } from '../lib/auth';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +20,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const data = await authService.login(formData.username, formData.password);
+      const data = await login(formData.username, formData.password);
 
       if (data.success) {
         // Check if user should be redirected to a different domain (production only)
@@ -28,7 +29,7 @@ export default function LoginPage() {
           return;
         }
 
-        // Redirect to dashboard
+        // Use router.push for client-side navigation since AuthContext is now updated
         router.push('/dashboard');
       } else {
         setError(data.message || 'Login failed');

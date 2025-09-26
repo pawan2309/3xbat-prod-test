@@ -36,6 +36,25 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
 
     // Verify JWT token
     let decoded: any;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+    
     try {
       decoded = jwt.verify(authToken, JWT_SECRET);
     } catch (error) {

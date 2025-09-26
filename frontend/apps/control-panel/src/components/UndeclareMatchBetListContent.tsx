@@ -22,77 +22,9 @@ const UndeclareMatchBetListContent: React.FC = () => {
   const [selectedBets, setSelectedBets] = useState<number[]>([]);
   const [filter, setFilter] = useState('all');
 
-  // Sample data for demonstration
+  // Initialize with empty array - data will be loaded from API
   useEffect(() => {
-    const sampleBets = [
-      {
-        id: 1,
-        userId: 'USER001',
-        username: 'john_doe',
-        matchName: 'India vs Australia - 1st ODI',
-        betType: 'Match Winner',
-        betAmount: 500,
-        odds: 1.85,
-        potentialWin: 925,
-        status: 'Pending',
-        placedAt: '2024-01-15 14:30:00',
-        matchDate: '2024-01-15 15:00:00'
-      },
-      {
-        id: 2,
-        userId: 'USER002',
-        username: 'jane_smith',
-        matchName: 'England vs Pakistan - 2nd Test',
-        betType: 'Total Runs',
-        betAmount: 1000,
-        odds: 2.15,
-        potentialWin: 2150,
-        status: 'Pending',
-        placedAt: '2024-01-16 10:15:00',
-        matchDate: '2024-01-16 11:00:00'
-      },
-      {
-        id: 3,
-        userId: 'USER003',
-        username: 'mike_wilson',
-        matchName: 'South Africa vs New Zealand - 3rd T20',
-        betType: 'First Wicket',
-        betAmount: 750,
-        odds: 1.95,
-        potentialWin: 1462.5,
-        status: 'Won',
-        placedAt: '2024-01-17 17:45:00',
-        matchDate: '2024-01-17 18:00:00'
-      },
-      {
-        id: 4,
-        userId: 'USER004',
-        username: 'sarah_jones',
-        matchName: 'Bangladesh vs Sri Lanka - 1st ODI',
-        betType: 'Man of the Match',
-        betAmount: 300,
-        odds: 2.30,
-        potentialWin: 690,
-        status: 'Lost',
-        placedAt: '2024-01-18 14:20:00',
-        matchDate: '2024-01-18 15:00:00'
-      },
-      {
-        id: 5,
-        userId: 'USER005',
-        username: 'alex_brown',
-        matchName: 'West Indies vs Afghanistan - 2nd T20',
-        betType: 'Highest Score',
-        betAmount: 1200,
-        odds: 1.70,
-        potentialWin: 2040,
-        status: 'Pending',
-        placedAt: '2024-01-19 19:30:00',
-        matchDate: '2024-01-19 20:00:00'
-      }
-    ];
-    
-    setBets(sampleBets);
+    setBets([]);
   }, []);
 
   const handleSelectBet = (betId: number) => {

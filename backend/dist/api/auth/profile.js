@@ -55,15 +55,14 @@ async function handler(req, res) {
                 limit: user.limit,
                 creditLimit: user.limit, // Map limit to creditLimit for frontend compatibility
                 casinoStatus: user.casinoStatus,
-                contactno: user.contactno,
+                contactno: user.contactno, // Show actual database value
                 createdAt: user.createdAt,
                 code: user.username, // Use username as code since there's no code field
-                reference: user.reference,
+                reference: user.reference, // Show actual database value
                 mobileshare: 100, // Default value since there's no mobileshare field
                 userCommissionShare: user.userCommissionShare
             }
         };
-        console.log('Profile API returning data:', JSON.stringify(responseData, null, 2));
         return res.status(200).json(responseData);
     }
     catch (error) {

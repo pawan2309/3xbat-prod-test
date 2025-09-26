@@ -25,11 +25,8 @@ const ROLE_HIERARCHY = {
 };
 // Function to get hierarchy index
 function getHierarchyIndex(role) {
-    console.log('🔵 getHierarchyIndex called with role:', role);
     const index = ROLE_HIERARCHY[role];
-    console.log('🔵 Role hierarchy index:', index);
     if (index === undefined) {
-        console.warn(`🔴 Invalid role: ${role}`);
         return 0; // Return lowest priority for invalid roles
     }
     return index;
@@ -85,9 +82,17 @@ function getHierarchyModalTitle(upperRole) {
 }
 // Function to check if a user can access a specific role's data
 function canAccessRole(userRole, targetRole) {
-    // Special handling for SUB_OWN - give full access to everything
-    if (userRole === 'SUB_OWN') {
-        return true;
+    // OWNER is restricted to control panel only - not accessible from user panel
+    if (userRole === 'OWNER') {
+        return false;
+    }
+    // OWNER data is not accessible from user panel
+    if (targetRole === 'OWNER') {
+        return false;
+    }
+    // USER can only access their own data
+    if (userRole === 'USER') {
+        return userRole === targetRole;
     }
     const userIndex = getHierarchyIndex(userRole);
     const targetIndex = getHierarchyIndex(targetRole);
@@ -100,23 +105,33 @@ function canAccessRole(userRole, targetRole) {
 }
 // Function to get accessible roles for a user
 function getAccessibleRoles(userRole) {
-    // Special handling for SUB_OWN - give access to all roles
-    if (userRole === 'SUB_OWN') {
-        return Object.keys(ROLE_HIERARCHY);
+    // USER can only access their own role
+    if (userRole === 'USER') {
+        return ['USER'];
+    }
+    // OWNER is restricted to control panel only - not accessible from user panel
+    if (userRole === 'OWNER') {
+        return [];
     }
     const userIndex = getHierarchyIndex(userRole);
     if (userIndex === undefined) {
         return [];
     }
-    // Return all roles that are lower in hierarchy (higher index)
+    // Return all roles that are lower in hierarchy (higher index) excluding OWNER
     // NOT same level or above
-    return Object.keys(ROLE_HIERARCHY).filter(role => ROLE_HIERARCHY[role] > userIndex).map(role => role);
+    return Object.keys(ROLE_HIERARCHY)
+        .filter(role => role !== 'OWNER' && ROLE_HIERARCHY[role] > userIndex)
+        .map(role => role);
 }
 // Function to check if user can access specific features
 function canAccessFeature(userRole, feature) {
-    // Special handling for SUB_OWN - give access to all features
-    if (userRole === 'SUB_OWN') {
-        return true;
+    // OWNER is restricted to control panel only
+    if (userRole === 'OWNER') {
+        return false;
+    }
+    // USER can only access basic features
+    if (userRole === 'USER') {
+        return feature === 'client_management';
     }
     // Map features to the minimum role required to access them
     const featureMinRole = {
@@ -146,9 +161,17 @@ function canAccessRestrictedSections(userRole) {
 }
 // Function to check if a user can access another user's data based on hierarchy
 function canAccessUserData(requestingUserRole, targetUserRole) {
-    // Special handling for SUB_OWN - can access all user data
-    if (requestingUserRole === 'SUB_OWN') {
-        return true;
+    // OWNER is restricted to control panel only - cannot access user panel data
+    if (requestingUserRole === 'OWNER') {
+        return false;
+    }
+    // USER can only access their own data
+    if (requestingUserRole === 'USER') {
+        return requestingUserRole === targetUserRole;
+    }
+    // OWNER data is not accessible from user panel
+    if (targetUserRole === 'OWNER') {
+        return false;
     }
     const requestingIndex = getHierarchyIndex(requestingUserRole);
     const targetIndex = getHierarchyIndex(targetUserRole);
@@ -161,15 +184,11 @@ function canAccessUserData(requestingUserRole, targetUserRole) {
 }
 // Function to get role-based navigation items
 function getRoleBasedNavigation(userRole) {
-    console.log('🔵 getRoleBasedNavigation called with role:', userRole);
     if (!userRole || typeof userRole !== 'string') {
-        console.warn('🔴 Invalid userRole provided to getRoleBasedNavigation:', userRole);
         return {};
     }
     const userIndex = getHierarchyIndex(userRole);
-    console.log('🔵 User hierarchy index:', userIndex);
     if (userIndex === 0) {
-        console.warn(`🔴 Invalid role "${userRole}" provided to getRoleBasedNavigation`);
         return {};
     }
     const allNavigation = {
@@ -231,7 +250,6 @@ function getRoleBasedNavigation(userRole) {
     };
     // Special handling for SUB_OWN - give full access to everything
     if (userRole === 'SUB_OWN') {
-        console.log('🔵 SUB_OWN user - returning full navigation');
         return allNavigation;
     }
     const filteredNavigation = {};
@@ -244,7 +262,7 @@ function getRoleBasedNavigation(userRole) {
                 // For restricted sections, filter links based on hierarchy (only show roles below user)
                 const filteredLinks = links.filter(link => {
                     const linkIndex = getHierarchyIndex(link.role);
-                    return linkIndex > userIndex; // Only show links for roles below the user
+                    return linkIndex >= userIndex; // Show links for roles at or below the user level
                 });
                 if (filteredLinks.length > 0) {
                     filteredNavigation[section] = filteredLinks;
@@ -256,14 +274,13 @@ function getRoleBasedNavigation(userRole) {
             // For non-restricted sections, filter links based on hierarchy (only show roles below user)
             const filteredLinks = links.filter(link => {
                 const linkIndex = getHierarchyIndex(link.role);
-                return linkIndex > userIndex; // Only show links for roles below the user
+                return linkIndex >= userIndex; // Show links for roles at or below the user level
             });
             if (filteredLinks.length > 0) {
                 filteredNavigation[section] = filteredLinks;
             }
         }
     });
-    console.log('🔵 Final filtered navigation:', filteredNavigation);
     return filteredNavigation;
 }
 //# sourceMappingURL=roleHierarchy.js.map

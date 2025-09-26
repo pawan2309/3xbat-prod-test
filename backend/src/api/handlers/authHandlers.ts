@@ -25,17 +25,17 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+      return res.status(401).json({ success: false, message: 'Invalid username. Please check your username and try again.' });
     }
 
     // Check if user is active
     if (user.status !== 'ACTIVE') {
-      return res.status(401).json({ success: false, message: 'Account is inactive' });
+      return res.status(401).json({ success: false, message: 'Not a valid user. Your account is inactive. Please contact administrator.' });
     }
 
     // Verify password (plain text comparison)
     if (user.password !== password) {
-      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+      return res.status(401).json({ success: false, message: 'Wrong password. Please check your password and try again.' });
     }
 
     // Generate JWT token

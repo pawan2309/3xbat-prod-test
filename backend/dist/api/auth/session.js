@@ -23,7 +23,6 @@ async function handler(req, res) {
             console.log('❌ No auth token found in cookies');
             return res.status(401).json({ valid: false, message: 'No authentication token' });
         }
-        console.log('🔍 Token content (first 20 chars):', authToken.substring(0, 20) + '...');
         // Verify JWT token
         let decoded;
         try {
@@ -33,39 +32,11 @@ async function handler(req, res) {
                 console.error('❌ JWT_SECRET environment variable not set');
                 return res.status(500).json({ valid: false, message: 'Server configuration error' });
             }
-            console.log('🔍 Session API: Using JWT secret from env');
-            console.log('🔍 Session API: Token to verify:', authToken.substring(0, 30) + '...');
-            console.log('🔍 Session API: Token length:', authToken.length);
-            console.log('🔍 Session API: Token format check:', {
-                hasDots: authToken.includes('.'),
-                parts: authToken.split('.').length,
-                firstPart: authToken.split('.')[0]?.substring(0, 10) + '...',
-                secondPart: authToken.split('.')[1]?.substring(0, 10) + '...',
-                thirdPart: authToken.split('.')[2]?.substring(0, 10) + '...'
-            });
             decoded = jsonwebtoken_1.default.verify(authToken, JWT_SECRET);
-            console.log('✅ JWT token verified successfully:', {
-                userId: decoded.userId,
-                id: decoded.id,
-                username: decoded.username,
-                role: decoded.role
-            });
+            console.log('✅ JWT token verified successfully');
         }
         catch (error) {
-            console.log('❌ Invalid JWT token:', error);
-            console.log('❌ Token verification error details:', {
-                name: error instanceof Error ? error.name : 'Unknown',
-                message: error instanceof Error ? error.message : 'Unknown',
-                stack: error instanceof Error ? error.stack : 'Unknown'
-            });
-            // Try to decode without verification to see the payload
-            try {
-                const unverifiedPayload = jsonwebtoken_1.default.decode(authToken);
-                console.log('🔍 Unverified payload:', unverifiedPayload);
-            }
-            catch (decodeError) {
-                console.log('❌ Even decode failed:', decodeError);
-            }
+            console.log('❌ Invalid JWT token');
             return res.status(401).json({ valid: false, message: 'Invalid token' });
         }
         // Get user from database

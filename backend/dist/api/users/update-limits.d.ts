@@ -1,3 +1,3 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-export default function handler(req: NextApiRequest, res: NextApiResponse): Promise<void>;
+export default function handler(req: NextApiRequest, res: NextApiResponse): Promise<any>;
 //# sourceMappingURL=update-limits.d.ts.map

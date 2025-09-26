@@ -1,1 +1,1 @@
-{"version":3,"file":"update-status.d.ts","sourceRoot":"","sources":["../../../src/api/users/update-status.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAkC5D,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,iBAqF9E"}
+{"version":3,"file":"update-status.d.ts","sourceRoot":"","sources":["../../../src/api/users/update-status.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAqC5D,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,gBAqF9E"}

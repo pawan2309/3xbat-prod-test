@@ -3,15 +3,15 @@ import { Role } from './types';
 // Domain configuration
 export const DOMAIN_CONFIG = {
   OPERATING_PANEL: 'operate.3xbat.com',
-  OWNER: 'owner.3xbat.com',
-  SUB_OWN: 'subowner.3xbat.com',
-  SUP_ADM: 'superadmin.3xbat.com',
-  ADMIN: 'admin.3xbat.com',
-  SUB_ADM: 'sub.3xbat.com',
-  MAS_AGENT: 'master.3xbat.com',
-  SUP_AGENT: 'superagent.3xbat.com',
-  AGENT: 'agent.3xbat.com',
-  USER: '3xbat.com' // Separate package
+  OWNER: 'operate.3xbat.com', // CONTROL PANEL
+  SUB_OWN: 'subown.3xbat.com', // USER PANEL
+  SUP_ADM: 'supadm.3xbat.com', // USER PANEL
+  ADMIN: 'admin.3xbat.com', // USER PANEL
+  SUB_ADM: 'subadm.3xbat.com', // USER PANEL
+  MAS_AGENT: 'master.3xbat.com', // USER PANEL
+  SUP_AGENT: 'supagent.3xbat.com', // USER PANEL
+  AGENT: 'agent.3xbat.com', // USER PANEL
+  USER: '3xbat.com' // CLIENT PANEL
 } as const;
 
 // Access control rules - each role has their own domain

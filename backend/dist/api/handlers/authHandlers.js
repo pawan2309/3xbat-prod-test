@@ -7,7 +7,10 @@ exports.getRoleAccess = exports.refreshToken = exports.getProfile = exports.getS
 const client_1 = require("@prisma/client");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma = new client_1.PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'L9vY7z!pQkR#eA1dT3u*Xj5@FbNmC2Ws';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+}
 // POST /api/auth/login - User login
 const login = async (req, res) => {
     try {
@@ -23,15 +26,15 @@ const login = async (req, res) => {
             }
         });
         if (!user) {
-            return res.status(401).json({ success: false, message: 'Invalid username or password' });
+            return res.status(401).json({ success: false, message: 'Invalid username. Please check your username and try again.' });
         }
         // Check if user is active
         if (user.status !== 'ACTIVE') {
-            return res.status(401).json({ success: false, message: 'Account is inactive' });
+            return res.status(401).json({ success: false, message: 'Not a valid user. Your account is inactive. Please contact administrator.' });
         }
         // Verify password (plain text comparison)
         if (user.password !== password) {
-            return res.status(401).json({ success: false, message: 'Invalid username or password' });
+            return res.status(401).json({ success: false, message: 'Wrong password. Please check your password and try again.' });
         }
         // Generate JWT token
         const token = jsonwebtoken_1.default.sign({
@@ -254,6 +257,9 @@ const getProfile = async (req, res) => {
                 status: user.status,
                 limit: user.limit,
                 casinoStatus: user.casinoStatus,
+                contactno: user.contactno,
+                createdAt: user.createdAt,
+                reference: user.reference,
                 userCommissionShare: user.userCommissionShare
             }
         });
@@ -341,8 +347,8 @@ const getRoleAccess = async (req, res) => {
         const roleHierarchy = {
             'OWNER': {
                 level: 1,
-                accessibleRoles: ['OWNER', 'SUB_OWN', 'SUP_ADM', 'ADMIN', 'SUB_ADM', 'MAS_AGENT', 'SUP_AGENT', 'AGENT', 'USER'],
-                permissions: ['all']
+                accessibleRoles: [], // OWNER restricted to control panel only
+                permissions: ['control_panel_only']
             },
             'SUB_OWN': {
                 level: 2,
@@ -381,8 +387,8 @@ const getRoleAccess = async (req, res) => {
             },
             'USER': {
                 level: 9,
-                accessibleRoles: ['USER'],
-                permissions: []
+                accessibleRoles: ['USER'], // USER can only access their own data
+                permissions: ['own_data_only']
             }
         };
         const roleAccess = roleHierarchy[userRole] || roleHierarchy['USER'];

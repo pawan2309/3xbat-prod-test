@@ -27,7 +27,7 @@ const CasinoListContent: React.FC = () => {
 
   const loadCasinoGames = async () => {
     try {
-      const response = await fetch('https://control.3xbat.com/api/casino/games');
+      const response = await fetch('https://operate.3xbat.com/api/casino/games');
       const result = await response.json();
       
       if (result.success && result.data) {

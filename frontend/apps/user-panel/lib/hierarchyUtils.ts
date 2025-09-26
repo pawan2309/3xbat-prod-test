@@ -1,14 +1,14 @@
-// Updated hierarchy order (highest to lowest)
+// Updated hierarchy order (highest to lowest authority)
 const ROLE_HIERARCHY = {
-  OWNER: 9,
-  SUB_OWN: 8,
-  SUP_ADM: 7,
-  ADMIN: 6,
-  SUB_ADM: 5,
-  MAS_AGENT: 4,
-  SUP_AGENT: 3,
-  AGENT: 2,
-  USER: 1
+  OWNER: 1,      // Level 1: Owner (highest authority)
+  SUB_OWN: 2,    // Level 2: Sub-owner
+  SUP_ADM: 3,    // Level 3: Super administrator
+  ADMIN: 4,      // Level 4: Administrator
+  SUB_ADM: 5,    // Level 5: Sub-administrator
+  MAS_AGENT: 6,  // Level 6: Master agent
+  SUP_AGENT: 7,  // Level 7: Super agent
+  AGENT: 8,      // Level 8: Agent
+  USER: 9        // Level 9: User (lowest level)
 };
 
 export type Role = keyof typeof ROLE_HIERARCHY;
@@ -44,25 +44,25 @@ export function checkHierarchyRelationship(creatorRole: string, newUserRole: str
     return { isDirectSubordinate: false, upperRole: null, skipLevel: 0 };
   }
   
-  // For hierarchy: higher index = lower authority
-  // So creatorIndex should be higher than newUserIndex for valid creation
-  if (creatorIndex <= newUserIndex) {
+  // For hierarchy: lower index = higher authority
+  // So creatorIndex should be lower than newUserIndex for valid creation
+  if (creatorIndex >= newUserIndex) {
     // Creator cannot create same level or higher level
     console.log('🔴 Creator cannot create same level or higher level');
     return { isDirectSubordinate: false, upperRole: null, skipLevel: 0 };
   }
   
-  const skipLevel = creatorIndex - newUserIndex;
+  const skipLevel = newUserIndex - creatorIndex;
   console.log('🔍 Skip level calculated:', skipLevel);
   
   if (skipLevel === 1) {
-    // Direct subordinate (e.g., SUB_OWNER creates SUP_ADM)
+    // Direct subordinate (e.g., OWNER creates SUB_OWN)
     console.log('✅ Direct subordinate - no modal needed');
     return { isDirectSubordinate: true, upperRole: null, skipLevel: 1 };
   } else if (skipLevel > 1) {
-    // Skip hierarchy (e.g., SUB_OWNER creates MASTER)
+    // Skip hierarchy (e.g., OWNER creates ADMIN)
     // Find the immediate parent role
-    const immediateParentIndex = newUserIndex + 1;
+    const immediateParentIndex = newUserIndex - 1;
     const immediateParentRole = Object.keys(ROLE_HIERARCHY).find(role => 
       ROLE_HIERARCHY[role as Role] === immediateParentIndex
     );

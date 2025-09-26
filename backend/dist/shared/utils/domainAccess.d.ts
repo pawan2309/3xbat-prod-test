@@ -1,13 +1,12 @@
 import { Role } from './roleHierarchy';
 export declare const DOMAIN_CONFIG: {
-    readonly OPERATING_PANEL: "operate.3xbat.com";
-    readonly OWNER: "owner.3xbat.com";
-    readonly SUB_OWN: "subowner.3xbat.com";
-    readonly SUP_ADM: "superadmin.3xbat.com";
+    readonly OWNER: "operate.3xbat.com";
+    readonly SUB_OWN: "subown.3xbat.com";
+    readonly SUP_ADM: "supadm.3xbat.com";
     readonly ADMIN: "admin.3xbat.com";
-    readonly SUB_ADM: "sub.3xbat.com";
+    readonly SUB_ADM: "subadm.3xbat.com";
     readonly MAS_AGENT: "master.3xbat.com";
-    readonly SUP_AGENT: "superagent.3xbat.com";
+    readonly SUP_AGENT: "supagent.3xbat.com";
     readonly AGENT: "agent.3xbat.com";
     readonly USER: "3xbat.com";
 };

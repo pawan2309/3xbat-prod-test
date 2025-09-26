@@ -128,8 +128,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const commissionShareData = {
           cshare: parseFloat(casinoShare) || 0,
           casinocommission: parseFloat(casinocommission) || 0,
-          ishare: parseFloat(ishare) || 0,
-          mobileshare: parseFloat(mobileshare) || 0
+          share: parseFloat(ishare) || 0
         };
 
         // Check if commission share exists and update/create accordingly
@@ -148,8 +147,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               userId: id,
               cshare: commissionShareData.cshare,
               casinocommission: commissionShareData.casinocommission,
-              ishare: commissionShareData.ishare,
-              mobileshare: commissionShareData.mobileshare
+              share: commissionShareData.share
             }
           });
         }

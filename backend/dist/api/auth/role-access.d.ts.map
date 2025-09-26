@@ -1,1 +1,1 @@
-{"version":3,"file":"role-access.d.ts","sourceRoot":"","sources":["../../../src/api/auth/role-access.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AASvD,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,iBA6G9E"}
+{"version":3,"file":"role-access.d.ts","sourceRoot":"","sources":["../../../src/api/auth/role-access.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AASvD,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,gBA6G9E"}

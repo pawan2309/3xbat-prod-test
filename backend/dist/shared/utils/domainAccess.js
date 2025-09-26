@@ -9,30 +9,31 @@ exports.getAccessibleDomains = getAccessibleDomains;
 exports.isUserManagementRole = isUserManagementRole;
 exports.isOperatingPanelRole = isOperatingPanelRole;
 exports.isUserPackageRole = isUserPackageRole;
+exports.getPanelType = getPanelType;
+exports.getRoleConfiguration = getRoleConfiguration;
 // Domain configuration
 exports.DOMAIN_CONFIG = {
-    OPERATING_PANEL: 'operate.3xbat.com',
-    OWNER: 'owner.3xbat.com',
-    SUB_OWN: 'subowner.3xbat.com',
-    SUP_ADM: 'superadmin.3xbat.com',
-    ADMIN: 'admin.3xbat.com',
-    SUB_ADM: 'sub.3xbat.com',
-    MAS_AGENT: 'master.3xbat.com',
-    SUP_AGENT: 'superagent.3xbat.com',
-    AGENT: 'agent.3xbat.com',
-    USER: '3xbat.com' // Separate package
+    OWNER: 'operate.3xbat.com', // CONTROL PANEL
+    SUB_OWN: 'subown.3xbat.com', // USER PANEL
+    SUP_ADM: 'supadm.3xbat.com', // USER PANEL
+    ADMIN: 'admin.3xbat.com', // USER PANEL
+    SUB_ADM: 'subadm.3xbat.com', // USER PANEL
+    MAS_AGENT: 'master.3xbat.com', // USER PANEL
+    SUP_AGENT: 'supagent.3xbat.com', // USER PANEL
+    AGENT: 'agent.3xbat.com', // USER PANEL
+    USER: '3xbat.com' // CLIENT PANEL
 };
 // Access control rules - each role has their own domain
 exports.DOMAIN_ACCESS_RULES = {
-    OWNER: [exports.DOMAIN_CONFIG.OPERATING_PANEL], // OWNER can only access operating panel
-    SUB_OWN: [exports.DOMAIN_CONFIG.SUB_OWN],
-    SUP_ADM: [exports.DOMAIN_CONFIG.SUP_ADM],
-    ADMIN: [exports.DOMAIN_CONFIG.ADMIN],
-    SUB_ADM: [exports.DOMAIN_CONFIG.SUB_ADM],
-    MAS_AGENT: [exports.DOMAIN_CONFIG.MAS_AGENT],
-    SUP_AGENT: [exports.DOMAIN_CONFIG.SUP_AGENT],
-    AGENT: [exports.DOMAIN_CONFIG.AGENT],
-    USER: [exports.DOMAIN_CONFIG.USER] // Separate package domain
+    OWNER: [exports.DOMAIN_CONFIG.OWNER], // OWNER can only access control panel
+    SUB_OWN: [exports.DOMAIN_CONFIG.SUB_OWN], // User panel
+    SUP_ADM: [exports.DOMAIN_CONFIG.SUP_ADM], // User panel
+    ADMIN: [exports.DOMAIN_CONFIG.ADMIN], // User panel
+    SUB_ADM: [exports.DOMAIN_CONFIG.SUB_ADM], // User panel
+    MAS_AGENT: [exports.DOMAIN_CONFIG.MAS_AGENT], // User panel
+    SUP_AGENT: [exports.DOMAIN_CONFIG.SUP_AGENT], // User panel
+    AGENT: [exports.DOMAIN_CONFIG.AGENT], // User panel
+    USER: [exports.DOMAIN_CONFIG.USER] // Client panel
 };
 /**
  * Check if a user can access a specific domain
@@ -92,5 +93,35 @@ function isOperatingPanelRole(role) {
  */
 function isUserPackageRole(role) {
     return role === 'USER';
+}
+/**
+ * Get the panel type for a role
+ */
+function getPanelType(role) {
+    switch (role) {
+        case 'OWNER':
+            return 'control-panel';
+        case 'SUB_OWN':
+        case 'SUP_ADM':
+        case 'ADMIN':
+        case 'SUB_ADM':
+        case 'MAS_AGENT':
+        case 'SUP_AGENT':
+        case 'AGENT':
+            return 'user-panel';
+        case 'USER':
+            return 'client-panel';
+        default:
+            return 'client-panel';
+    }
+}
+/**
+ * Get the correct domain and panel for a role
+ */
+function getRoleConfiguration(role) {
+    return {
+        domain: getPrimaryDomain(role),
+        panel: getPanelType(role)
+    };
 }
 //# sourceMappingURL=domainAccess.js.map

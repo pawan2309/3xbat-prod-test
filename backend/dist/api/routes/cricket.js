@@ -160,9 +160,9 @@ router.get('/tv/html', async (req, res) => {
                 .replace(/href='\.\/css\//g, "href='https://mis3.sqmr.xyz/css/")
                 .replace(/src='\.\/js\//g, "src='https://mis3.sqmr.xyz/js/")
                 // Replace HLS stream URLs to use our proxy
-                .replace(/https:\/\/mis3\.sqmr\.xyz:3334\/app\//g, 'http://localhost:4000/api/cricket/tv/stream/')
+                .replace(/https:\/\/mis3\.sqmr\.xyz:3334\/app\//g, `${process.env.API_BASE_URL || 'http://13.60.145.70:4000'}/api/cricket/tv/stream/`)
                 // Replace the HLS stream URL in JavaScript (handle multiline with dotall flag)
-                .replace(/"file":\s*"https:\/\/mis3\.sqmr\.xyz:3334\/app\/"\s*\+\s*eventId\s*\+\s*"\/llhls\.m3u8"/gs, '"file": "http://localhost:4000/api/cricket/tv/stream/" + eventId + "/llhls.m3u8"');
+                .replace(/"file":\s*"https:\/\/mis3\.sqmr\.xyz:3334\/app\/"\s*\+\s*eventId\s*\+\s*"\/llhls\.m3u8"/gs, `"file": "${process.env.API_BASE_URL || 'http://13.60.145.70:4000'}/api/cricket/tv/stream/" + eventId + "/llhls.m3u8"`);
             res.setHeader('Content-Type', 'text/html');
             res.send(correctedHtml);
         }

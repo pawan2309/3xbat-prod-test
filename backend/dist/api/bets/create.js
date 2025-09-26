@@ -1,11 +1,25 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = handler;
+const auth_1 = require("../../lib/auth");
 async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, message: 'Method not allowed' });
     }
     try {
+        // CRITICAL: Add authentication
+        const token = req.headers.authorization?.replace('Bearer ', '') || req.cookies.betx_session;
+        if (!token) {
+            return res.status(401).json({ success: false, message: 'Authentication required' });
+        }
+        const decoded = (0, auth_1.verifyToken)(token);
+        if (!decoded) {
+            return res.status(401).json({ success: false, message: 'Invalid token' });
+        }
+        // OWNER is restricted to control panel only
+        if (decoded.role === 'OWNER') {
+            return res.status(403).json({ success: false, message: 'Access denied - OWNER restricted to control panel' });
+        }
         const { userId, matchId, marketId, selection, stake, odds, betType, marketData, oddsSnapshot, oddsTier, availableStake, minStake, maxStake } = req.body;
         // Validate required fields
         if (!userId || !matchId || !marketId || !selection || !stake || !odds || !betType) {

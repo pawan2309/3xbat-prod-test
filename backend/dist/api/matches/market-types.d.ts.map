@@ -1,1 +1,1 @@
-{"version":3,"file":"market-types.d.ts","sourceRoot":"","sources":["../../../src/api/matches/market-types.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAG5D,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,iBAwC9E"}
+{"version":3,"file":"market-types.d.ts","sourceRoot":"","sources":["../../../src/api/matches/market-types.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,cAAc,EAAE,eAAe,EAAE,MAAM,MAAM,CAAC;AAG5D,wBAA8B,OAAO,CAAC,GAAG,EAAE,cAAc,EAAE,GAAG,EAAE,eAAe,gBAwC9E"}

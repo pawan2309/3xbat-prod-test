@@ -1,31 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/router";
 import Layout from "../components/Layout";
-import { authService } from "../lib/auth";
 
 function Home() {
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const checkAuthAndRedirect = async () => {
-      try {
-        const isAuthenticated = await authService.checkSession();
-        
-        if (isAuthenticated) {
-          router.push('/dashboard');
-        } else {
-          router.push('/login');
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-        router.push('/login');
-      } finally {
-        setIsChecking(false);
-      }
-    };
-
-    checkAuthAndRedirect();
+    // Simple redirect to dashboard - authentication is now handled by Layout component
+    router.push('/dashboard');
   }, [router]);
 
   return (
@@ -38,7 +20,7 @@ function Home() {
         fontSize: '18px',
         color: '#6b7280'
       }}>
-        {isChecking ? 'Checking authentication...' : 'Redirecting...'}
+        Redirecting to dashboard...
       </div>
     </Layout>
   );

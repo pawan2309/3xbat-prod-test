@@ -5,11 +5,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.unifiedRoleAccess = exports.unifiedSessionCheck = exports.unifiedLogout = exports.unifiedLogin = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const client_1 = require("@prisma/client");
+const prisma_1 = require("../../lib/prisma");
 const roleHierarchy_1 = require("../../shared/utils/roleHierarchy");
 const domainAccess_1 = require("../../shared/utils/domainAccess");
-const prisma = new client_1.PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'L9vY7z!pQkR#eA1dT3u*Xj5@FbNmC2Ws';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+}
 // Unified login handler for all panels
 const unifiedLogin = async (req, res) => {
     try {
@@ -21,7 +23,7 @@ const unifiedLogin = async (req, res) => {
             });
         }
         // Find user in database
-        const user = await prisma.user.findFirst({
+        const user = await prisma_1.prisma.user.findFirst({
             where: {
                 username: username
             },
@@ -32,7 +34,7 @@ const unifiedLogin = async (req, res) => {
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid username or password'
+                message: 'Invalid username. Please check your username and try again.'
             });
         }
         // Check password (temporarily using plain text for existing users)
@@ -40,14 +42,14 @@ const unifiedLogin = async (req, res) => {
         if (user.password !== password) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid username or password'
+                message: 'Wrong password. Please check your password and try again.'
             });
         }
         // Check if user is active
         if (user.status !== 'ACTIVE') {
             return res.status(401).json({
                 success: false,
-                message: 'Account is inactive. Please contact administrator.'
+                message: 'Not a valid user. Your account is inactive. Please contact administrator.'
             });
         }
         // Generate JWT token
@@ -181,7 +183,6 @@ exports.unifiedLogout = unifiedLogout;
 // Unified session check handler
 const unifiedSessionCheck = async (req, res) => {
     try {
-        console.log('🔍 Session check: Request cookies:', req.cookies);
         const authToken = req.cookies.betx_session;
         console.log('🔍 Session check: Auth token present:', !!authToken);
         if (!authToken) {
@@ -206,7 +207,7 @@ const unifiedSessionCheck = async (req, res) => {
         }
         // Get user from database to ensure they still exist and are active
         const userId = decoded.user?.id || decoded.userId;
-        const user = await prisma.user.findUnique({
+        const user = await prisma_1.prisma.user.findUnique({
             where: { id: userId },
             include: {
                 userCommissionShare: true
@@ -229,7 +230,6 @@ const unifiedSessionCheck = async (req, res) => {
         // Get role-based navigation and permissions
         console.log('🔍 Getting navigation for role:', user.role);
         const navigation = (0, roleHierarchy_1.getRoleBasedNavigation)(user.role);
-        console.log('🔍 Navigation result:', Object.keys(navigation));
         const accessibleRoles = (0, roleHierarchy_1.getAccessibleRoles)(user.role);
         return res.status(200).json({
             success: true,
@@ -281,7 +281,7 @@ const unifiedRoleAccess = async (req, res) => {
             });
         }
         const userId = decoded.user?.id || decoded.userId;
-        const user = await prisma.user.findUnique({
+        const user = await prisma_1.prisma.user.findUnique({
             where: { id: userId },
             select: {
                 id: true,
